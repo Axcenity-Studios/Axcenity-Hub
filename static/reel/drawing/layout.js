@@ -41,15 +41,24 @@ export function bodyOf(frame, titleBar) {
   return rect(frame.x, frame.y + titleBar, frame.width, frame.height - titleBar);
 }
 
-/** Every rectangle the workspace needs, frozen. Panels are docked places; windows are whole windows. */
-export function workspaceLayout(size) {
+/** The bottom dock's usual share of the left column (the Scene place has the rest). */
+export const BOTTOM_SHARE = 0.3;
+
+/**
+ * Every rectangle the workspace needs, frozen. Panels are docked places; windows
+ * are whole windows. `bottomShare` is the bottom dock's share of the left column
+ * (scenes move the split); in compact mode `wide` (0 to 1) widens the Scene
+ * place over the Explorer.
+ */
+export function workspaceLayout(size, bottomShare = BOTTOM_SHARE, wide = 0) {
   const stage = stageRect(size);
   const u = unitFor(size, stage);
   const titleBar = 26 * u;
   const tabBar = 26 * u;
   const main = size.compact ? stage : rect(stage.x, stage.y, stage.width * 0.76, stage.height * 0.9);
   const body = bodyOf(main, titleBar);
-  const split = body.x + body.width * (size.compact ? 0.58 : 0.68);
+  const share = size.compact ? 0.58 + 0.42 * wide : 0.68;
+  const split = body.x + body.width * share;
   const left = rect(body.x, body.y, split - body.x, body.height);
   const right = rect(split, body.y, body.x + body.width - split, body.height);
 
@@ -57,7 +66,7 @@ export function workspaceLayout(size) {
     return Object.freeze({ stage, u, titleBar, tabBar, main, scene: left, explorer: right });
   }
 
-  const scene = rect(left.x, left.y, left.width, left.height * 0.7);
+  const scene = rect(left.x, left.y, left.width, left.height * (1 - bottomShare));
   const bottom = rect(left.x, scene.y + scene.height, left.width, left.height - scene.height);
   const explorer = rect(right.x, right.y, right.width, right.height * 0.48);
   const properties = rect(right.x, explorer.y + explorer.height, right.width, right.height - explorer.height);
@@ -90,4 +99,9 @@ export function workspaceLayout(size) {
     propertiesWindow,
     consoleWindow,
   });
+}
+
+/** A docked place's content box: the place less its tab bar and border (as editor.js panel() returns it). */
+export function innerOf(box, tabBar) {
+  return rect(box.x + 1, box.y + tabBar, box.width - 2, box.height - tabBar - 1);
 }

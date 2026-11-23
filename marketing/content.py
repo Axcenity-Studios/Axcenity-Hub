@@ -251,6 +251,59 @@ EDITOR_CONSOLE = {
 EDITOR_TERRAIN = {"tabs": ["Sculpt", "Materials"], "tools": ["Raise / Lower", "Smooth", "Flatten"]}
 EDITOR_ASSETS = ["scorch.png", "grass.png", "rock.png", "Pad.glb", "theme.ogg"]
 
+# The reel's Toolbox (crates/editor-toolbox/src/lib.rs): its kind tabs, toolbar, source
+# chips, cards ("Source · category · maps") and the messages a drop onto the Scene View
+# prints (app/toolbox.rs, install.rs). The cards' names are illustrative search results.
+REEL_TOOLBOX = {
+    "button": "Toolbox",  # the Assets pane's button that opens it
+    "kinds": ["Textures", "Skies", "Models", "Sounds"],
+    "toolbar": ["Search", "Packs", "All sources"],
+    "placeholder": "Search materials",
+    "query": "rock",
+    "search": "Search",
+    "options": ["2K", "JPG"],
+    "chips": ["All", "ambientCG 12", "Poly Haven 12"],
+    "searching": "Searching…",
+    "get": "Get",
+    # Each card: name, detail line, and the pattern its picture is drawn with.
+    "cards": [
+        ("Rock 030", "ambientCG · Rock · Color, Normal", "rock"),
+        ("Rocks 011", "ambientCG · Rock · Color, Normal", "pebbles"),
+        ("Rock Wall 08", "Poly Haven · Rock · Color, Normal", "wall"),
+        ("Cliff Strata", "Poly Haven · Rock · Color, Rough", "strata"),
+        ("Gravel 022", "ambientCG · Ground · Color, Normal", "gravel"),
+        ("Slate Plates", "Poly Haven · Rock · Color, Normal", "slate"),
+        ("Rock 051", "ambientCG · Rock · Color, Normal", "rock"),
+        ("Rocks 004", "ambientCG · Rock · Color, Normal", "pebbles"),
+    ],
+    "downloading": "Downloading Rock 030…",
+    "cancel": "Cancel",
+}
+# What the Console prints for that drop, with the clock's time.
+REEL_TOOLBOX_LOG = [
+    ("12:05:02", "Downloading Rock 030…", "info"),
+    ("12:05:03", "Saved Rock 030 (CC0) in assets/textures/Rock030.", "info"),
+]
+
+# The reel's Animation pane (crates/editor/src/animation/: chrome.rs, clip_ui.rs,
+# property_editor/dope_sheet.rs, transport.rs), keying a Wave clip on the default
+# humanoid's bones (assets/characters/humanoid/rig.py) at 30 fps.
+REEL_ANIMATION = {
+    "views": ["Logic", "Clips & Rigging", "Sequencer"],
+    "new": "+ New",
+    "record": "Record",
+    "bones": "Show Bones",
+    "preview": "Preview on Character",
+    "recording": "Recording: moving something in the preview sets a key at {t} s",
+    "modes": ["Dope sheet", "Curves"],
+    "rows": ["RightUpperArm · Bone", "RightLowerArm · Bone", "Spine · Bone", "Head · Bone"],
+    "clip": "Wave",
+    "fps": 30,
+}
+
+# A script tab opens beside the Scene View (layout.rs sync_scripts), showing Blocks as a Graph.
+REEL_SCRIPT = {"tab": "Script", "views": ["Code", "Blocks", "Graph"]}
+
 # The Luau a "When touched → Spawn decal" block script becomes. The shape follows the
 # engine's translator (crates/blocks-runtime/src/translate.rs, WhenTouched and SpawnDecal)
 # and the Workspace:SpawnDecal API (texture path, CFrame, size, lifetime).
@@ -265,6 +318,60 @@ part.Touched:Connect(function(otherPart)
 end)"""
 # Phones show the part from the Connect call down (no comment, no lookup line).
 LUAU_COMPACT_FROM = 3
+
+# The Terrain Studio's and Scatter pane's words, drawn by the World pillar's loop and the reel.
+TERRAIN_LABELS = {
+    "viewport": "Scene View",
+    "panes": ["Terrain", "Scatter"],
+    "studio": "Terrain Studio",
+    "tabs": ["Sculpt", "Materials", "Terrain"],
+    "tools": ["Raise / Lower", "Smooth", "Flatten", "Sculpt"],
+    "brush": [
+        ("Size", "12 studs", 0.45),
+        ("Strength", "0.5", 0.5),
+        ("Falloff", "0.6", 0.6),
+    ],
+    "scatter": "Scatter",
+    "palette": "Palette",
+    "paint": "Paint",
+    "painting": "Stop painting",
+    "scatter_brush": [("Size", "12 studs", 0.45), ("Density", "8 per 100 studs²", 0.3)],
+    "items": [("Tree", "25%"), ("Bush", "25%"), ("Flower", "25%"), ("Grass", "25%")],
+}
+
+# The block graph's and its Luau's words, drawn by the Logic pillar's loop and the reel.
+LOGIC_LABELS = {
+    "graph": "Graph",
+    "code": "Luau",
+    # Each node: title, header hue, then its rows as (label, value, pin type, side).
+    "nodes": [
+        {
+            "title": "When Touched",
+            "hue": "events",
+            "rows": [
+                ("Part", "Pad", "object", "in"),
+                ("Filter", "Any Part", "", "field"),
+            ],
+            "outputs": [("", "exec"), ("Other Part", "object"), ("Player", "any")],
+        },
+        {
+            "title": "Spawn Decal",
+            "hue": "looks",
+            "rows": [
+                ("", "", "exec", "in"),
+                ("Texture", "scorch.png", "text", "in"),
+                ("Position", "Other Part.Position", "vector", "wired"),
+                ("Facing", "0, 1, 0", "vector", "in"),
+                ("Size", "2.5", "number", "in"),
+                ("Seconds", "4", "number", "in"),
+            ],
+            "outputs": [("", "exec"), ("Decal", "object")],
+        },
+    ],
+    # The code as the editor colours it: lines of (kind, text) tokens.
+    "lines": drawings.luau_lines(LUAU_SAMPLE),
+    "compact_from": LUAU_COMPACT_FROM,
+}
 
 MEDIA = {
     "renderer": Media(
@@ -312,24 +419,7 @@ MEDIA = {
         drawn="marketing/media/terrain.html",
         loop="terrain",
         display=FRAME_DISPLAY,
-        labels={
-            "viewport": "Scene View",
-            "panes": ["Terrain", "Scatter"],
-            "studio": "Terrain Studio",
-            "tabs": ["Sculpt", "Materials", "Terrain"],
-            "tools": ["Raise / Lower", "Smooth", "Flatten", "Sculpt"],
-            "brush": [
-                ("Size", "12 studs", 0.45),
-                ("Strength", "0.5", 0.5),
-                ("Falloff", "0.6", 0.6),
-            ],
-            "scatter": "Scatter",
-            "palette": "Palette",
-            "paint": "Paint",
-            "painting": "Stop painting",
-            "scatter_brush": [("Size", "12 studs", 0.45), ("Density", "8 per 100 studs²", 0.3)],
-            "items": [("Tree", "25%"), ("Bush", "25%"), ("Flower", "25%"), ("Grass", "25%")],
-        },
+        labels=TERRAIN_LABELS,
     ),
     "logic": Media(
         key="logic",
@@ -356,38 +446,7 @@ MEDIA = {
         loop="logic",
         display=FRAME_DISPLAY,
         code=LUAU_SAMPLE,
-        labels={
-            "graph": "Graph",
-            "code": "Luau",
-            # Each node: title, header hue, then its rows as (label, value, pin type, side).
-            "nodes": [
-                {
-                    "title": "When Touched",
-                    "hue": "events",
-                    "rows": [
-                        ("Part", "Pad", "object", "in"),
-                        ("Filter", "Any Part", "", "field"),
-                    ],
-                    "outputs": [("", "exec"), ("Other Part", "object"), ("Player", "any")],
-                },
-                {
-                    "title": "Spawn Decal",
-                    "hue": "looks",
-                    "rows": [
-                        ("", "", "exec", "in"),
-                        ("Texture", "scorch.png", "text", "in"),
-                        ("Position", "Other Part.Position", "vector", "wired"),
-                        ("Facing", "0, 1, 0", "vector", "in"),
-                        ("Size", "2.5", "number", "in"),
-                        ("Seconds", "4", "number", "in"),
-                    ],
-                    "outputs": [("", "exec"), ("Decal", "object")],
-                },
-            ],
-            # The code as the editor colours it: lines of (kind, text) tokens.
-            "lines": drawings.luau_lines(LUAU_SAMPLE),
-            "compact_from": LUAU_COMPACT_FROM,
-        },
+        labels=LOGIC_LABELS,
     ),
     "editor": Media(
         key="editor",
@@ -443,17 +502,27 @@ MEDIA = {
         kind="illustrative",
         caption="Illustrative · editor recreation",
         alt=(
-            "A looping film, about 18 seconds long, recreating the Axcenity editor. The words "
+            "A looping film, about 26 seconds long, recreating the Axcenity editor. The words "
             "Scene View, Explorer and Properties appear in large type, then shrink into the tabs "
             "of panels that spring together into the editor's default layout: the 3D Scene View "
             "with the Console docked below it, and beside them the Explorer's tree of Workspace, "
-            "Arena and Pad above the Properties. A pointer then drags the Properties tab out of "
+            "Arena and Pad above the Properties. A pointer drags the Properties tab out of "
             "the window onto a second monitor to the right, where it shows the selected Pad's "
             "Data, Appearance, Behavior and Part settings, and drags the Console onto a third "
             "monitor to the left. The Terrain and Assets tabs that shared their places take "
-            "over. The workspace holds in that layout, then gives way to the Axcenity logo "
-            "before the film starts again. On narrow screens it shows only the Scene View and "
-            "the Explorer, docked side by side."
+            "over. Next the pointer opens the Toolbox, searches its textures for rock, and "
+            "drags a rock texture from the results onto the Pad, which takes it on while the "
+            "Console reports the download. In the Animation tab it records a Wave clip on a "
+            "character, keying its arm, spine and head bones in the dope sheet, then plays it "
+            "back as the character waves. The Scene View then shows a blocked-out gallery in "
+            "grey that a scan line wipes into the ray-traced render of the same room. In the "
+            "Terrain pane the pointer picks Raise / Lower and brushes hills up from flat ground, "
+            "then paints trees, bushes, flowers and grass over them with Scatter. Last, a "
+            "script tab opens a When Touched node for the Pad and a Spawn Decal node, a wire "
+            "joins them, the Luau they become types out below, and a pulse runs along the "
+            "wire. The workspace then gives way to the Axcenity logo before the film starts "
+            "again. On narrow screens it shows the Scene View beside the Explorer, and the "
+            "Scene View then widens to show each step on its own."
         ),
         provenance=(
             "Drawn live on a canvas by static/reel/ in the site's colour tokens, whose dark values "
@@ -462,7 +531,13 @@ MEDIA = {
             "the Properties pane follows crates/editor/src/properties.rs and Part's defaults in "
             "crates/core/src/class.rs; the Console follows output.rs, console.rs and the "
             "project-opened message in app/session.rs; the window title follows the editor's "
-            '"<project> - Axcenity Editor".'
+            '"<project> - Axcenity Editor". The Toolbox follows crates/editor-toolbox/src/lib.rs '
+            "and app/toolbox.rs; the Animation pane follows crates/editor/src/animation/ "
+            "(chrome.rs, clip_ui.rs, property_editor/dope_sheet.rs, transport.rs) and the "
+            "humanoid's bone names in assets/characters/humanoid/rig.py, with the character "
+            "drawn as a simple mannequin; the renderer wipe's lit end is the Showcase-Renderer "
+            "capture (its 1920 px WebP derivative) and its grey end is drawn over the same "
+            "layout; the terrain and the blocks reuse the World and Logic loops' drawings."
         ),
         drawn="marketing/media/reel.html",
         display={
@@ -480,12 +555,20 @@ MEDIA = {
             "console": EDITOR_CONSOLE,
             "terrain": EDITOR_TERRAIN,
             "assets": EDITOR_ASSETS,
+            "toolbox": REEL_TOOLBOX,
+            "toolbox_log": REEL_TOOLBOX_LOG,
+            "animation": REEL_ANIMATION,
+            "script": REEL_SCRIPT,
+            "terrain_studio": TERRAIN_LABELS,
+            "logic": LOGIC_LABELS,
             # Each segment of the timeline by its module id, for the scrubber's spoken position.
             "segments": {
                 "workspace": "Scene 1, Workspace",
-                "renderer": "Scene 2, Renderer",
-                "world": "Scene 3, World",
-                "logic": "Scene 4, Logic",
+                "toolbox": "Scene 2, Toolbox",
+                "animation": "Scene 3, Animation",
+                "renderer": "Scene 4, Renderer",
+                "world": "Scene 5, World",
+                "logic": "Scene 6, Logic",
                 "lockup": "Logo",
             },
         },
@@ -555,6 +638,8 @@ class Item:
     title: str
     body: str
     number: str = ""
+    # A line icon from partials/icon.html, drawn beside it (decorative).
+    icon: str = ""
 
 
 HOME_HERO = {
@@ -631,20 +716,20 @@ HOME_WORKFLOW = {
     "eyebrow": "Workflow",
     "title": "Build, script, test, export.",
     "steps": [
-        Item("Build", "Parts, models and terrain in the 3D Scene.", "01"),
-        Item("Script", "Luau or visual blocks, on the server and on each player.", "02"),
-        Item("Test", "Press Play (F5) to play your game inside the editor.", "03"),
-        Item("Export", "Standalone games for Windows, macOS and Linux.", "04"),
+        Item("Build", "Parts, models and terrain in the 3D Scene.", "01", "build"),
+        Item("Script", "Luau or visual blocks, on the server and on each player.", "02", "script"),
+        Item("Test", "Press Play (F5) to play your game inside the editor.", "03", "test"),
+        Item("Export", "Standalone games for Windows, macOS and Linux.", "04", "export"),
     ],
 }
 
 HOME_FACTS = {
     "title": "At a glance",
     "stats": [
-        Item("Free", "Open source under the Apache 2.0 licence. No royalties."),
-        Item("Rust", "A native, memory-safe core."),
-        Item("3 OS", "Windows, macOS and Linux desktops."),
-        Item("Alpha", "Early days: expect breaking changes."),
+        Item("Free", "Open source under the Apache 2.0 licence. No royalties.", icon="free"),
+        Item("Rust", "A native, memory-safe core.", icon="rust"),
+        Item("3 OS", "Windows, macOS and Linux desktops.", icon="os"),
+        Item("Alpha", "Early days: expect breaking changes.", icon="alpha"),
     ],
 }
 

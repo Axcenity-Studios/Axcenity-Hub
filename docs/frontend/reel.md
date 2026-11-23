@@ -16,34 +16,38 @@ Chromium. The colour rules are in [theme.md](theme.md).
 | `static/reel/timeline.js` | The registered segments, scene markers, `wrap`, `segmentAt`, `nextMarker`/`previousMarker`, the clock |
 | `static/reel/easing.js` | Pure helpers: `clamp`, `lerp`, `progress`, `expoOut`, `spring` (closed form), `lerpRect`, `rect` |
 | `static/reel/canvas.js` | Pixel ratio (capped at 2), logical size (the layout box, so transforms don't shrink it), `fit`, `useLogicalPixels`, `groupLayer` (group opacity, shared with the loops), `readPalette`, `tint`, `FONTS` |
-| `static/reel/scenes/*.js` | One module per segment: `workspace`, `renderer`, `world`, `logic`, `lockup` |
-| `static/reel/drawing/layout.js` | Where everything goes: `stageRect`, `workspaceLayout` (the dock, the two floating windows), `COMPACT_TOP`/`COMPACT_ASPECT` |
-| `static/reel/drawing/editor.js` | The editor's pieces: windows, tab bars, panels, the viewport, Explorer, Properties, Console, Terrain and Assets panes, the pointer |
-| `static/reel/drawing/blocks.js`, `code.js`, `terrain.js` | The block Graph view, typed Luau, and the heightfield, brush and plants with the Terrain and Scatter panes. Drawn by the pillars' loops now ([media.md](media.md)), ready for Scenes 3 and 4 |
+| `static/reel/scenes/*.js` | One module per segment: `workspace`, `toolbox`, `animation`, `renderer`, `world`, `logic`, `lockup` |
+| `static/reel/drawing/layout.js` | Where everything goes: `stageRect`, `workspaceLayout` (the dock with a movable bottom split, the two floating windows, compact widening), `innerOf`, `BOTTOM_SHARE`, `COMPACT_TOP`/`COMPACT_ASPECT` |
+| `static/reel/drawing/editor.js` | The editor's pieces: windows, tab bars, panels, buttons, the viewport (and the Pad's rock texture), Explorer, Properties, Console (lines arriving), Terrain and Assets panes (the Toolbox button), the pointer |
+| `static/reel/drawing/toolbox.js`, `animation.js`, `renderer.js` | The Toolbox pane and its cards, the Animation pane (the Wave clip, the mannequin, the dope sheet, the transport), and the renderer wipe (the drawn grey room, the capture, the scan line) |
+| `static/reel/drawing/blocks.js`, `code.js`, `terrain.js` | The block Graph view, typed Luau, and the heightfield, brush and plants with the Terrain and Scatter panes. Shared by the pillars' loops ([media.md](media.md)) and Scenes 5 and 6 |
 | `static/reel/loops/` | The feature pillars' loops: the same contract plus a still frame ([media.md](media.md)) |
-| `marketing/content.py` | `MEDIA["reel"]`: caption, description (its `alt`), provenance, the drawn words (`labels`); `REEL_CONTROLS` |
+| `marketing/content.py` | `MEDIA["reel"]`: caption, description (its `alt`), provenance, the drawn words (`labels`, with `REEL_TOOLBOX`, `REEL_ANIMATION`, `REEL_SCRIPT`, `TERRAIN_LABELS`, `LOGIC_LABELS`); `REEL_CONTROLS` |
+| `templates/marketing/media/reel.html` `data-capture` | The renderer capture's 1920 px WebP derivative, for Scene 4's wipe |
 
 ## The timeline
 
 | Segment | Time | Marker | Now |
 |---|---|---|---|
 | `workspace` (Scene 1) | 0–4 s | 0 s | Kinetic type, panels spring into the dock, the pointer drags Properties and the Console out |
-| `renderer` (Scene 2) | 4–8 s | 4 s | The finished workspace (Phase 4: the graybox-to-lit wipe) |
-| `world` (Scene 3) | 8–12 s | 8 s | The finished workspace (Phase 4: terrain and foliage) |
-| `logic` (Scene 4) | 12–16 s | 12 s | The finished workspace (Phase 4: blocks and Luau) |
-| `lockup` (outro) | 16–18 s | none | Workspace shrinks and fades as one layer, wordmark comes up, then fades to the empty first frame |
+| `toolbox` (Scene 2) | 4–8 s | 4 s | The Toolbox opens, searches "rock", a card is dragged onto the Pad |
+| `animation` (Scene 3) | 8–12 s | 8 s | A Wave clip is keyed on the character, then played back |
+| `renderer` (Scene 4) | 12–16 s | 12 s | A grey room builds up and a scan line wipes it into the ray-traced capture |
+| `world` (Scene 5) | 16–20 s | 16 s | Raise / Lower brushes hills up, Scatter paints plants over them |
+| `logic` (Scene 6) | 20–24 s | 20 s | When Touched → Spawn Decal wired by the pointer, its Luau typing out, a pulse |
+| `lockup` (outro) | 24–26 s | none | The Logic scene's last frame shrinks and fades as one layer, wordmark comes up, then fades to the empty first frame |
 
-- `DURATION` is 18 s. `wrap(t)` maps any time into [0, 18): **18 s is
+- `DURATION` is 26 s. `wrap(t)` maps any time into [0, 26): **26 s is
   the loop's first frame**, and anything not finite is 0.
-- **Scene markers** are the four scene starts (`MARKERS`: 0, 4, 8, 12).
-  They're the scrubber's four ticks and the only stops for ← and →. The
+- **Scene markers** are the six scene starts (`MARKERS`: 0, 4, 8, 12, 16,
+  20). They're the scrubber's six ticks and the only stops for ← and →. The
   outro is a segment but not a scene, so it has no marker. The track's
   own ends are the timeline's start and end.
-- → goes to the next marker; from scene 4 or the outro it wraps to 0.
+- → goes to the next marker; from scene 6 or the outro it wraps to 0.
   ← goes to the current scene's start, or the one before within 0.3 s
   of a start (`BACK_GRACE`); before the first scene's grace it wraps to
-  scene 4.
-- `LOCKUP_FRAME` (17 s) is the logo fully shown. Reduced motion opens on
+  scene 6.
+- `LOCKUP_FRAME` (25 s) is the logo fully shown. Reduced motion opens on
   it.
 - The last frame (empty page) is Scene 1's first, so the wrap has no
   visible reset.
@@ -63,15 +67,16 @@ export default Object.freeze({
 
 `timeline.js` imports each module and checks the table when it loads:
 every segment frozen, an id, a finite start, a positive duration,
-`render` taking three arguments, no gaps or overlaps, ending at 18 s.
-**To replace a scene (Phase 4), replace its module**; the timeline and
-player don't change. One scene becomes one Remotion `<Sequence>`; compact
+`render` taking three arguments, no gaps or overlaps, ending at 26 s.
+**To change a scene, change its module**; the timeline and player don't
+change (but the next scene starts from its end: [reel-scenes.md](reel-scenes.md)). One scene becomes one Remotion `<Sequence>`; compact
 mode becomes a prop.
 
 - **`context`** (frozen, rebuilt by the player): `g` (the 2D context,
   already mapped to logical pixels), `colors` (the tokens, camelCase),
   `labels` (the words from `content.py`, deep-frozen), `images`
-  (`wordmark`, tinted `fg-strong`, or `null` until loaded), and
+  (`wordmark`, tinted `fg-strong`, and `capture`, the renderer capture for
+  Scene 4; each `null` until loaded), and
   `layer(alpha, draw)`: draws `draw(layerContext)` into an offscreen
   buffer (with `g`'s current transform) and composites it at `alpha` as
   one picture. Use it to fade anything made of overlapping pieces;
@@ -102,57 +107,21 @@ mode becomes a prop.
 - The player wraps each `render` in `save()`/`restore()`; scenes may set
   any state on `g`.
 
-## Scene 1: the workspace
+## The scenes
 
-A recreation of the editor's default dock (`layout.rs` `default_dock`,
-pane names from `Pane::label`): Scene View | Animation | UI Designer,
-with Console | Assets | Profiler below, and Explorer above
-Properties | Terrain on the right. Tabs follow the dock's style: a quiet
-bar on `app`, the active tab joined to its panel, the others `fg-weak`.
-Colours are the site's tokens; their dark values are the editor's Dark
-theme (`theme.rs`, tested).
-
-1. 0.1 s: Scene View, Explorer and Properties rise in as kinetic type.
-2. From 1.0 s: each word shrinks into its tab (Plus Jakarta handing
-   over to Inter) as its panel springs from the word's box into the
-   dock. The other tabs fade in as each word lands. The "Arena - Axcenity
-   Editor" window (the editor's title format) and the docked Console
-   arrive.
-3. 1.45 s: the contents appear:
-   - the viewport: a grid and a slowly turning block
-   - the Explorer tree, with Pad selected
-   - Properties (`properties.rs`): the Pad/Part header, "Filter
-     properties", then Data, Appearance, Behavior and Part, with Part's
-     real defaults (`class.rs`)
-   - the Console (`output.rs`, `console.rs`): the real project-opened
-     line from `app/session.rs`, a `select` command and the
-     "Lua, or a command such as help" field
-4. 1.75 s: a pointer comes in and drags the Properties tab out onto
-   "Monitor 2" to the right (2.1–2.65 s). The window tears off to its own
-   size, and its chrome and lifted shadow come up. Terrain takes its
-   docked place.
-5. 3.0–3.55 s: it drags the Console onto "Monitor 3" in the hero's empty
-   upper left, and Assets takes over below the Scene View.
-6. Each drop bobs once (`settle`, zero at the drop). The pointer drifts
-   off and is gone by 3.95 s.
-
-Drags are pure functions of time: the pointer eases from the tab's
-docked grip to its floating grip, and the window follows it exactly, so
-it lands on its final rectangle at release. The dock overlay's accent
-highlight is left out: the accent is reserved for the site's fixed uses.
-
-`drawWorkspace(context, size, build, clock)` draws it at any moment of
-its build; `restingWorkspace` (build ≥ `SETTLED`) is what the
-placeholder scenes and the outro draw, the block still turning with the
-loop time.
+Each scene's storyboard, the view chain that carries the workspace from
+one scene to the next, and the pointer's paths are in
+[reel-scenes.md](reel-scenes.md).
 
 ## Compact mode (below 640 px)
 
 The same timeline. The stage is the top of the hero (`COMPACT_TOP` 108 px,
 `COMPACT_ASPECT` 0.62 of its width); the hero's CSS reserves the same
 space above the copy (`.hero-copy`, tested). Only the Scene View and the
-Explorer (their active tabs only), docked side by side, at larger type;
-no pointer and nothing undocks.
+Explorer, docked side by side, at larger type; no pointer and nothing
+undocks. From Scene 2 the Scene place widens over the Explorer, and each
+scene shows its step there in a compact layout of its pane.
+The Script tab takes the Toolbox tab's place, as four don't fit.
 
 ## Playback
 
@@ -166,7 +135,7 @@ visible. Otherwise no animation frame is requested at all.
 - **Hidden tab:** a page loaded in a background tab doesn't start until
   it's shown.
 - **Controls:** a play/pause button (its label says what it will do) and
-  a range input (`step` 0.1 s, `aria-valuetext` such as "0:02 of 0:18,
+  a range input (`step` 0.1 s, `aria-valuetext` such as "0:02 of 0:26,
   Scene 1, Workspace"). Space toggles anywhere in the controls; ← and →
   jump markers on the button, but **on the range they keep their native
   fine seeking**. The thumb stays where it's dragged (to 18 s shows 0 s).
@@ -181,8 +150,8 @@ visible. Otherwise no animation frame is requested at all.
 
 - The canvas is `aria-hidden`. The figure is named by its caption
   ("Illustrative · editor recreation") and, once live, described by
-  `#reel-description`: the workspace, the panels and the undocking
-  (`MEDIA["reel"].alt`).
+  `#reel-description`: every scene in order, from the docking to the
+  wired blocks (`MEDIA["reel"].alt`, tested).
 - **No JavaScript, no ES modules or no 2D canvas:** the renderer capture
   shows with its own caption, and the controls stay hidden. An inline
   probe sets `data-pending` only when modules and a 2D canvas exist,

@@ -13,7 +13,7 @@
 // the same picture as playing up to it.
 
 import { easeInOut, expoOut, lerp, lerpRect, progress, rect, spring } from "../easing.js";
-import { bodyOf, workspaceLayout } from "../drawing/layout.js";
+import { BOTTOM_SHARE, bodyOf, workspaceLayout } from "../drawing/layout.js";
 import * as ui from "../drawing/editor.js";
 
 const START = 0;
@@ -35,6 +35,31 @@ const POINTER_OUT = 3.6; // it drifts off and fades
 const POINTER_GONE = 3.95;
 /** By this time into the build everything is at rest. */
 export const SETTLED = 8;
+
+/**
+ * What the later scenes change in the finished workspace. Each scene passes
+ * its own copy ({ ...REST, … }); every drawer it gives is called with the
+ * context's `g` and the box to fill, so it draws inside a layer too.
+ */
+export const REST = Object.freeze({
+  bottom: BOTTOM_SHARE, // the bottom dock's share of the left column
+  wide: 0, // compact mode: how far the Scene place has widened over the Explorer
+  sceneTabs: null, // the Scene place's tabs (null: the dock's own)
+  sceneTab: 0, // which of them is active
+  scene: null, // draws the Scene place's content instead of the viewport
+  textured: 0, // the Pad's rock texture, 0 to 1
+  bottomTabs: null, // the bottom dock's tabs once the Console has left (null: Assets | Profiler)
+  bottomTab: 0,
+  bottomContent: null, // draws the bottom dock's content instead of Assets
+  assetsPressed: false, // the Assets pane's Toolbox button, pressed
+  sideTabs: null, // the right column's lower place (null: Terrain)
+  sideTab: 0,
+  side: null, // draws it instead of the Terrain pane
+  terrainTool: -1, // the Terrain pane's chosen tool
+  log: Object.freeze([]), // lines the Console has printed since: [time, text, kind, alpha]
+  pointer: null, // { x, y, pressed, alpha }: the scene's own pointer
+  over: null, // draws over everything (a drag's ghost)
+});
 
 /** A dropped window's little bob: zero at the drop, then a quick, fading wobble. */
 function settle(seconds, u) {
@@ -106,10 +131,10 @@ function pointerAt(t, start, properties, consoleDrag, u) {
  * rest), with the viewport's block turned to `clock` seconds. Later scenes call
  * it for the finished workspace. Pure: it draws from its arguments only.
  */
-export function drawWorkspace(context, size, build, clock) {
+export function drawWorkspace(context, size, build, clock, view = REST) {
   const { g, colors, labels } = context;
   const t = Math.min(build, SETTLED);
-  const L = workspaceLayout(size);
+  const L = workspaceLayout(size, view.bottom, view.wide);
   const { u, tabBar, titleBar } = L;
   const compact = size.compact;
   const tabs = labels.tabs;
@@ -127,7 +152,8 @@ export function drawWorkspace(context, size, build, clock) {
   const left = L.stage.x + L.stage.width * 0.06;
   const homes = compact ? [L.scene, L.explorer] : [L.scene, L.explorer, L.properties];
   // Each docked place's tabs; compact mode shows only the active one.
-  const tabSets = compact ? [[tabs.scene[0]], [tabs.explorer[0]]] : [tabs.scene, tabs.explorer, tabs.properties];
+  const sceneTabs = view.sceneTabs || (compact ? [tabs.scene[0]] : tabs.scene);
+  const tabSets = compact ? [sceneTabs, [tabs.explorer[0]]] : [sceneTabs, tabs.explorer, tabs.properties];
   const words = names.map((name, index) => {
     const y = firstLine + index * lineHeight;
     g.font = ui.font(800, big, "Plus Jakarta Sans");
@@ -148,19 +174,22 @@ export function drawWorkspace(context, size, build, clock) {
   const extrasAlpha = expoOut(progress(t, EXTRAS_IN, 0.4));
   const contentAlpha = expoOut(progress(t, CONTENT_IN, 0.5));
   const contents = {
-    scene: (box) => ui.viewport(g, colors, box, u, clock),
+    scene: (box) => (view.scene ? view.scene(g, box) : ui.viewport(g, colors, box, u, clock, view.textured)),
     explorer: (box) => ui.explorer(g, colors, box, labels, u),
     properties: (box) => ui.properties(g, colors, box, labels, u),
-    console: (box) => ui.consoleLog(g, colors, box, labels, u),
-    terrain: (box) => ui.terrain(g, colors, box, labels, u),
-    assets: (box) => ui.assets(g, colors, box, labels, u),
+    console: (box) => ui.consoleLog(g, colors, box, labels, u, view.log),
+    terrain: (box) => (view.side ? view.side(g, box) : ui.terrain(g, colors, box, labels, u, view.terrainTool)),
+    assets: (box) =>
+      view.bottomContent ? view.bottomContent(g, box) : ui.assets(g, colors, box, labels, u, view.assetsPressed),
   };
+  // The active tab of each place (the others are 0: the dock's first).
+  const active = { scene: view.sceneTab, terrain: view.sideTab, assets: view.bottomTab };
   const drawPanel = (box, tabNames, content, alpha, landed = 1) => {
     if (alpha <= 0) return;
     g.globalAlpha = base * alpha;
     // Until its word has landed, a panel leaves its active label to the word and
     // brings its other tabs in as the word arrives.
-    const inner = ui.panel(g, colors, box, tabNames, 0, u, tabBar, landed >= 1, progress(landed, 0.6, 0.4));
+    const inner = ui.panel(g, colors, box, tabNames, active[content] || 0, u, tabBar, landed >= 1, progress(landed, 0.6, 0.4));
     if (contentAlpha > 0) {
       g.save();
       g.globalAlpha = base * alpha * contentAlpha;
@@ -200,12 +229,12 @@ export function drawWorkspace(context, size, build, clock) {
     if (t < DRAG_PROPERTIES.press) {
       drawPanel(props.box, props.tabs, "properties", props.shown, props.shrink);
     } else {
-      drawPanel(L.properties, tabs.properties.slice(1), "terrain", 1);
+      drawPanel(L.properties, view.sideTabs || tabs.properties.slice(1), "terrain", 1);
     }
     if (t < DRAG_CONSOLE.press) {
       drawPanel(L.console, tabs.console, "console", extrasAlpha);
     } else {
-      drawPanel(L.console, tabs.console.slice(1), "assets", 1);
+      drawPanel(L.console, view.bottomTabs || tabs.console.slice(1), "assets", 1);
     }
     if (t >= DRAG_PROPERTIES.press) {
       drawWindow(propertiesDrag.box, labels.monitors.properties, propertiesDrag.lifted, propertiesDrag.chrome);
@@ -241,10 +270,12 @@ export function drawWorkspace(context, size, build, clock) {
     }
   }
 
-  // ---- The pointer ----
+  // ---- A drag's ghost, then the pointer ----
+  g.globalAlpha = base;
+  if (view.over) view.over(g);
   if (!compact) {
     const start = { x: L.stage.x + L.stage.width * 0.55, y: L.stage.y + L.stage.height + 70 * u };
-    const tip = pointerAt(t, start, propertiesDrag, consoleDrag, u);
+    const tip = view.pointer || pointerAt(t, start, propertiesDrag, consoleDrag, u);
     if (tip && tip.alpha > 0) {
       g.globalAlpha = base * tip.alpha;
       ui.pointer(g, colors, tip.x, tip.y, u, tip.pressed);
@@ -253,10 +284,40 @@ export function drawWorkspace(context, size, build, clock) {
   g.globalAlpha = base;
 }
 
-/** The finished workspace, for the scenes that follow until they have their own pictures. */
-export function restingWorkspace(context, size, clock) {
-  drawWorkspace(context, size, SETTLED, clock);
+/** The finished workspace in `view`: what Scenes 2 to 6 draw, changing the view as they go. */
+export function viewWorkspace(context, size, clock, view) {
+  drawWorkspace(context, size, SETTLED, clock, view);
 }
+
+/**
+ * Where the pointer is, between `stops` ({ x, y, at }, in time order): it
+ * eases from each to the next, arriving at its time. `presses` are spans
+ * [from, to] when it's held down. It fades in over `fadeIn` before the first
+ * stop's time, and out after `gone`'s start. Null when it's away.
+ */
+export function pointerPath(t, stops, presses = [], gone = null) {
+  const first = stops[0];
+  const last = stops[stops.length - 1];
+  if (t < first.at - 0.25 || (gone && t >= gone[1])) return null;
+  let at = { x: first.x, y: first.y };
+  if (t >= last.at) at = { x: last.x, y: last.y };
+  else {
+    for (let index = 1; index < stops.length; index += 1) {
+      const from = stops[index - 1];
+      const to = stops[index];
+      if (t < to.at) {
+        const p = easeInOut(progress(t, from.at, to.at - from.at));
+        at = { x: lerp(from.x, to.x, p), y: lerp(from.y, to.y, p) };
+        break;
+      }
+    }
+  }
+  const pressed = presses.some(([from, to]) => t >= from && t < to);
+  const fadeIn = expoOut(progress(t, first.at - 0.25, 0.25));
+  const fadeOut = gone ? 1 - progress(t, gone[0], gone[1] - gone[0]) : 1;
+  return { x: at.x, y: at.y, pressed, alpha: fadeIn * fadeOut };
+}
+
 
 export default Object.freeze({
   id: "workspace",

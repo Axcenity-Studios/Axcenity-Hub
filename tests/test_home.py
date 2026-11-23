@@ -41,6 +41,7 @@ NOT_COPY = {
     "external",
     "fragment",
     "code",
+    "icon",
 }
 # Shared shell labels rendered by partials, not by the Home's own content.
 SHELL_LABELS = {"Soon"}
@@ -149,8 +150,12 @@ def test_features_is_in_the_nav_and_points_at_the_section(home):
 
 def test_every_section_renders_from_the_content_module(home):
     for text in HOME_COPY:
-        # The reel's words reach the page as JSON for its canvas (json_script), not as HTML.
-        assert escape(text) in home or json.dumps(text)[1:-1] in home, text
+        # The reel's words reach the page as JSON for its canvas (json_script, which also
+        # escapes <, > and & as <, > and &), not as HTML.
+        as_json = json.dumps(text)[1:-1]
+        for char, code in (("&", "\\u0026"), ("<", "\\u003C"), (">", "\\u003E")):
+            as_json = as_json.replace(char, code)
+        assert escape(text) in home or as_json in home, text
 
 
 def test_the_visible_prose_and_labels_come_from_the_content_module(home):
@@ -226,6 +231,43 @@ def test_reduced_motion_shows_final_states():
     # home.js neither turns reveals on nor rotates the headline under reduced motion.
     assert "if (observes && !reduce.matches && reveals.length)" in HOME_JS
     assert "if (reduce.matches || document.hidden || phrases.length < 2) return;" in HOME_JS
+
+
+ICON_PARTIAL = (settings.BASE_DIR / "templates" / "partials" / "icon.html").read_text()
+
+
+@pytest.mark.parametrize(
+    ("section", "items"),
+    [("workflow", content.HOME_WORKFLOW["steps"]), ("facts", content.HOME_FACTS["stats"])],
+)
+def test_every_workflow_step_and_fact_has_a_decorative_motif(home, section, items):
+    """Each one names an icon the partial draws, and it renders as a hidden motif."""
+    for item in items:
+        assert f'name == "{item.icon}"' in ICON_PARTIAL, item.title
+    motifs = re.findall(r'<svg class="motif[^"]*"[^>]*>', _section(home, section))
+    assert len(motifs) == len(items)
+    assert all('aria-hidden="true"' in svg and 'focusable="false"' in svg for svg in motifs)
+
+
+def test_motifs_play_only_through_home_js_and_rest_drawn_under_reduced_motion():
+    # Hiding and every animation wait for html[data-motifs], which only home.js sets
+    # (and not under reduced motion), so without JavaScript the icons are simply drawn.
+    rules = re.findall(
+        r"^[^{}\n]*\.motif[^{}\n]*\{[^}]*(?:animation|opacity: 0;)[^}]*\}", SOURCE, re.M
+    )
+    # Test's ripple ring is the one part that's meant to be invisible at rest: it only
+    # flashes during the animation.
+    rules = [rule for rule in rules if rule != ".motif .m-ripple { opacity: 0; }"]
+    assert len(rules) >= 10
+    for rule in rules:
+        assert rule.lstrip().startswith("html[data-motifs] .motif"), rule
+    assert "if (observes && !reduce.matches && motifs.length)" in HOME_JS
+    assert 'root.dataset.motifs = ""' in HOME_JS
+    # Well in view plays it; only leaving the screen entirely resets it for next time.
+    assert "if (entry.intersectionRatio >= 0.6) entry.target.dataset.on" in HOME_JS
+    assert "else if (!entry.isIntersecting) delete entry.target.dataset.on" in HOME_JS
+    reduced = SOURCE.split("@media (prefers-reduced-motion: reduce) {", 1)[1].split("\n}", 1)[0]
+    assert "html[data-motifs] .motif:not([data-on]) { opacity: 1; }" in reduced
 
 
 def test_home_js_loads_deferred(home):

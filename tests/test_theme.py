@@ -340,7 +340,7 @@ RULES = {
     ".btn:focus-visible {": "outline: 2px solid var(--color-ink);",
     ":focus-visible {": "outline: 2px solid var(--color-ink);",
     ".media-cap {": "color: var(--color-fg-secondary); background: var(--color-app);",
-    ".flow-num {": "-webkit-text-stroke: 1px var(--color-fg-weak);",
+    ".flow-num {": "color: var(--color-app); -webkit-text-stroke: 2px var(--color-fg-weak); paint-order: stroke fill;",
     ".drawn-code {": "color: var(--color-fg); background: var(--color-inset);",
     **{f".luau-{kind} {{": f"color: var(--color-luau-{kind});" for kind in LUAU_EDITOR},
     ".loop-button {": "color: var(--color-fg-strong); background: var(--color-app);",

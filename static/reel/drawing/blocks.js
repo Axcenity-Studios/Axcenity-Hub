@@ -103,6 +103,13 @@ function roundedTop(g, box, radius) {
   g.closePath();
 }
 
+/** Where a node drawn at (x, y) has pin `index` on `side` ("in" or "out"), as drawNode places it. */
+export function pinAt(g, node, x, y, z, side, index) {
+  const middle = y + (HEADER + 2 + ROW * index + ROW / 2) * z;
+  if (side === "in") return { x: x + PIN_INSET * z, y: middle };
+  return { x: x + nodeSize(g, node, z).width - PIN_INSET * z, y: middle };
+}
+
 /** An exec pin: the editor's arrow, filled when it's wired. */
 export function execPin(g, colors, x, y, z, wired) {
   const points = [[-5, -6], [1, -6], [6, 0], [1, 6], [-5, 6]];

@@ -1,16 +1,17 @@
-// The outro (16–18 s): the workspace draws in towards its centre and fades as
-// one picture (an offscreen layer, so overlapping windows never show through
-// each other mid-fade), the Axcenity wordmark (which includes the mark) comes
-// up once it's mostly gone, then fades to the empty page: exactly Scene 1's
-// first frame, so the loop wraps without a visible reset. Phase 4 adds the
-// panels collapsing into the logo. The lockup frame (the logo fully shown,
-// for reduced motion) is 1 s in.
+// The outro (24–26 s): the workspace, as the Logic scene left it, draws in
+// towards its centre and fades as one picture (an offscreen layer, so
+// overlapping windows never show through each other mid-fade), the Axcenity
+// wordmark (which includes the mark) comes up once it's mostly gone, then
+// fades to the empty page: exactly Scene 1's first frame, so the loop wraps
+// without a visible reset. The lockup frame (the logo fully shown, for reduced
+// motion) is 1 s in.
 
 import { clamp, expoOut, lerp, progress } from "../easing.js";
 import { stageRect } from "../drawing/layout.js";
-import { restingWorkspace } from "./workspace.js";
+import { viewWorkspace } from "./workspace.js";
+import { logicEnd } from "./logic.js";
 
-const START = 16;
+const START = 24;
 const DURATION = 2;
 
 function logo(context, size, alpha, scale) {
@@ -44,7 +45,7 @@ export default Object.freeze({
         layer.g.translate(cx, cy);
         layer.g.scale(scale, scale);
         layer.g.translate(-cx, -cy);
-        restingWorkspace(layer, size, START + time);
+        viewWorkspace(layer, size, START + time, logicEnd(layer, size));
       });
     }
     const arrive = expoOut(progress(time, 0.3, 0.6));

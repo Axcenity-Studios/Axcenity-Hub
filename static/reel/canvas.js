@@ -94,6 +94,8 @@ const TOKENS = [
   "fg-weak",
   "shade",
   "elevated",
+  // The accent: only the renderer wipe's scan line (the PRD's fixed uses).
+  "accent",
   // Content colours for code and node graphs only (the Logic loop), never chrome.
   "luau-keyword",
   "luau-literal",

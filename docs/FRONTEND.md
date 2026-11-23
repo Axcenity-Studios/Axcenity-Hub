@@ -13,6 +13,7 @@ its code).
 | [frontend/theme.md](frontend/theme.md) | colours, the accent, light and dark, contrast, fonts, the logo, buttons, focus, the hover gate, motion primitives, reduced motion |
 | [frontend/home.md](frontend/home.md) | the Home's sections, copy as data, the media manifest and drawn media, the rotating headline, reveals, the pillars' sticky stage |
 | [frontend/reel.md](frontend/reel.md) | the showcase reel (`static/reel/`): the timeline and scene markers, the scene contract and its determinism rules, compact mode, playback, controls and fallbacks |
+| [frontend/reel-scenes.md](frontend/reel-scenes.md) | what each of the reel's six scenes shows, the view chain that hands the workspace from scene to scene, and the pointer's paths |
 | [frontend/media.md](frontend/media.md) | the media manifest, captures and `make_media`'s derivatives, `<picture>`, the pillars' animated loops (`static/reel/loops/`), their fallbacks and the screenshot test |
 
 Later phases add topic files for each area they build.

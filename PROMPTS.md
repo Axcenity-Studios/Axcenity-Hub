@@ -28,6 +28,155 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-23 — Axcenity Hub: Phase 4/17, a moving reel (Toolbox, Animation, Renderer, World, Logic) and animated icons
+
+### Prompts
+
+1. "Ok I still think that the top window animations are lacking, primarily
+   because the first part contains a lot of movement and action, and the
+   second part does not contain much at all. I think we can get away with
+   showing more engine based features such as character animation or the
+   built in toolbox, I want to have maybe a few ares that pause but
+   overall I want movement throughout the animation. Next for the text
+   Build Script Test Export and Free Rust 3 OS and Alpha I would like to
+   add some subt animated icons that show while scrolling. Please append
+   this sessions to PROMPTS.md according to source formatting"
+2. (Asked which storyboard to build, since the plan's renderer wipe needs
+   a graybox capture that doesn't exist) "~26 s: add all of them"
+3. "Ok so a few things with these icons I would like them to be bigger
+   and to the left  of the text and to the right of the numbers also I
+   want them to re-animate when scrolled back to"
+4. (With a screenshot of the Test and Export steps) "Ok the three and the
+   4 look messed up but other than that go ahead and commit and push the
+   repository and append the conversations to PROMPTS.md."
+
+### Summary
+
+- **Outcome:** The reel's back half moves throughout. It now runs 26 s
+  with six scenes (Workspace, Toolbox, Animation, Renderer, World, Logic)
+  and the logo lockup. Each scene picks up the workspace exactly where
+  the last one left it, with short holds between bursts of pointer
+  action. The Workflow steps and the stat band have line icons that draw
+  in when they scroll into view, then make one small move each. 469 fast
+  and 35 browser tests pass; Ruff is clean. This builds Phase 4,
+  re-scoped, and its boxes are ticked.
+- **Changes:**
+  - Two read-only agents gathered the engine facts first: the Toolbox
+    (`crates/editor-toolbox`) and the Animation pane
+    (`crates/editor/src/animation/`, the humanoid rig and Wave state).
+  - `static/reel/scenes/`:
+    - New `toolbox.js`: the Assets pane's Toolbox button, a "rock"
+      search, the cards popping in, a card dragged onto the Pad, the
+      Console's download lines, and the Pad textured.
+    - New `animation.js`: Clips & Rigging, Record, the pointer posing
+      the hand while key columns pop into the dope sheet, then two
+      passes at 1.5× as the character waves.
+    - New `renderer.js`: a drawn grey room building up, wiped by an
+      accent scan line into the real capture, with a slow push-in.
+    - New `world.js`: Raise / Lower brushing hills, then Scatter
+      painting plants.
+    - New `logic.js`: a Script tab in Graph view, the pointer dragging
+      the exec wire, the Luau typing out, a pulse.
+    - `workspace.js`: `drawWorkspace` takes a `view` (the `REST` state
+      later scenes change), plus `viewWorkspace` and `pointerPath`.
+      Each scene exports its end view, and the next one builds on it.
+    - `lockup.js` takes away the Logic scene's last frame. The old
+      placeholder scenes are gone.
+  - `static/reel/drawing/`:
+    - New `toolbox.js`, `animation.js` (the Wave clip, the mannequin,
+      the dope sheet, the transport) and `renderer.js` (the grey room
+      laid out over the capture's 1280 × 720 space, and the wipe).
+    - `editor.js`: a textured Pad, the Assets pane's Toolbox button, a
+      chosen Terrain tool, Console lines that arrive and scroll, and
+      exported primitives.
+    - `layout.js`: a movable bottom split, compact widening and
+      `innerOf`.
+    - `blocks.js`: `pinAt`.
+  - `timeline.js`: six scenes, `DURATION` 26, `LOCKUP_FRAME` 25.
+  - `canvas.js`: the accent token, for the scan line only.
+  - `player.js`: loads the renderer capture's 1920 px WebP into
+    `images.capture`. The template passes it as `data-capture`.
+  - `marketing/content.py`:
+    - `TERRAIN_LABELS` and `LOGIC_LABELS` are now shared by the pillar
+      loops and the reel.
+    - New `REEL_TOOLBOX`, `REEL_TOOLBOX_LOG`, `REEL_ANIMATION` and
+      `REEL_SCRIPT`.
+    - A rewritten reel description and provenance, and segment names
+      for all six scenes.
+    - `Item.icon` for the workflow steps and stats.
+  - Icons:
+    - `partials/icon.html`: eight motifs (build, script, test, export,
+      free, rust, os, alpha), drawn on `pathLength="1"`.
+    - `workflow.html` and `facts.html` place them.
+    - `source.css`: the Motifs rules. Every hidden stroke and every
+      animation waits behind `html[data-reveals] [data-reveal][data-in]`,
+      and reduced motion shows them drawn.
+  - Tests:
+    - `test_reel.py`: the new registry, the description walks the
+      scenes in order, segment names, the wipe's capture is a real
+      derivative that's never upscaled, and only the scan line draws
+      with the accent.
+    - `test_reel_browser.py`: six markers, 26 s, the lockup at 25 s.
+    - `test_home.py`: every step and stat has a decorative motif, and
+      the motif CSS is reveal-gated and at rest under reduced motion.
+  - Docs:
+    - New `docs/frontend/reel-scenes.md`: each scene, the view chain and
+      the pointer. Scene 1's section moved there, so `reel.md` stays
+      under 200 lines.
+    - Updated `reel.md`, `home.md` (Motifs), `theme.md` (the accent's
+      uses), the `FRONTEND.md` index, the PRD storyboard and Phase 4 in
+      the plan.
+- **Deviations:**
+  - Recommended keeping 18 s with Toolbox, Animation and Logic. The user
+    chose the ~26 s loop with all of them, which goes past the PRD's
+    15–18 s, so the PRD and the plan were updated to match.
+  - The renderer wipe's grey end is drawn rather than captured: no
+    same-camera graybox capture exists.
+- **Sideways:**
+  - On the first browser check the reel fell back to the still image. A
+    new parameter named `bottom` clashed with a `bottom` rectangle in
+    `workspaceLayout`. A Playwright error probe caught it.
+  - `test_home` failed on "Clips & Rigging". It didn't allow for
+    `json_script` escaping `&` as `&`, so the test was fixed, not
+    the engine's label.
+  - The first icon screenshots showed no icons. The dev server ran with
+    `--noreload` and served stale templates; a restart fixed it.
+  - Review of the rendered frames found three problems, all fixed:
+    - The floating Properties window covered the Scatter tab and Paint
+      button the pointer clicks, so it now aims at their left edge.
+    - The mannequin's limbs nearly vanished against its preview, so
+      they got more contrast.
+    - At 360 px the compact Logic scene's fourth tab was clipped, so
+      Script takes the Toolbox tab's place there.
+- **Follow-ups (prompts 3 and 4):**
+  - The icons were enlarged and moved:
+    - Workflow icons sit right of the numeral (`.flow-head`, 40–64 px).
+    - Facts icons sit left of the title (`.stat-title`, 0.8 em, about
+      58 px at the large size).
+  - The icons now replay. `home.js` sets `data-on` once an icon is 60 %
+    in view and clears it only when it's fully off screen
+    (`html[data-motifs]`), so scrolling back plays it again. Before its
+    first play an icon is hidden, so it's never seen half-drawn.
+  - The "left of the text, right of the numbers" request was read as:
+    Workflow icons go right of the numerals, Facts icons left of the
+    titles (Facts has no numbers).
+  - With an icon beside them, "Alpha" and "3 OS" overflowed their
+    columns at 360, 768 and 1024 px (measured in Chromium). The stat band
+    now uses one column on phones, two from `sm` and four from `lg`, and
+    its titles reach `text-7xl` only from `xl`.
+  - New `tests/test_home_browser.py`: replay on return, reduced motion,
+    and no overflow at six widths. Total: 469 fast and 43 browser tests.
+  - The broken outlines on the 3 and 4 numerals came before this
+    session's changes. The display face builds those glyphs from
+    overlapping shapes, and `-webkit-text-stroke` outlined every seam.
+    The stroke is now 2px, painted under a fill in the page colour
+    (`paint-order: stroke fill`), which leaves a clean 1px outline;
+    checked in dark and light.
+  - Committed and pushed to `main`, as earlier phases were.
+  - Sideways: a CSS test treated the Test icon's ripple ring as a leak.
+    The ring is meant to be invisible at rest, so the test exempts it by
+    name.
+
 ## 2026-11-23 — Axcenity Hub: Phase 5/17, Feature media
 
 ### Prompts

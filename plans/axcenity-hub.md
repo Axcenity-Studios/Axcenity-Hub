@@ -142,19 +142,25 @@ None: the behaviors are visible only through the planned Playwright smoke tests,
 
 ---
 
-## Phase 4: Reel Scenes 2–4 and logo lockup
+## Phase 4: Reel Scenes 2–6 and logo lockup
 
 **User stories**: 18, 20–23
 
 ### What to build
 
-Scene 2 (4–8 s): a shader wipe inside the viewport from wireframe/graybox to lit PBR, using the real renderer capture
-and its same-camera graybox capture as the end frames, with a scan line in the accent colour. Scene 3 (8–12 s): a
-terrain grid displacing into hills, then staggered expo-out foliage scale-in. Scene 4 (12–16 s): When touched →
-Spawn decal blocks (the engine's real block names) linked by glowing Bezier wires, with their real Luau translation
-(`part.Touched:Connect(function(otherPart) … workspace:SpawnDecal(…))`) typing out beside them in the editor's real
-syntax colours. 16–18 s: panels collapse into the Axcenity logo lockup. The loop's final frame flows into its first with no
-visible reset. Each scene has a compact layout.
+Re-scoped on 2026-11-23 at the user's request: the back half of the reel held still, so it gains the Toolbox and
+the Animation pane and runs about 26 s, moving throughout with short holds. Each scene starts exactly where the last
+one ended. Scene 2 (4–8 s): the Toolbox opens from the Assets pane, searches textures for "rock", and a result is
+dragged onto the Pad, which takes the texture while the Console reports the download. Scene 3 (8–12 s): the
+Animation pane keys a Wave clip on the default humanoid's bones with Record on, then plays it back as the character
+waves. Scene 4 (12–16 s): a wipe inside the viewport from graybox to lit PBR, using the real renderer capture as the
+lit end and a grey room drawn over the capture's layout as the other (until a same-camera graybox capture exists),
+with a scan line in the accent colour. Scene 5 (16–20 s): Raise / Lower brushes hills up from flat ground, then
+Scatter paints foliage over them. Scene 6 (20–24 s): When touched → Spawn decal blocks (the engine's real block names)
+wired by the pointer, with their real Luau translation (`part.Touched:Connect(function(otherPart) …
+workspace:SpawnDecal(…))`) typing out below in the editor's real syntax colours. 24–26 s: the workspace gives way to
+the Axcenity logo lockup. The loop's final frame flows into its first with no visible reset. Each scene has a compact
+layout.
 
 ### TDD behaviors
 
@@ -162,11 +168,12 @@ None: the scenes are visual; Phase 3's smoke tests cover them.
 
 ### Acceptance criteria
 
-- [ ] The full loop plays 15–18 s with no visible jump at the wrap point
-- [ ] Scene 2 uses the real captures and never upscales them past their source resolution
-- [ ] Node styling, block names and Luau highlighting match the engine sources; the reel's text and description say Luau
-- [ ] Every scene is a pure function of time and passes the existing smoke tests; compact layouts are readable at 360 px
-- [ ] Scene modules follow the documented contract (start, duration, render) so a Remotion port is mechanical
+- [x] The full loop plays about 26 s (six scenes and the outro) with no visible jump at the wrap point
+- [x] Every scene keeps the workspace moving with only short holds, and starts exactly where the last one ended
+- [x] Scene 4's lit end is the real capture and never upscales it past its source resolution
+- [x] Toolbox and Animation pane labels, node styling, block names and Luau highlighting match the engine sources; the reel's text and description say Luau
+- [x] Every scene is a pure function of time and passes the existing smoke tests; compact layouts are readable at 360 px
+- [x] Scene modules follow the documented contract (start, duration, render) so a Remotion port is mechanical
 
 ---
 

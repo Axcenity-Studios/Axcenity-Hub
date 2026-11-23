@@ -33,8 +33,30 @@ link is never marked as the current page). Every `[id]` in `<main>` has
   each shows its media inline (`.pillar-media`); from `lg` the text
   scrolls past one sticky `.stage` that shows the current pillar's media.
 - **Workflow:** Build, Script, Test, Export, with outlined numerals
-  (`.flow-num`, decorative and `aria-hidden`).
-- **Facts:** Free, Rust, 3 OS, Alpha, as a `<dl>`.
+  (`.flow-num`, decorative and `aria-hidden`), each with its motif to
+  the right (`.flow-head`).
+- **Facts:** Free, Rust, 3 OS, Alpha, as a `<dl>`, each title with its
+  motif to the left (`.stat-title`). One column on phones, two from
+  `sm`, four from `lg`; the titles step up to `text-7xl` only from `xl`,
+  so every row fits beside its motif (tested from 360 to 1280 px).
+
+## Motifs
+
+Each workflow step and fact names a line icon (`Item.icon`) from
+`partials/icon.html`, drawn with `class="motif"` (decorative:
+`aria-hidden`), sized with its numeral (`.flow-motif`) or its title
+(`.stat-motif`, 0.8 em). It plays **each time it comes into view**:
+`home.js` sets `data-on` once it's 60 % in view and clears it only when
+it's fully off screen (`html[data-motifs]` marks that it's running).
+Until then it's hidden; then its `.m-draw` strokes draw in
+(`pathLength="1"`, dash offset 1 to 0) and one other part makes a single
+move, `--stagger` × 80 ms late like the reveals: the
+cube drops onto its line (Build), the caret blinks (Script), Play pops
+and ripples (Test), the arrow rises (Export), the padlock's shackle
+lifts open (Free), the cog turns into place (Rust), three windows stack
+in (3 OS) and bubbles rise in the flask (Alpha). All hiding and every
+animation is behind `html[data-motifs]` (tested), so without JavaScript
+or under reduced motion they're simply drawn.
 - **Toolbox banner:** its call to action is `soon` until Phase 6.
 - **Community:** Forums, Showcases, Projects, each tagged Coming soon.
 - **Final CTA:** "Start building.", Download alpha and Getting started.
@@ -107,7 +129,7 @@ At start it picks the pillar already across the middle, so a
 ## Reduced motion
 
 - `home.js` doesn't turn reveals on and doesn't rotate: the first phrase
-  stays.
+  stays, and the motifs rest fully drawn.
 - The stylesheet's reduced-motion block also forces any hidden reveal to
   its final state (if the setting changes while the page is open), and
   its blanket rule makes the stage swap instantly.
@@ -119,8 +141,8 @@ At start it picks the pillar already across the middle, so a
 Nothing scrolls sideways at 360 px. The Luau fallback scrolls inside its
 own frame (`tabindex="0"`, so the keyboard can scroll it) and its frame
 grows to fit until the loop is live (`.pillar-media:not([data-live]):has(.drawn-code)`).
-The stat band's titles step up to `text-7xl` only from `lg`, so the four
-columns fit at 768 px. The drawn editor scales its text with the frame
+The stat band's columns and title sizes keep each title beside its motif
+(Sections, above). The drawn editor scales its text with the frame
 (`cqi` units; `.media` is a size container). The reel's phone layout is
 covered by `tests/test_reel_browser.py`, the pillars' media at 360 to
 2560 px by `tests/test_media_browser.py`; the rest is checked by hand.

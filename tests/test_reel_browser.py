@@ -63,7 +63,7 @@ def test_the_reel_mounts_sharp_with_no_console_errors(open_home):
         return [c.width, c.height, Math.round(b.width), Math.round(b.height)]; }"""
     )
     assert size[0] == size[2] * 2 and size[1] == size[3] * 2  # DPR 3 is capped at 2
-    assert page.locator(".reel-marker").count() == 4  # one per scene
+    assert page.locator(".reel-marker").count() == 6  # one per scene
     # Every colour the canvas reads resolves, in both schemes (Tailwind emits each token).
     for scheme in ("dark", "light"):
         page.evaluate(f"document.documentElement.dataset.scheme = '{scheme}'")
@@ -96,12 +96,12 @@ def test_space_toggles_and_arrows_jump_scene_markers_but_leave_the_range_alone(o
     page.focus("[data-reel-toggle]")
     seek(page, 1)
     stops = []
-    for _ in range(4):
+    for _ in range(6):
         page.keyboard.press("ArrowRight")
         stops.append(position(page))
-    assert stops == [4, 8, 12, 0]  # after the last scene, the loop's first frame
+    assert stops == [4, 8, 12, 16, 20, 0]  # after the last scene, the loop's first frame
     page.keyboard.press("ArrowLeft")
-    assert position(page) == 12  # before the first scene's grace, round to the last scene
+    assert position(page) == 20  # before the first scene's grace, round to the last scene
     seek(page, 5)
     page.keyboard.press("ArrowLeft")
     assert position(page) == 4  # the start of the current scene
@@ -125,14 +125,14 @@ def test_space_toggles_and_arrows_jump_scene_markers_but_leave_the_range_alone(o
 def test_reduced_motion_shows_the_lockup_and_follows_the_setting_live(open_home):
     page, errors = open_home(reduced_motion="reduce")
     page.wait_for_timeout(300)
-    assert state(page) == "paused" and position(page) == 17
+    assert state(page) == "paused" and position(page) == 25
     assert page.get_attribute("[data-reel-toggle]", "aria-label") == "Play reel"
     assert (
         page.evaluate("getComputedStyle(document.querySelector('.reel-controls')).opacity") == "1"
     )
     lockup = frame(page)
     seek(page, 3)
-    seek(page, 17)
+    seek(page, 25)
     assert frame(page) == lockup  # the lockup frame, not some other paused moment
     page.click("[data-reel-toggle]")
     assert state(page) == "playing"
@@ -144,7 +144,7 @@ def test_reduced_motion_shows_the_lockup_and_follows_the_setting_live(open_home)
     assert state(page) == "playing"
     page.emulate_media(reduced_motion="reduce")
     page.wait_for_function("document.querySelector('#reel').dataset.motion === 'reduced'")
-    assert state(page) == "paused" and position(page) == 17
+    assert state(page) == "paused" and position(page) == 25
     assert errors == []
 
 
@@ -172,28 +172,30 @@ def test_every_frame_is_a_pure_function_of_time(open_home):
     # The end of the loop is its first frame.
     seek(page, 0)
     first = frame(page)
-    seek(page, 18)
+    seek(page, 26)
     assert frame(page) == first
     # Every registered segment keeps the contract and stays frozen after drawing.
     contract = page.evaluate(
         """async () => {
           const t = await import('/static/reel/timeline.js');
           return {
-            markers: [...t.MARKERS], duration: t.DURATION, wrapped: t.wrap(18),
+            markers: [...t.MARKERS], duration: t.DURATION, wrapped: t.wrap(26),
             segments: t.SEGMENTS.map(s => [s.id, s.start, s.duration, s.render.length, Object.isFrozen(s)]),
           };
         }"""
     )
     assert contract == {
-        "markers": [0, 4, 8, 12],
-        "duration": 18,
+        "markers": [0, 4, 8, 12, 16, 20],
+        "duration": 26,
         "wrapped": 0,
         "segments": [
             ["workspace", 0, 4, 3, True],
-            ["renderer", 4, 4, 3, True],
-            ["world", 8, 4, 3, True],
-            ["logic", 12, 4, 3, True],
-            ["lockup", 16, 2, 3, True],
+            ["toolbox", 4, 4, 3, True],
+            ["animation", 8, 4, 3, True],
+            ["renderer", 12, 4, 3, True],
+            ["world", 16, 4, 3, True],
+            ["logic", 20, 4, 3, True],
+            ["lockup", 24, 2, 3, True],
         ],
     }
 

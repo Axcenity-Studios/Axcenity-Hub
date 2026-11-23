@@ -62,6 +62,49 @@ def test_the_description_explains_the_workspace_and_its_undocking():
     assert "Illustrative" in content.MEDIA["reel"].caption
 
 
+def test_the_description_walks_through_every_later_scene_in_order():
+    description = content.MEDIA["reel"].alt
+    steps = [
+        "Toolbox",
+        "rock texture",
+        "Animation tab",
+        "Wave clip",
+        "dope sheet",
+        "ray-traced render",
+        "Raise / Lower",
+        "Scatter",
+        "When Touched",
+        "Spawn Decal",
+        "Luau",
+        "Axcenity logo",
+    ]
+    places = [description.find(step) for step in steps]
+    assert -1 not in places, [s for s, p in zip(steps, places, strict=True) if p == -1]
+    assert places == sorted(places)
+    assert "about 26 seconds" in description
+
+
+def test_the_spoken_position_names_every_segment():
+    segments = content.MEDIA["reel"].labels["segments"]
+    assert list(segments) == [entry[0] for entry in REGISTERED]
+    assert [segments[entry[0]] for entry in REGISTERED[:-1]] == [
+        f"Scene {number}, {name}"
+        for number, name in enumerate(
+            ["Workspace", "Toolbox", "Animation", "Renderer", "World", "Logic"], start=1
+        )
+    ]
+
+
+def test_the_wipe_draws_a_renderer_derivative_that_is_never_upscaled(hero):
+    """The renderer scene's lit end is one of the capture's own derivatives, wide enough
+    that covering the Scene View (at most ~850 CSS px wide, pushed in) at 2x needs no
+    upscaling."""
+    src = re.search(r'data-capture="/static/([^"]+)"', hero).group(1)
+    derivative = next(d for d in content.MEDIA["renderer"].derivatives if d.path == src)
+    assert derivative.width >= 2 * 850
+    assert "most ~850 CSS px wide" in _js(DRAWING / "renderer.js")
+
+
 def test_the_controls_are_a_labelled_button_and_range_hidden_until_the_reel_mounts(hero):
     labels = content.REEL_CONTROLS
     controls = hero.split('id="reel-controls"', 1)[1]
@@ -129,10 +172,12 @@ LOOP_FILES = sorted(
 PURE_FILES = SCENE_FILES + LOOP_FILES + sorted(DRAWING.glob("*.js"))
 REGISTERED = [
     ("workspace", 0, 4),
-    ("renderer", 4, 4),
-    ("world", 8, 4),
-    ("logic", 12, 4),
-    ("lockup", 16, 2),
+    ("toolbox", 4, 4),
+    ("animation", 8, 4),
+    ("renderer", 12, 4),
+    ("world", 16, 4),
+    ("logic", 20, 4),
+    ("lockup", 24, 2),
 ]
 
 
@@ -140,9 +185,12 @@ def test_the_timeline_registers_every_scene_module_in_order():
     timeline = _js(REEL / "timeline.js")
     imports = re.findall(r'^import (\w+) from "\./scenes/(\w+)\.js";$', timeline, re.M)
     assert [name for name, _ in imports] == [entry[0] for entry in REGISTERED]
-    assert "export const SCENES = Object.freeze([workspace, renderer, world, logic]);" in timeline
+    assert (
+        "export const SCENES = Object.freeze([workspace, toolbox, animation, renderer, world, logic]);"
+        in timeline
+    )
     assert "export const OUTRO = lockup;" in timeline
-    assert "export const DURATION = 18;" in timeline
+    assert "export const DURATION = 26;" in timeline
     assert {path.stem for path in SCENE_FILES} == {entry[0] for entry in REGISTERED}
 
 
@@ -196,6 +244,12 @@ def test_scenes_use_only_the_tokens_the_canvas_reads():
     for path in PURE_FILES:
         used |= set(re.findall(r"colors\.(\w+)", _js(path)))
     assert used and used <= names, used - names
+
+
+def test_only_the_renderer_wipes_scan_line_draws_with_the_accent():
+    """The accent has fixed uses (docs/frontend/theme.md); on the canvas it's the scan line."""
+    drawing_with_it = {path.name for path in PURE_FILES if "colors.accent" in _js(path)}
+    assert drawing_with_it == {"renderer.js"}
 
 
 def test_the_pixel_ratio_is_capped_at_two_and_scenes_draw_in_logical_pixels():

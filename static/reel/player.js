@@ -21,7 +21,7 @@ function loadImage(src) {
   return new Promise((resolve) => {
     const image = new Image();
     image.onload = () => resolve(image);
-    image.onerror = () => resolve(null); // the lockup just leaves the logo out
+    image.onerror = () => resolve(null); // the scene just leaves it out
     image.src = src;
   });
 }
@@ -46,6 +46,7 @@ export function mount(reel, canvas, g) {
   let size = logicalSize(reel);
   let palette = readPalette(root);
   let wordmark = null;
+  let capture = null; // the renderer capture, for Scene 4's wipe
   let context = null;
   let raf = 0;
   let onScreen = false; // at least VISIBLE_SHARE in view (the observer says so first)
@@ -61,7 +62,7 @@ export function mount(reel, canvas, g) {
   }
 
   function rebuildContext() {
-    const images = Object.freeze({ wordmark: tint(wordmark, palette.fgStrong) });
+    const images = Object.freeze({ wordmark: tint(wordmark, palette.fgStrong), capture });
     context = Object.freeze({ g, colors: palette, labels, images, layer });
   }
 
@@ -232,13 +233,16 @@ export function mount(reel, canvas, g) {
   resize();
   update();
 
-  // Text and the logo are drawn once their fonts and images arrive; until then
-  // the frame uses fallbacks. Redraw then, and mark the reel ready.
+  // Text, the logo and the capture are drawn once their fonts and images arrive;
+  // until then the frame uses fallbacks (no logo, the grey room only). Redraw
+  // then, and mark the reel ready.
   Promise.all([
     Promise.all(FONTS.map((spec) => document.fonts.load(spec).catch(() => null))),
     loadImage(reel.dataset.wordmark),
-  ]).then(([, image]) => {
+    loadImage(reel.dataset.capture),
+  ]).then(([, image, photo]) => {
     wordmark = image;
+    capture = photo;
     rebuildContext();
     redraw();
     reel.dataset.ready = "";

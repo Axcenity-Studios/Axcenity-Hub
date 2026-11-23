@@ -1,7 +1,7 @@
-// The Home's motion: the rotating headline, scroll reveals and the feature
-// pillars' sticky stage. Without this script every section shows at rest, the
+// The Home's motion: the rotating headline, scroll reveals, the motifs and the
+// feature pillars' sticky stage. Without this script every section shows at rest, the
 // headline shows its first phrase and the stage shows the first pillar.
-// Under reduced motion nothing rotates or reveals; the stage still follows the
+// Under reduced motion nothing rotates, reveals or plays; the stage still follows the
 // pillars, instantly (the stylesheet turns every transition off).
 (function () {
   var root = document.documentElement;
@@ -34,6 +34,28 @@
       else revealer.observe(element);
     });
     root.dataset.reveals = "";
+  }
+
+  // ---------- Motifs ----------
+  // The workflow's and the stat band's icons play each time they come into view:
+  // data-on starts them once one is well in view (60 %), and only leaving the
+  // screen entirely takes it off, so scrolling back plays it again and a small
+  // scroll at the edge doesn't.
+  var motifs = Array.prototype.slice.call(document.querySelectorAll(".motif"));
+  if (observes && !reduce.matches && motifs.length) {
+    var player = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.intersectionRatio >= 0.6) entry.target.dataset.on = "";
+          else if (!entry.isIntersecting) delete entry.target.dataset.on;
+        });
+      },
+      { threshold: [0, 0.6] }
+    );
+    motifs.forEach(function (motif) {
+      player.observe(motif);
+    });
+    root.dataset.motifs = "";
   }
 
   // ---------- Rotating headline ----------

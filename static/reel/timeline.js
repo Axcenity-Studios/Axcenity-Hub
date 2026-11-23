@@ -8,16 +8,18 @@
 // timeline and the player don't change.
 
 import workspace from "./scenes/workspace.js";
+import toolbox from "./scenes/toolbox.js";
+import animation from "./scenes/animation.js";
 import renderer from "./scenes/renderer.js";
 import world from "./scenes/world.js";
 import logic from "./scenes/logic.js";
 import lockup from "./scenes/lockup.js";
 
 /** The loop's length in seconds. Time `DURATION` is the loop's first frame again. */
-export const DURATION = 18;
+export const DURATION = 26;
 
-/** The four scenes, in order. Each start is a scene marker on the scrubber. */
-export const SCENES = Object.freeze([workspace, renderer, world, logic]);
+/** The six scenes, in order. Each start is a scene marker on the scrubber. */
+export const SCENES = Object.freeze([workspace, toolbox, animation, renderer, world, logic]);
 
 /** The closing logo lockup: a segment that follows the scenes but isn't a scene (no marker). */
 export const OUTRO = lockup;

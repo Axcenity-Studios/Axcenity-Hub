@@ -9,6 +9,7 @@
 // logical pixels; `u` is the size unit from layout.js.
 
 import { rect } from "../easing.js";
+import { hash } from "./terrain.js";
 
 /** A canvas font shorthand with fallbacks. */
 export function font(weight, px, family) {
@@ -18,18 +19,18 @@ export function font(weight, px, family) {
 /** The tab labels' size before scaling by `u`. */
 export const TAB_FONT = 12;
 
-function fill(g, color, box) {
+export function fill(g, color, box) {
   g.fillStyle = color;
   g.fillRect(box.x, box.y, box.width, box.height);
 }
 
-function outline(g, color, box) {
+export function outline(g, color, box) {
   g.strokeStyle = color;
   g.lineWidth = 1;
   g.strokeRect(box.x + 0.5, box.y + 0.5, box.width - 1, box.height - 1);
 }
 
-function text(g, color, value, x, y, css, align = "left") {
+export function text(g, color, value, x, y, css, align = "left") {
   g.font = css;
   g.fillStyle = color;
   g.textAlign = align;
@@ -124,8 +125,12 @@ export function panel(g, colors, box, names, active, u, tabBar, labelActive = tr
 
 // ---------- Pane contents ----------
 
-/** The Scene View: a perspective ground grid and a slowly turning block (the Pad). */
-export function viewport(g, colors, box, u, clock) {
+/**
+ * The Scene View: a perspective ground grid and a slowly turning block (the Pad).
+ * `textured` (0 to 1) fades in the rock texture the Toolbox puts on it: shaded
+ * faces, drawn back to front, flecked with stone.
+ */
+export function viewport(g, colors, box, u, clock, textured = 0) {
   fill(g, colors.inset, box);
   const horizon = box.y + box.height * 0.36;
   const bottom = box.y + box.height;
@@ -156,10 +161,11 @@ export function viewport(g, colors, box, u, clock) {
         const rz = x * Math.sin(angle) + z * Math.cos(angle);
         const ry = y * Math.cos(tilt) - rz * Math.sin(tilt);
         const depth = 4 + y * Math.sin(tilt) + rz * Math.cos(tilt);
-        corners.push([centre + (rx * scale * 4) / depth, cy + (ry * scale * 4) / depth]);
+        corners.push([centre + (rx * scale * 4) / depth, cy + (ry * scale * 4) / depth, depth]);
       }
     }
   }
+  if (textured > 0) texturedFaces(g, colors, corners, u, textured);
   const edges = [
     [0, 1], [2, 3], [4, 5], [6, 7],
     [0, 2], [1, 3], [4, 6], [5, 7],
@@ -175,8 +181,55 @@ export function viewport(g, colors, box, u, clock) {
   g.stroke();
 }
 
+// The block's faces by corner (corner index = x * 4 + y * 2 + z), the top first.
+const FACES = Object.freeze([
+  Object.freeze({ corners: [0, 1, 5, 4], shade: "lineStrong" }),
+  Object.freeze({ corners: [2, 3, 7, 6], shade: "control" }),
+  Object.freeze({ corners: [0, 1, 3, 2], shade: "controlActive" }),
+  Object.freeze({ corners: [4, 5, 7, 6], shade: "controlActive" }),
+  Object.freeze({ corners: [0, 2, 6, 4], shade: "control" }),
+  Object.freeze({ corners: [1, 3, 7, 5], shade: "control" }),
+]);
+
+/** The Pad's faces with its rock texture, farthest first, at `alpha`. */
+function texturedFaces(g, colors, corners, u, alpha) {
+  const faces = FACES.map((face, index) => ({
+    ...face,
+    index,
+    depth: face.corners.reduce((sum, corner) => sum + corners[corner][2], 0) / 4,
+  })).sort((a, b) => b.depth - a.depth);
+  g.save();
+  g.globalAlpha *= alpha;
+  for (const face of faces) {
+    const [a, b, c, d] = face.corners.map((corner) => corners[corner]);
+    g.beginPath();
+    g.moveTo(a[0], a[1]);
+    g.lineTo(b[0], b[1]);
+    g.lineTo(c[0], c[1]);
+    g.lineTo(d[0], d[1]);
+    g.closePath();
+    g.fillStyle = colors[face.shade];
+    g.fill();
+    // Flecks of stone, placed by the face's own coordinates so they turn with it.
+    g.save();
+    g.clip();
+    for (let fleck = 0; fleck < 26; fleck += 1) {
+      const s = hash(face.index * 97 + fleck);
+      const t = hash(face.index * 131 + fleck + 50);
+      const x = (1 - s) * ((1 - t) * a[0] + t * d[0]) + s * ((1 - t) * b[0] + t * c[0]);
+      const y = (1 - s) * ((1 - t) * a[1] + t * d[1]) + s * ((1 - t) * b[1] + t * c[1]);
+      g.fillStyle = fleck % 3 === 0 ? colors.fgWeak : colors.line;
+      g.beginPath();
+      g.ellipse(x, y, (1.2 + hash(fleck + 7) * 2.4) * u, (0.8 + hash(fleck + 9) * 1.4) * u, hash(fleck) * 3, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.restore();
+  }
+  g.restore();
+}
+
 /** A small class glyph: a square outline, the way each row leads with its class's icon. */
-function glyph(g, colors, x, y, u) {
+export function glyph(g, colors, x, y, u) {
   const side = 8 * u;
   g.strokeStyle = colors.fgWeak;
   g.lineWidth = 1;
@@ -196,13 +249,13 @@ export function explorer(g, colors, box, labels, u) {
   });
 }
 
-function field(g, colors, box, value, u, quiet = false) {
+export function field(g, colors, box, value, u, quiet = false) {
   fill(g, colors.inset, box);
   outline(g, colors.line, box);
   text(g, quiet ? colors.fgWeak : colors.fg, value, box.x + 7 * u, box.y + box.height / 2, font(400, 11.5 * u, "Inter"));
 }
 
-function checkbox(g, colors, x, y, u, on) {
+export function checkbox(g, colors, x, y, u, on) {
   const side = 12 * u;
   const box = rect(x, y - side / 2, side, side);
   fill(g, colors.inset, box);
@@ -278,17 +331,33 @@ export function properties(g, colors, box, labels, u) {
   }
 }
 
-/** The Console: the "Filter logs" field, timed lines, typed commands, and the command line. */
-export function consoleLog(g, colors, box, labels, u) {
+/**
+ * The Console: the "Filter logs" field, timed lines, typed commands, and the
+ * command line. `extra` lines (time, text, kind, alpha) arrive after the
+ * project's own; when they don't all fit, the oldest scroll away.
+ */
+export function consoleLog(g, colors, box, labels, u, extra = []) {
   const pane = labels.console;
   const pad = 8 * u;
   field(g, colors, rect(box.x + pad, box.y + pad, Math.min(180 * u, box.width - pad * 2), 18 * u), pane.filter, u, true);
   const mono = font(400, 11 * u, "JetBrains Mono");
   const row = 18 * u;
-  let y = box.y + pad + 18 * u + 12 * u;
+  const top = box.y + pad + 18 * u + 12 * u;
+  const input = rect(box.x + pad, box.y + box.height - pad - 20 * u, box.width - pad * 2, 20 * u);
+  const room = Math.max(1, Math.floor((input.y - top + row / 2) / row));
+  const lines = [...pane.lines, ...extra].filter((line) => (line[3] ?? 1) > 0);
+  // A line still arriving pushes the others up by its share of a row.
+  const arriving = lines.length > room ? (lines[lines.length - 1][3] ?? 1) : 1;
+  const shown = lines.slice(Math.max(0, lines.length - room - 1));
+  const scroll = lines.length > room ? (shown.length - room - 1 + arriving) * row : 0;
   g.font = mono;
   const timeWidth = g.measureText("00:00:00").width + 10 * u;
-  for (const [time, line, kind] of pane.lines) {
+  g.save();
+  clipTo(g, rect(box.x, top - row / 2, box.width, input.y - (top - row / 2) - 2 * u));
+  let y = top - scroll;
+  for (const [time, line, kind, alpha = 1] of shown) {
+    g.save();
+    g.globalAlpha *= alpha;
     if (kind === "command") {
       text(g, colors.fgStrong, "›", box.x + pad, y, mono);
       text(g, colors.fgStrong, line, box.x + pad + timeWidth, y, mono);
@@ -296,13 +365,14 @@ export function consoleLog(g, colors, box, labels, u) {
       text(g, colors.fgWeak, time, box.x + pad, y, mono);
       text(g, colors.fg, line, box.x + pad + timeWidth, y, mono);
     }
+    g.restore();
     y += row;
   }
-  const input = rect(box.x + pad, box.y + box.height - pad - 20 * u, box.width - pad * 2, 20 * u);
-  if (input.y > y - row / 2) field(g, colors, input, pane.prompt, u, true);
+  g.restore();
+  if (input.y > top) field(g, colors, input, pane.prompt, u, true);
 }
 
-function chip(g, colors, x, y, label, u, on) {
+export function chip(g, colors, x, y, label, u, on) {
   g.font = font(500, 11.5 * u, "Inter");
   const width = g.measureText(label).width + 16 * u;
   if (on) {
@@ -315,8 +385,14 @@ function chip(g, colors, x, y, label, u, on) {
   return width;
 }
 
-/** The Terrain Studio: its Sculpt and Materials tabs as chips, and the Sculpt tools. */
-export function terrain(g, colors, box, labels, u) {
+/** Where the Terrain pane's tool button `index` sits in its content box. */
+export function terrainTool(box, index, u) {
+  const pad = 8 * u;
+  return rect(box.x + pad, box.y + pad + 31 * u + index * 26 * u, box.width - pad * 2, 22 * u);
+}
+
+/** The Terrain Studio: its Sculpt and Materials tabs as chips, and the Sculpt tools; `active` is chosen. */
+export function terrain(g, colors, box, labels, u, active = -1) {
   const pane = labels.terrain;
   const pad = 8 * u;
   let x = box.x + pad;
@@ -325,21 +401,60 @@ export function terrain(g, colors, box, labels, u) {
     x += chip(g, colors, x, y, label, u, index === 0) + 4 * u;
   });
   pane.tools.forEach((label, index) => {
-    const top = y + 20 * u + index * 26 * u;
-    const button = rect(box.x + pad, top, box.width - pad * 2, 22 * u);
-    fill(g, colors.control, button);
-    text(g, colors.fgSecondary, label, button.x + 8 * u, button.y + button.height / 2, font(400, 11.5 * u, "Inter"));
+    const button = terrainTool(box, index, u);
+    const on = index === active;
+    fill(g, on ? colors.controlActive : colors.control, button);
+    if (on) outline(g, colors.lineStrong, button);
+    text(g, on ? colors.fgStrong : colors.fgSecondary, label, button.x + 8 * u, button.y + button.height / 2, font(on ? 500 : 400, 11.5 * u, "Inter"));
   });
 }
 
-/** Assets: a grid of tiles, each a thumbnail square and a file name. */
-export function assets(g, colors, box, labels, u) {
+/** The Assets pane's Toolbox button (asset_browser/panel.rs), top right of its content box. */
+export function toolboxButton(g, box, label, u) {
+  g.font = font(500, 11.5 * u, "Inter");
+  const width = g.measureText(label).width + 30 * u;
+  return rect(box.x + box.width - width - 8 * u, box.y + 8 * u, width, 22 * u);
+}
+
+/** A small toolbox glyph: a case with a handle. */
+function caseGlyph(g, colors, x, y, u) {
+  g.strokeStyle = colors.fgSecondary;
+  g.lineWidth = 1.2 * u;
+  g.strokeRect(x, y - 3 * u, 10 * u, 7 * u);
+  g.beginPath();
+  g.moveTo(x + 3 * u, y - 3 * u);
+  g.lineTo(x + 3 * u, y - 5 * u);
+  g.lineTo(x + 7 * u, y - 5 * u);
+  g.lineTo(x + 7 * u, y - 3 * u);
+  g.stroke();
+}
+
+/** A button: a control-coloured box and its label, pressed or chosen when `on`. */
+export function button(g, colors, box, label, u, on = false) {
+  fill(g, on ? colors.controlActive : colors.control, box);
+  outline(g, on ? colors.lineStrong : colors.line, box);
+  text(g, on ? colors.fgStrong : colors.fgSecondary, label, box.x + box.width / 2, box.y + box.height / 2,
+    font(500, 11.5 * u, "Inter"), "center");
+}
+
+/** Assets: a grid of tiles, each a thumbnail square and a file name, and the Toolbox button. */
+export function assets(g, colors, box, labels, u, pressed = false) {
   const pad = 8 * u;
   const tile = 46 * u;
   const gap = 10 * u;
+  let right = box.x + box.width;
+  if (labels.toolbox) {
+    const open = toolboxButton(g, box, labels.toolbox.button, u);
+    right = open.x - gap;
+    fill(g, pressed ? colors.controlActive : colors.control, open);
+    outline(g, colors.line, open);
+    caseGlyph(g, colors, open.x + 8 * u, open.y + open.height / 2, u);
+    text(g, pressed ? colors.fgStrong : colors.fgSecondary, labels.toolbox.button, open.x + 23 * u, open.y + open.height / 2,
+      font(500, 11.5 * u, "Inter"));
+  }
   let x = box.x + pad;
   for (const name of labels.assets) {
-    if (x + tile > box.x + box.width) break;
+    if (x + tile > right) break;
     const thumb = rect(x, box.y + pad, tile, tile * 0.7);
     fill(g, colors.surface, thumb);
     outline(g, colors.line, thumb);

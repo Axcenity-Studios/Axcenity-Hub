@@ -7,7 +7,10 @@
   <ol class="flow mx-auto mt-12 max-w-[1400px]">
     {% for step in workflow.steps %}
       <li class="flow-step" data-reveal style="--stagger: {{ forloop.counter0 }}">
-        <span class="flow-num" aria-hidden="true">{{ step.number }}</span>
+        <div class="flow-head">
+          <span class="flow-num" aria-hidden="true">{{ step.number }}</span>
+          {% include "partials/icon.html" with name=step.icon size=56 class="motif flow-motif" %}
+        </div>
         <h3 class="mt-5 text-xl font-semibold text-fg-strong">{{ step.title }}</h3>
         <p class="mt-2 text-fg-secondary">{{ step.body }}</p>
       </li>
