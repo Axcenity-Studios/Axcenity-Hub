@@ -189,13 +189,13 @@ None: the media is visual, and the manifest check is a check on data, not code t
 
 ### Acceptance criteria
 
-- [ ] **No placeholder media anywhere:** no "capture pending" boxes, grey blocks, lorem, or test-reference images (the 480×270 engine references are never used)
-- [ ] Every media item's manifest entry records kind (`capture` or `illustrative`), provenance (scene or project, command and settings, or source code it recreates), source pixel dimensions and intended display dimensions per breakpoint
-- [ ] A test checks every manifest entry: the file exists, its real pixel size matches the recorded source size, and display size × 2 never exceeds the source size (no upscaling on 2× screens)
-- [ ] Real captures and illustrative recreations are distinguishable (a consistent caption or badge: "Engine capture" vs "Illustrative") and both look finished and on-brand
-- [ ] Media stays sharp and correctly framed at 360, 768, 1280, 1440 and 2560 px wide, in dark and light, on 1× and 2× screens (checked by screenshots taken in one parametrised browser test at those widths and reviewed by eye; these aren't pixel comparisons, and they don't count toward the ~5 reel smoke tests)
-- [ ] Images use `srcset`/`sizes` with intrinsic width and height (no layout shift); below-the-fold media lazy-loads; animated recreations pause off screen and respect reduced motion
-- [ ] Captions and alt text are accurate; nothing illustrative is labelled as an engine capture
+- [x] **No placeholder media anywhere:** no "capture pending" boxes, grey blocks, lorem, or test-reference images (the 480×270 engine references are never used)
+- [x] Every media item's manifest entry records kind (`capture` or `illustrative`), provenance (scene or project, command and settings, or source code it recreates), source pixel dimensions and intended display dimensions per breakpoint
+- [x] A test checks every manifest entry: the file exists, its real pixel size matches the recorded source size, and display size × 2 never exceeds the source size (no upscaling on 2× screens)
+- [x] Real captures and illustrative recreations are distinguishable (a consistent caption or badge: "Engine capture" vs "Illustrative") and both look finished and on-brand
+- [x] Media stays sharp and correctly framed at 360, 768, 1280, 1440 and 2560 px wide, in dark and light, on 1× and 2× screens (checked by screenshots taken in one parametrised browser test at those widths and reviewed by eye; these aren't pixel comparisons, and they don't count toward the ~5 reel smoke tests)
+- [x] Images use `srcset`/`sizes` with intrinsic width and height (no layout shift); below-the-fold media lazy-loads; animated recreations pause off screen and respect reduced motion
+- [x] Captions and alt text are accurate; nothing illustrative is labelled as an engine capture
 
 ---
 

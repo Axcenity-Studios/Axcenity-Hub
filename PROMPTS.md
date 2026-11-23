@@ -28,6 +28,112 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-23 — Axcenity Hub: Phase 5/17, Feature media
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub.md phase 5`.
+2. (Approval of the brief) "Approved, build all of Phase 5"
+
+### Summary
+
+- **Outcome:** Final media for every Home pillar, built before Phase 4,
+  as asked. The Renderer pillar shows the 2560×1440 ray-traced capture as
+  a `<picture>` of AVIF, WebP and JPEG derivatives. World, Logic and
+  Editor show animated canvas recreations drawn from the engine's UI
+  sources, with their old drawings as no-JavaScript fallbacks. The
+  manifest records kind, provenance, source size and display sizes per
+  breakpoint. 485 tests pass (450 fast, 35 browser); Ruff is clean.
+- **Changes:**
+  - `marketing/media.py`, `marketing/management/commands/make_media.py`:
+    the media pipeline. Widths 640–2560 that never exceed the source;
+    AVIF 80, WebP 90 and JPEG 88; idempotent, with `--force`; refuses a
+    source whose size disagrees with the manifest.
+  - `marketing/media_sources/renderer-2560x1440.png`: the capture, moved
+    out of `static/` so it's never served; `static/marketing/media/renderer/`
+    holds its 15 derivatives.
+  - `marketing/content.py`:
+    - `Media` now has `source`, `display` (`Display` with `sizes` and
+      breakpoints), `loop` and `fallback_alt`, with validation.
+    - The editor's words are shared constants for the reel and the
+      Editor loop.
+    - Labels and provenance for the three loops; `LOOP_CONTROLS`.
+  - `marketing/drawings.py`: `luau_lines` now follows the editor's
+    `lua_syntax.rs` (keyword, literal, builtin, number, string, comment,
+    and the rule that a name after `.` or `:` is a field).
+  - `templates/marketing/media/`: new `picture.html`. `frame.html`
+    renders a capture or a loop (canvas, description, fallback, pause
+    button). `reel.html`'s fallback uses `<picture>`. The fallback
+    drawings use `fallback_alt`, and the Luau one is in syntax colours.
+  - `static/reel/loops/`: `main.js`, `player.js` (plays only on screen,
+    visible and current; reduced motion shows the still; `loop-seek`
+    event), and `editor.js`, `terrain.js` and `logic.js` (12 s each,
+    seamless, each with a layout below 480 px).
+  - `static/reel/drawing/`: `blocks.js` (block Graph view), `code.js`
+    (typed Luau) and `terrain.js` (heightfield, brush ring, plants,
+    Terrain Studio and Scatter panes), ready for Phase 4's Scenes 3–4.
+  - `static/reel/canvas.js`:
+    - `groupLayer`, shared by the reel player and the loop player.
+    - `logicalSize` measures the layout box, ignoring transforms.
+    - New content tokens.
+  - `styles/source.css`:
+    - Luau syntax tokens; dark values are the editor's, light values are
+      darkened to 4.5:1 on the site's grey.
+    - Node header and pin tokens.
+    - Rules for the picture, the loop frame and button, and the capped
+      hero fallback.
+  - `templates/marketing/home/facts.html`: the stat titles step up to
+    `text-7xl` only from `lg` (they overflowed by 2 px at 768).
+  - Tests:
+    - New `tests/test_media.py` and `tests/test_media_browser.py`.
+    - `test_home.py`: derivatives at real size, no upscaling on 2×
+      screens, picture markup, Luau token kinds.
+    - `test_theme.py`: content colours derived from the engine's values
+      and rules, new contrast pairs.
+    - `test_reel.py`: the purity rules now cover the loops.
+    - `open_home` and the browser helpers moved to `conftest.py`.
+  - Docs: new `docs/frontend/media.md`. Updated `home.md`, `reel.md`,
+    `theme.md`, `FRONTEND.md`, `ARCHITECTURE.md`, `TESTING.md`, and
+    `CLAUDE.md` (the `make_media` command and a "Read before…" row).
+    `.gitignore` now covers `screenshots/`.
+- **TDD:** Skipped, as the plan says for this phase: the media is visual,
+  and the manifest checks test data rather than drive code. Everything
+  got ordinary tests, including a seamless-wrap check for each loop.
+- **Decisions:**
+  - Recreations are canvas loops sharing the reel's contract and
+    helpers, so Phase 4 can reuse them.
+  - The static drawings stay as finished no-JavaScript fallbacks.
+  - The hero fallback is capped at 1280×720 CSS pixels (half the
+    source).
+  - A capture's display sizes record its drawn size: 10/9 of the frame,
+    since 16:9 covers 16:10.
+  - Compact layouts apply below 480 px.
+  - Each loop has a pause button (WCAG 2.2.2).
+  - The brush ring and drop preview are drawn in ink, not the editor's
+    accent.
+  - Pin colours stay the editor's in both schemes. They're exempt from
+    contrast tests because each row is labelled.
+- **Deviations:** None. Phase 4 isn't built; the user asked for Phase 5
+  first.
+- **Sideways:**
+  - The block nodes were first assumed to be the generic node graph's
+    (red Events, blue Actions). A background search of the engine found
+    that the block editor's Graph view uses "When Touched" (Events,
+    Amber) and "Spawn Decal" (Looks, Violet), so the nodes follow that.
+  - AVIF at quality 60 smeared the capture's dark wall panels (seen in
+    a side-by-side crop), so quality went up to 80.
+  - The keyword colour's derivation differed by one unit until the test
+    used Rust's round-half-away rounding (`#8900AB`).
+  - The browser tests caught three real bugs:
+    - A negative canvas radius when hidden inline frames measured 1×1.
+    - Stage canvases 3 % too small, because the size was measured
+      mid-transform.
+    - A 2 px sideways scroll at 768 px from the stat band.
+  - A check by eye with no canvas found the hero fallback's caption
+    over "Read the docs"; it moved to the top right.
+  - Found and not fixed (out of phase): at 768–~860 px the nav's links
+    don't fit, "Sign in" wraps and the Download button sits off screen.
+
 ## 2026-11-23 — Axcenity Hub: Phase 3/17, Reel engine and Scene 1
 
 ### Prompts

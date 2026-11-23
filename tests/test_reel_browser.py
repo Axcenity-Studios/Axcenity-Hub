@@ -2,78 +2,20 @@
 
 Each page may reach only the live server (browser_server); every other request is
 aborted. They need the built stylesheet: `uv run python manage.py tailwind build`.
+`open_home`, `COUNT_FRAMES` and `CONTROL_VISIBILITY` are in tests/conftest.py.
 """
 
 import os
 
 import pytest
-from django.conf import settings
+
+from tests.conftest import CONTROL_VISIBILITY
 
 # Playwright's sync API runs an event loop in this thread; the database teardown
 # that the live server needs is synchronous and harmless here.
 os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
 
 pytestmark = pytest.mark.browser
-
-STYLESHEET = settings.BASE_DIR / "static" / "css" / "tailwind.css"
-SOURCE = settings.BASE_DIR / "styles" / "source.css"
-
-# Counts requestAnimationFrame calls, so a test can see that a paused reel does no work.
-COUNT_FRAMES = """
-window.__frames = 0;
-const request = window.requestAnimationFrame.bind(window);
-window.requestAnimationFrame = (callback) => { window.__frames += 1; return request(callback); };
-"""
-
-# Lets a test hide and show the tab (Playwright pages are always "visible").
-CONTROL_VISIBILITY = """
-window.__visibility = window.__startHidden ? "hidden" : "visible";
-Object.defineProperty(document, "visibilityState", { get: () => window.__visibility });
-Object.defineProperty(document, "hidden", { get: () => window.__visibility === "hidden" });
-window.__setVisibility = (value) => {
-  window.__visibility = value;
-  document.dispatchEvent(new Event("visibilitychange"));
-};
-"""
-
-
-@pytest.fixture(scope="session", autouse=True)
-def _built_stylesheet():
-    if not STYLESHEET.exists() or STYLESHEET.stat().st_mtime < SOURCE.stat().st_mtime:
-        pytest.fail("Build the stylesheet first: uv run python manage.py tailwind build")
-
-
-@pytest.fixture
-def open_home(browser, browser_server):
-    """Opens Home in a fresh context; returns (page, errors). Only the live server is reachable."""
-    contexts = []
-
-    def open_(*, width=1280, height=800, scale=1, init="", wait_ready=True, **options):
-        context = browser.new_context(
-            viewport={"width": width, "height": height}, device_scale_factor=scale, **options
-        )
-        contexts.append(context)
-        context.route(
-            "**/*",
-            lambda route: (
-                route.continue_()
-                if route.request.url.startswith(browser_server.url)
-                else route.abort()
-            ),
-        )
-        page = context.new_page()
-        errors = []
-        page.on("console", lambda message: message.type == "error" and errors.append(message.text))
-        page.on("pageerror", lambda error: errors.append(str(error)))
-        page.add_init_script(COUNT_FRAMES + init)
-        page.goto(browser_server.url + "/")
-        if wait_ready:
-            page.wait_for_selector("#reel[data-ready]")
-        return page, errors
-
-    yield open_
-    for context in contexts:
-        context.close()
 
 
 def state(page) -> str:

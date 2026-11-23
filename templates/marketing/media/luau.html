@@ -1,5 +1,5 @@
 {% load home_tags %}
-{# Illustrative: the Luau sample (content.LUAU_SAMPLE), highlighted in the monochrome tiers. Scrolls sideways on phones, so it takes focus. #}
-<p class="sr-only">{{ media.alt }}</p>
-<pre class="drawn-code" tabindex="0"><code>{% for line in media.code|luau_lines %}{% for kind, text in line %}<span class="tok-{{ kind }}">{{ text }}</span>{% endfor %}
+{# The logic loop's fallback: the Luau sample (content.LUAU_SAMPLE) in the editor's syntax colours (lua_syntax.rs). Scrolls sideways on phones, so it takes focus. #}
+<p class="sr-only">{{ media.fallback_alt }}</p>
+<pre class="drawn-code" tabindex="0"><code>{% for line in media.code|luau_lines %}{% for kind, text in line %}{% if kind == "plain" %}{{ text }}{% else %}<span class="luau-{{ kind }}">{{ text }}</span>{% endif %}{% endfor %}
 {% endfor %}</code></pre>

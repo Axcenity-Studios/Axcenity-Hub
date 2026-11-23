@@ -9,10 +9,11 @@ index:** the rules below apply everywhere; topic files under
 | Path | Holds |
 |---|---|
 | `config/` | Settings, root URLs, WSGI/ASGI, site-wide context processors, `theme.py` (the colour-scheme cookie) |
-| `marketing/` | Public signed-out pages: Home now, Toolbox (Phase 6), Download (Phase 7). `content.py` holds their copy, links and media manifest as data; `drawings.py` computes the drawn media |
+| `marketing/` | Public signed-out pages: Home now, Toolbox (Phase 6), Download (Phase 7). `content.py` holds their copy, links and media manifest as data; `drawings.py` computes the drawn media; `media.py` cuts captures into derivatives (`manage.py make_media`) |
+| `marketing/media_sources/` | Captures as copied in (never served, never edited): the sources `make_media` reads |
 | `templates/` | `base.html` (shared by every shell), `marketing/` (the marketing shell and its pages), `partials/` |
 | `styles/source.css` | The Tailwind source; built into `static/css/tailwind.css` (git-ignored) |
-| `static/` | `js/`, `reel/` (the showcase reel's ES modules), `fonts/`, `brand/`, `marketing/media/` (copied from the engine, Toolbox and Showcase captures; never edited there) |
+| `static/` | `js/`, `reel/` (the showcase reel's ES modules, and `reel/loops/`, the pillars' animated recreations), `fonts/`, `brand/`, `marketing/media/` (the captures' derivatives, written by `make_media`) |
 | `tests/` | Every test (see [TESTING.md](TESTING.md)) |
 
 Later phases add `accounts`, `projects`, `forums`, `showcases`, `reports`,
@@ -51,8 +52,11 @@ Later phases add `accounts`, `projects`, `forums`, `showcases`, `reports`,
   check them.
 - `content.Media` is one entry in the media manifest (`content.MEDIA`):
   its kind (`capture` or `illustrative`), caption, alt text, provenance,
-  and a static file with its pixel size or a drawing template. See
-  [frontend/home.md](frontend/home.md).
+  display sizes per breakpoint, and a source capture with its pixel size
+  or a drawing template (optionally animated by a canvas loop). See
+  [frontend/media.md](frontend/media.md).
+- `marketing/media.py` (`widths_for`, `derivatives`, `build`) is the media
+  pipeline; `manage.py make_media [--force]` runs it for every capture.
 - Engine links point at `github.com/Axcenity-Studios/Axcenity-Engine`:
   Download at `/releases` (never `/releases/latest`: every release is a
   prerelease, so it 404s), Docs at the repo's `documentation/` folder.

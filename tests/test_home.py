@@ -3,7 +3,6 @@
 import dataclasses
 import json
 import re
-import struct
 from html.parser import HTMLParser
 
 import pytest
@@ -12,8 +11,9 @@ from django.contrib.staticfiles import finders
 from django.template.loader import get_template
 from django.urls import reverse
 from django.utils.html import escape
+from PIL import Image
 
-from marketing import content, drawings
+from marketing import content, drawings, media
 
 pytestmark = pytest.mark.django_db
 
@@ -29,7 +29,19 @@ HOME_BLOCKS = [
     content.HOME_FINAL,
 ]
 # Fields that are data about the copy rather than copy a visitor reads.
-NOT_COPY = {"key", "kind", "provenance", "src", "drawn", "url_name", "external", "fragment", "code"}
+NOT_COPY = {
+    "key",
+    "kind",
+    "provenance",
+    "source",
+    "drawn",
+    "loop",
+    "display",
+    "url_name",
+    "external",
+    "fragment",
+    "code",
+}
 # Shared shell labels rendered by partials, not by the Home's own content.
 SHELL_LABELS = {"Soon"}
 
@@ -241,49 +253,109 @@ def test_the_stage_is_sticky_on_desktop_and_inline_media_shows_on_phones():
 # ---------- Media manifest ----------
 
 
-def _png_size(path: str) -> tuple[int, int]:
-    with open(path, "rb") as f:
-        header = f.read(24)
-    assert header[:8] == b"\x89PNG\r\n\x1a\n", path
-    return struct.unpack(">II", header[16:24])
+def _pixel_size(path) -> tuple[int, int]:
+    with Image.open(path) as image:
+        return image.size
 
 
-@pytest.mark.parametrize("media", content.MEDIA.values(), ids=lambda media: media.key)
-def test_every_media_item_exists_and_is_labelled_for_what_it_is(media):
-    assert media.caption.startswith(content.MEDIA_KINDS[media.kind])
-    assert media.alt and media.provenance
-    if media.src:
-        path = finders.find(media.src)
-        assert path, f"{media.src} is missing"
-        assert _png_size(path) == media.source_size
+@pytest.mark.parametrize("item", content.MEDIA.values(), ids=lambda item: item.key)
+def test_every_media_item_exists_and_is_labelled_for_what_it_is(item):
+    assert item.caption.startswith(content.MEDIA_KINDS[item.kind])
+    assert item.alt and item.provenance
+    if item.source:
+        path = media.SOURCES_DIR / item.source
+        assert path.exists(), f"{item.source} is missing"
+        assert _pixel_size(path) == item.source_size
     else:
-        assert media.kind == "illustrative"
-        get_template(media.drawn)  # raises TemplateDoesNotExist
+        assert item.kind == "illustrative"
+        get_template(item.drawn)  # raises TemplateDoesNotExist
+    if item.loop:
+        assert (settings.BASE_DIR / "static" / "reel" / "loops" / f"{item.loop}.js").exists()
+        assert item.fallback_alt and item.fallback_alt != item.alt
+
+
+@pytest.mark.parametrize("item", content.MEDIA.values(), ids=lambda item: item.key)
+def test_every_media_item_records_its_display_size_per_breakpoint(item):
+    assert item.display
+    for slot, display in item.display.items():
+        assert display.sizes and display.breakpoints, slot
+        for where, (width, height) in display.breakpoints.items():
+            assert where and width > 0 and height > 0, (slot, where)
+
+
+CAPTURES = [item for item in content.MEDIA.values() if item.source]
+
+
+@pytest.mark.parametrize("item", CAPTURES, ids=lambda item: item.key)
+def test_every_derivative_exists_at_its_recorded_pixel_size(item):
+    """`make_media` wrote every file the manifest lists, in its real format and size."""
+    assert item.derivatives
+    for derivative in item.derivatives:
+        path = finders.find(derivative.path)
+        assert path, f"{derivative.path} is missing: run manage.py make_media"
+        with Image.open(path) as image:
+            assert image.format == derivative.format.pillow, derivative.path
+            assert image.size == (derivative.width, derivative.height), derivative.path
+        assert derivative.width <= item.source_size[0]
+
+
+@pytest.mark.parametrize("item", CAPTURES, ids=lambda item: item.key)
+def test_no_capture_is_ever_upscaled_on_a_2x_screen(item):
+    """Displayed twice over (a 2× screen), it never needs more pixels than the source has,
+    and there's always a derivative at least that wide to pick."""
+    source_width, source_height = item.source_size
+    widths = {d.width for d in item.derivatives if d.format == media.FALLBACK}
+    for slot, display in item.display.items():
+        for where, (width, height) in display.breakpoints.items():
+            assert width * 2 <= source_width and height * 2 <= source_height, (slot, where)
+            assert any(w >= width * 2 for w in widths), (slot, where)
 
 
 def test_the_media_manifest_refuses_mislabelled_items():
-    base = dict(key="x", alt="a", provenance="p", src="a.png", source_size=(1, 1))
+    shown = {"inline": content.Display("100vw", {"every width": (1, 1)})}
+    base = dict(key="x", alt="a", provenance="p", source="a.png", source_size=(1, 1), display=shown)
     with pytest.raises(ValueError):
         content.Media(kind="capture", caption="Illustrative · drawn", **base)
     with pytest.raises(ValueError):
         content.Media(kind="screenshot", caption="Engine capture", **base)
-    with pytest.raises(ValueError):
-        content.Media(
-            key="x", kind="capture", caption="Engine capture", alt="a", provenance="p", drawn="t"
-        )
-    with pytest.raises(ValueError):
-        content.Media(
-            key="x", kind="capture", caption="Engine capture", alt="a", provenance="p", src="a.png"
-        )
+    drawn = dict(key="x", alt="a", provenance="p", display=shown)
+    with pytest.raises(ValueError):  # a capture is never a drawing
+        content.Media(kind="capture", caption="Engine capture", drawn="t", **drawn)
+    with pytest.raises(ValueError):  # a file records its size
+        content.Media(kind="capture", caption="Engine capture", source="a.png", **drawn)
+    with pytest.raises(ValueError):  # where it's displayed is recorded
+        content.Media(**{**base, "display": {}}, kind="capture", caption="Engine capture")
+    loop = dict(kind="illustrative", caption="Illustrative", drawn="t", **drawn)
+    with pytest.raises(ValueError):  # a loop is a known one
+        content.Media(loop="x", fallback_alt="f", **loop)
+    with pytest.raises(ValueError):  # and says what shows when it can't run
+        content.Media(loop="logic", **loop)
+    content.Media(loop="logic", fallback_alt="f", **loop)
 
 
 def test_every_image_and_caption_on_the_page_is_in_the_manifest(home):
-    files = {f"/static/{media.src}" for media in content.MEDIA.values() if media.src}
-    for src in re.findall(r'<img src="([^"]+)"', _part_main(home)):
+    files = {f"/static/{d.path}" for item in CAPTURES for d in item.derivatives}
+    main = _part_main(home)
+    for src in re.findall(r'<img src="([^"]+)"', main):
         assert src in files, src
-    captions = {escape(media.caption) for media in content.MEDIA.values()}
+    for srcset in re.findall(r'srcset="([^"]+)"', main):
+        for candidate in srcset.split(", "):
+            assert candidate.split(" ")[0] in files, candidate
+    captions = {escape(item.caption) for item in content.MEDIA.values()}
     for caption in re.findall(r'<figcaption class="media-cap micro">([^<]+)<', home):
         assert caption in captions, caption
+
+
+def test_captures_are_pictures_of_avif_webp_and_jpeg_sized_for_their_slot(home):
+    renderer = content.MEDIA["renderer"]
+    pictures = re.findall(r"<picture>(.*?)</picture>", _part_main(home), re.S)
+    assert len(pictures) == 3  # the hero's fallback, then inline and on the stage
+    for picture, slot in zip(pictures, ["hero", "inline", "stage"], strict=True):
+        sizes = escape(renderer.display[slot].sizes)
+        types = re.findall(r'<source type="([^"]+)" srcset="[^"]+" sizes="([^"]+)">', picture)
+        assert types == [("image/avif", sizes), ("image/webp", sizes)], slot
+        img = re.search(r"<img [^>]+>", picture).group()
+        assert f'sizes="{sizes}"' in img and ".jpg 2560w" in img
 
 
 def test_images_carry_intrinsic_size_and_below_the_fold_ones_lazy_load(home):
@@ -320,13 +392,32 @@ def test_the_luau_sample_renders_exactly(home):
     assert code.count(content.LUAU_SAMPLE + "\n") == 2
 
 
-def test_luau_lines_rejoin_to_the_source_and_mark_keywords():
+def test_luau_lines_rejoin_to_the_source_and_mark_what_the_editor_colours():
+    """The kinds and word lists of crates/editor-kit/src/lua_syntax.rs."""
     lines = drawings.luau_lines(content.LUAU_SAMPLE)
     assert "\n".join("".join(text for _, text in line) for line in lines) == content.LUAU_SAMPLE
     kinds = {text: kind for line in lines for kind, text in line}
-    assert kinds["local"] == kinds["function"] == kinds["end"] == "k"
-    assert kinds['"assets/textures/scorch.png"'] == "s"
-    assert lines[0][0][0] == "c"
+    assert kinds["local"] == kinds["function"] == kinds["end"] == "keyword"
+    assert kinds["workspace"] == kinds["Vector3"] == "builtin"
+    assert kinds['"assets/textures/scorch.png"'] == "string"
+    assert kinds["2.5"] == kinds["4"] == "number"
+    assert lines[0][0][0] == "comment"
+
+
+def _marked(source: str) -> list[tuple[str, str]]:
+    return [(kind, text) for kind, text in drawings.luau_lines(source)[0] if kind != "plain"]
+
+
+def test_luau_lines_follow_the_editors_rules():
+    assert _marked("x = nil or true") == [
+        ("literal", "nil"),
+        ("keyword", "or"),
+        ("literal", "true"),
+    ]
+    # After "." or ":" a name is a field, not the global with that name.
+    assert _marked("part.print(game)") == [("builtin", "game")]
+    assert _marked("goto continue") == [("keyword", "goto")]
+    assert _marked("print('hi')") == [("builtin", "print"), ("string", "'hi'")]
 
 
 def test_the_terrain_drawing_is_deterministic():
@@ -337,7 +428,7 @@ def test_the_terrain_drawing_is_deterministic():
 
 
 def test_drawn_media_uses_only_the_tokens(home):
-    for name in ("terrain", "luau", "editor", "reel"):
+    for name in ("terrain", "luau", "editor", "reel", "frame", "picture"):
         source = (
             settings.BASE_DIR / "templates" / "marketing" / "media" / f"{name}.html"
         ).read_text()

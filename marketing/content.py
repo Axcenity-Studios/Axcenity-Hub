@@ -7,9 +7,13 @@ doesn't exist yet is marked `soon`: it renders as a "Soon" label, never as
 a dead link.
 """
 
+import json
 from dataclasses import dataclass, field
 
+from django.templatetags.static import static
 from django.urls import reverse
+
+from marketing import drawings, media
 
 # The engine's canonical repository (the README's older account redirects here).
 ENGINE_REPO_URL = "https://github.com/Axcenity-Studios/Axcenity-Engine"
@@ -64,26 +68,76 @@ class FooterColumn:
 # ---------- Media manifest ----------
 # Every image or drawing on the site, with what it is and where it came from.
 # kind "capture" is a real, unretouched engine frame; "illustrative" is drawn or
-# recreated, and its caption says so. Phase 5 replaces the drawn stand-ins with
-# final animated recreations and adds responsive derivatives.
+# recreated, and its caption says so. A capture's source file lives in
+# marketing/media_sources/ and is served only as the derivatives `make_media`
+# writes (marketing/media.py). An animated recreation is a canvas loop
+# (static/reel/loops/), with a static drawing as its fallback.
 
 MEDIA_KINDS = {"capture": "Engine capture", "illustrative": "Illustrative"}
+# The canvas loops (static/reel/loops/<name>.js) a media item may run.
+LOOPS = ("editor", "terrain", "logic")
+
+
+@dataclass(frozen=True)
+class Display:
+    """Where an item shows: the `sizes` attribute for that slot and the largest CSS size it's
+    drawn at in each range of viewport widths. For a capture that's the picture's own drawn
+    size (a 16:9 picture covering a 16:10 frame is wider than the frame)."""
+
+    sizes: str
+    breakpoints: dict[str, tuple[int, int]]
+
+
+# The feature pillars' frames (16:10): inline below 1024 px (the page's gutters are 16 px,
+# then 32 px from 768 px), on the sticky stage from 1024 px ((min(100vw, 1400) − 128) × 5/9).
+FRAME_INLINE = {"360–767 px": (735, 459), "768–1023 px": (959, 599)}
+FRAME_STAGE = {"1024–1439 px": (707, 442), "1440 px and up": (707, 442)}
+FRAME_SIZES = {
+    "inline": "(min-width: 768px) calc(100vw - 64px), calc(100vw - 32px)",
+    "stage": "calc((min(100vw, 1400px) - 128px) * 0.5556)",
+}
+# A 16:9 picture covering a 16:10 frame is drawn 10/9 as wide as the frame.
+COVER_16_9 = 10 / 9
+
+
+def _covered(sizes: dict[str, tuple[int, int]]) -> dict[str, tuple[int, int]]:
+    return {where: (round(w * COVER_16_9), h) for where, (w, h) in sizes.items()}
+
+
+FRAME_DISPLAY = {
+    "inline": Display(FRAME_SIZES["inline"], FRAME_INLINE),
+    "stage": Display(FRAME_SIZES["stage"], FRAME_STAGE),
+}
+COVER_DISPLAY = {
+    "inline": Display(
+        "(min-width: 768px) calc((100vw - 64px) * 1.112), calc((100vw - 32px) * 1.112)",
+        _covered(FRAME_INLINE),
+    ),
+    "stage": Display("calc((min(100vw, 1400px) - 128px) * 0.6173)", _covered(FRAME_STAGE)),
+    # The reel's fallback: 16:9, at most 1280 px wide (half the capture, so 2× screens stay sharp).
+    "hero": Display("min(100vw - 32px, 1280px)", {"every width": (1280, 720)}),
+}
 
 
 @dataclass(frozen=True)
 class Media:
-    """One media item: a static file (`src`) or a drawing rendered by a template (`drawn`)."""
+    """One media item: a captured image (`source`, cut into derivatives) or a drawing
+    rendered by a template (`drawn`), which a canvas `loop` may animate."""
 
     key: str
     kind: str
     caption: str
     alt: str
     provenance: str
-    src: str = ""
+    # What a loop's static drawing shows, for when the loop can't run (its `alt` describes the film).
+    fallback_alt: str = ""
+    source: str = ""
     drawn: str = ""
-    # Pixel size of the source file (files only), and the largest CSS size it's shown at.
+    loop: str = ""
+    # Pixel size of the source file (captures only).
     source_size: tuple[int, int] | None = None
-    display_size: dict[str, tuple[int, int]] = field(default_factory=dict)
+    # Where it shows, by slot ("inline", "stage", "hero").
+    display: dict[str, Display] = field(default_factory=dict)
     # Words drawn inside a recreation (panel names and the like), or its code.
     labels: dict = field(default_factory=dict)
     code: str = ""
@@ -93,13 +147,109 @@ class Media:
             raise ValueError(f"{self.key}: kind must be one of {sorted(MEDIA_KINDS)}")
         if not self.caption.startswith(MEDIA_KINDS[self.kind]):
             raise ValueError(f"{self.key}: a {self.kind} caption starts {MEDIA_KINDS[self.kind]!r}")
-        if bool(self.src) == bool(self.drawn):
-            raise ValueError(f"{self.key}: give exactly one of src or drawn")
-        if self.kind == "capture" and not self.src:
+        if bool(self.source) == bool(self.drawn):
+            raise ValueError(f"{self.key}: give exactly one of source or drawn")
+        if self.kind == "capture" and not self.source:
             raise ValueError(f"{self.key}: a capture is a file, never a drawing")
-        if self.src and not self.source_size:
+        if self.source and not self.source_size:
             raise ValueError(f"{self.key}: a file records its source pixel size")
+        if self.loop and (self.loop not in LOOPS or not self.drawn or not self.fallback_alt):
+            raise ValueError(f"{self.key}: a loop is one of {LOOPS}, with a described fallback")
+        if not self.display:
+            raise ValueError(f"{self.key}: record where it's displayed and how large")
 
+    @property
+    def derivatives(self) -> tuple[media.Derivative, ...]:
+        """The files `make_media` writes for a capture (none for a drawing)."""
+        return media.derivatives(self.key, self.source_size) if self.source else ()
+
+    def srcset(self, extension: str) -> str:
+        """The `srcset` of one format's derivatives."""
+        return ", ".join(
+            f"{static(item.path)} {item.width}w"
+            for item in self.derivatives
+            if item.format.extension == extension
+        )
+
+    @property
+    def sources(self) -> list[tuple[str, str]]:
+        """(MIME type, srcset) for each <source> in a <picture>, best format first."""
+        return [(fmt.mime, self.srcset(fmt.extension)) for fmt in media.FORMATS[:-1]]
+
+    @property
+    def fallback(self) -> media.Derivative:
+        """The <img>'s own file: the fallback format, 1280 wide (or the widest there is)."""
+        files = [d for d in self.derivatives if d.format == media.FALLBACK]
+        return next((d for d in files if d.width == 1280), files[-1])
+
+    @property
+    def fallback_srcset(self) -> str:
+        """The <img>'s own `srcset`: the fallback format's derivatives."""
+        return self.srcset(media.FALLBACK.extension)
+
+    @property
+    def labels_json(self) -> str:
+        """The drawn words as JSON, for a loop's canvas (escaped into an attribute)."""
+        return json.dumps(self.labels, ensure_ascii=False)
+
+
+# The editor's words, shared by the reel and the Editor pillar's loop.
+# The default dock (crates/editor/src/layout.rs default_dock), each place's tabs in order.
+EDITOR_DOCK = {
+    "scene": ["Scene View", "Animation", "UI Designer"],
+    "explorer": ["Explorer"],
+    "properties": ["Properties", "Terrain"],
+    "console": ["Console", "Assets", "Profiler"],
+}
+EDITOR_WINDOW = "Arena - Axcenity Editor"
+EDITOR_TREE = [
+    ("Workspace", 0),
+    ("Arena", 1),
+    ("Pad", 2),
+    ("Terrain", 1),
+    ("Lighting", 0),
+    ("ServerScriptService", 0),
+]
+# The selected Pad (an anchored 8 × 1 × 8 Part, otherwise Part's defaults).
+EDITOR_PROPERTIES = {
+    "name": "Pad",
+    "class": "Part",
+    "filter": "Filter properties",
+    "sections": [
+        ("Data", [("Name", "Pad", "field")]),
+        (
+            "Appearance",
+            [
+                ("Color", "163, 163, 163", "color"),
+                ("Material", "Plastic", "field"),
+                ("Transparency", "0", "field"),
+            ],
+        ),
+        ("Behavior", [("Anchored", "true", "check"), ("CanCollide", "true", "check")]),
+        (
+            "Part",
+            [
+                ("Shape", "Block", "field"),
+                ("Position", "0, 0.5, 0", "field"),
+                ("Size", "8, 1, 8", "field"),
+            ],
+        ),
+    ],
+}
+EDITOR_CONSOLE = {
+    "filter": "Filter logs",
+    "lines": [
+        (
+            "12:04:28",
+            'Opened "Arena" from `Arena`: 6 objects, 1 script. Press Play (F5) to run it.',
+            "info",
+        ),
+        ("", "select Pad", "command"),
+    ],
+    "prompt": "Lua, or a command such as help",
+}
+EDITOR_TERRAIN = {"tabs": ["Sculpt", "Materials"], "tools": ["Raise / Lower", "Smooth", "Flatten"]}
+EDITOR_ASSETS = ["scorch.png", "grass.png", "rock.png", "Pad.glb", "theme.ogg"]
 
 # The Luau a "When touched → Spawn decal" block script becomes. The shape follows the
 # engine's translator (crates/blocks-runtime/src/translate.rs, WhenTouched and SpawnDecal)
@@ -113,6 +263,8 @@ part.Touched:Connect(function(otherPart)
   workspace:SpawnDecal("assets/textures/scorch.png",
     CFrame.lookAt(pos, pos + Vector3.yAxis, Vector3.zAxis), 2.5, 4)
 end)"""
+# Phones show the part from the Connect call down (no comment, no lookup line).
+LUAU_COMPACT_FROM = 3
 
 MEDIA = {
     "renderer": Media(
@@ -124,67 +276,162 @@ MEDIA = {
             "reflections on the floor and spheres, soft shadows and bounced light."
         ),
         provenance=(
-            "Showcase-Renderer project, axcenity-player v0.3.0-alpha.1 at 2560×1440, "
-            "--graphics settings/rt-ultra.json, window capture with no retouching "
+            "Showcase-Renderer project, axcenity-player v0.3.0-alpha.1 run fullscreen at "
+            "2560×1440 with --graphics settings/rt-ultra.json, captured after 15 s with "
+            "tools/capture.sh (import -window); not painted over, cropped or rescaled "
             "(Showcase/README.md)."
         ),
-        src="marketing/media/renderer-2560x1440.png",
+        source="renderer-2560x1440.png",
         source_size=(2560, 1440),
-        display_size={"hero": (1440, 900), "stage": (680, 425), "inline": (720, 450)},
+        display=COVER_DISPLAY,
     ),
     "terrain": Media(
         key="terrain",
         kind="illustrative",
-        caption="Illustrative · drawn",
-        alt="A drawing of a wireframe terrain rising into hills, with trees scattered across it.",
+        caption="Illustrative · terrain recreation",
+        alt=(
+            "An animated recreation of the Terrain Studio. A brush ring sweeps across a flat "
+            "grid in the Scene View with Raise / Lower chosen, and hills rise under it. Then "
+            "the Scatter pane takes over: its brush paints trees, bushes, flowers and grass "
+            "across the hills, each growing in where the brush passes, before the ground "
+            "settles flat again."
+        ),
         provenance=(
-            "Drawn stand-in (marketing/drawings.py terrain_wireframe), after the Terrain Studio "
-            "and Scatter pane. Replaced in Phase 5."
+            "Drawn live on a canvas by static/reel/loops/terrain.js in the site's colour tokens. "
+            "The Terrain Studio's tabs, tools and brush defaults follow "
+            "crates/editor/src/terrain_studio/tabs.rs, crates/editor-tools/src/terrain_tool.rs "
+            "and crates/terrain/src/brush.rs; the Scatter pane follows "
+            "crates/editor/src/scatter_pane.rs and the built-in plants in "
+            "crates/core/src/terrain.rs; the brush ring follows "
+            "crates/editor/src/viewport/overlays.rs, in ink rather than the editor's accent. "
+            "Without JavaScript: the wireframe drawing in marketing/drawings.py."
+        ),
+        fallback_alt=(
+            "A drawing of a wireframe terrain rising into hills, with trees scattered across it."
         ),
         drawn="marketing/media/terrain.html",
+        loop="terrain",
+        display=FRAME_DISPLAY,
+        labels={
+            "viewport": "Scene View",
+            "panes": ["Terrain", "Scatter"],
+            "studio": "Terrain Studio",
+            "tabs": ["Sculpt", "Materials", "Terrain"],
+            "tools": ["Raise / Lower", "Smooth", "Flatten", "Sculpt"],
+            "brush": [
+                ("Size", "12 studs", 0.45),
+                ("Strength", "0.5", 0.5),
+                ("Falloff", "0.6", 0.6),
+            ],
+            "scatter": "Scatter",
+            "palette": "Palette",
+            "paint": "Paint",
+            "painting": "Stop painting",
+            "scatter_brush": [("Size", "12 studs", 0.45), ("Density", "8 per 100 studs²", 0.3)],
+            "items": [("Tree", "25%"), ("Bush", "25%"), ("Flower", "25%"), ("Grass", "25%")],
+        },
     ),
     "logic": Media(
         key="logic",
         kind="illustrative",
         caption="Illustrative · blocks as Luau",
-        alt="Luau code: when the part is touched, spawn a scorch decal where it was hit.",
-        provenance=(
-            "Written after crates/blocks-runtime/src/translate.rs (WhenTouched, SpawnDecal) and "
-            "documentation/api/classes/Workspace.md. Replaced in Phase 5."
+        alt=(
+            "An animated recreation of the block editor's Graph view. A When Touched node for "
+            "the Pad and a Spawn Decal node appear, a wire joins them, and beside them the Luau "
+            "they become types out: when the part is touched, spawn a scorch decal where it "
+            "was hit. A pulse then runs along the wire, as when the Pad is touched."
         ),
+        provenance=(
+            "Drawn live on a canvas by static/reel/loops/logic.js. Nodes follow the block "
+            "editor's Graph view (crates/editor/src/block_editor/graph.rs and graph/nodes.rs: "
+            "titles, rows, pin types and colours, the Events and Looks hues) and the shared "
+            "canvas (crates/editor-node-graph/src/canvas.rs: grid, exec and value pins, "
+            "wires). The Luau is the translator's output (crates/blocks-runtime/src/"
+            "translate.rs), coloured as crates/editor-kit/src/lua_syntax.rs colours it, its "
+            "light colours darkened to 4.5:1 on the site's light grey. Without JavaScript: "
+            "the same code, highlighted."
+        ),
+        fallback_alt="Luau code: when the part is touched, spawn a scorch decal where it was hit.",
         drawn="marketing/media/luau.html",
+        loop="logic",
+        display=FRAME_DISPLAY,
         code=LUAU_SAMPLE,
+        labels={
+            "graph": "Graph",
+            "code": "Luau",
+            # Each node: title, header hue, then its rows as (label, value, pin type, side).
+            "nodes": [
+                {
+                    "title": "When Touched",
+                    "hue": "events",
+                    "rows": [
+                        ("Part", "Pad", "object", "in"),
+                        ("Filter", "Any Part", "", "field"),
+                    ],
+                    "outputs": [("", "exec"), ("Other Part", "object"), ("Player", "any")],
+                },
+                {
+                    "title": "Spawn Decal",
+                    "hue": "looks",
+                    "rows": [
+                        ("", "", "exec", "in"),
+                        ("Texture", "scorch.png", "text", "in"),
+                        ("Position", "Other Part.Position", "vector", "wired"),
+                        ("Facing", "0, 1, 0", "vector", "in"),
+                        ("Size", "2.5", "number", "in"),
+                        ("Seconds", "4", "number", "in"),
+                    ],
+                    "outputs": [("", "exec"), ("Decal", "object")],
+                },
+            ],
+            # The code as the editor colours it: lines of (kind, text) tokens.
+            "lines": drawings.luau_lines(LUAU_SAMPLE),
+            "compact_from": LUAU_COMPACT_FROM,
+        },
     ),
     "editor": Media(
         key="editor",
         kind="illustrative",
-        caption="Illustrative · editor layout",
+        caption="Illustrative · editor recreation",
         alt=(
+            "An animated recreation of the Axcenity editor's docking. In the default layout, a "
+            "pointer drags the Console tab onto the right half of the Scene View, which splits "
+            "to show them side by side. It then drags the Properties tab out of the window "
+            "onto a second monitor, where it floats in a window of its own. Finally it chooses "
+            "View, Reset Layout, and every panel springs back to where it started."
+        ),
+        provenance=(
+            "Drawn live on a canvas by static/reel/loops/editor.js with the reel's editor pieces "
+            "(static/reel/drawing/editor.js). The dock, its tabs and the floating window follow "
+            "crates/editor/src/layout.rs (default_dock, Pane::label), the menu bar and Reset "
+            "Layout follow crates/editor/src/app/chrome/menus.rs, and the drop preview follows "
+            "the dock overlay, in ink rather than the editor's accent. Without JavaScript: the "
+            "drawn layout in templates/marketing/media/editor.html."
+        ),
+        fallback_alt=(
             "A drawing of the Axcenity editor: the Scene, Explorer and Console docked in one "
             "window, with Properties floated out onto a second monitor."
         ),
-        provenance=(
-            "Drawn after documentation/learn/editor-interface.md and the editor's panel names "
-            "(crates/editor). Replaced in Phase 5."
-        ),
         drawn="marketing/media/editor.html",
+        loop="editor",
+        display=FRAME_DISPLAY,
         labels={
-            "window": "Axcenity Editor",
-            "scene": "Scene",
-            "explorer": "Explorer",
-            "console": "Console",
-            "assets": "Assets",
-            "properties": "Properties",
-            "floating": "Floating · Monitor 2",
-            "tree": [
-                ("Workspace", 0),
-                ("Arena", 1),
-                ("Pad", 2),
-                ("Terrain", 1),
-                ("Lighting", 0),
-                ("ServerScriptService", 0),
-            ],
+            "window": EDITOR_WINDOW,
+            "menus": ["File", "Edit", "View", "Viewport", "Debug", "Help"],
+            # The View menu (menus.rs): its "Panels" section, then Reset Layout.
+            "panels": "Panels",
+            "reset": "Reset Layout",
+            # The floating window's title, as the reel names its monitors.
+            "monitor": "Monitor 2",
+            "tabs": EDITOR_DOCK,
+            "tree": EDITOR_TREE,
             "selected": "Pad",
+            "properties": EDITOR_PROPERTIES,
+            "console": EDITOR_CONSOLE,
+            "terrain": EDITOR_TERRAIN,
+            "assets": EDITOR_ASSETS,
+            # The static fallback drawing's words.
+            "floating": "Floating · Monitor 2",
             "rows": [("Name", "Pad"), ("Anchored", "true"), ("Size", "8, 1, 8")],
             "console_line": "Press Play (F5) to test.",
         },
@@ -218,72 +465,21 @@ MEDIA = {
             '"<project> - Axcenity Editor".'
         ),
         drawn="marketing/media/reel.html",
+        display={
+            "hero": Display(
+                "100vw", {"360–639 px (compact)": (639, 900), "640 px and up": (2560, 1440)}
+            )
+        },
         labels={
-            # The editor's default dock (layout.rs default_dock), each place's tabs in order.
-            "tabs": {
-                "scene": ["Scene View", "Animation", "UI Designer"],
-                "explorer": ["Explorer"],
-                "properties": ["Properties", "Terrain"],
-                "console": ["Console", "Assets", "Profiler"],
-            },
-            "window": "Arena - Axcenity Editor",
+            "tabs": EDITOR_DOCK,
+            "window": EDITOR_WINDOW,
             "monitors": {"properties": "Monitor 2", "console": "Monitor 3"},
-            "tree": [
-                ("Workspace", 0),
-                ("Arena", 1),
-                ("Pad", 2),
-                ("Terrain", 1),
-                ("Lighting", 0),
-                ("ServerScriptService", 0),
-            ],
+            "tree": EDITOR_TREE,
             "selected": "Pad",
-            # The selected Pad (an anchored 8 × 1 × 8 Part, otherwise Part's defaults).
-            "properties": {
-                "name": "Pad",
-                "class": "Part",
-                "filter": "Filter properties",
-                "sections": [
-                    ("Data", [("Name", "Pad", "field")]),
-                    (
-                        "Appearance",
-                        [
-                            ("Color", "163, 163, 163", "color"),
-                            ("Material", "Plastic", "field"),
-                            ("Transparency", "0", "field"),
-                        ],
-                    ),
-                    (
-                        "Behavior",
-                        [("Anchored", "true", "check"), ("CanCollide", "true", "check")],
-                    ),
-                    (
-                        "Part",
-                        [
-                            ("Shape", "Block", "field"),
-                            ("Position", "0, 0.5, 0", "field"),
-                            ("Size", "8, 1, 8", "field"),
-                        ],
-                    ),
-                ],
-            },
-            "console": {
-                "filter": "Filter logs",
-                "lines": [
-                    (
-                        "12:04:28",
-                        'Opened "Arena" from `Arena`: 6 objects, 1 script. '
-                        "Press Play (F5) to run it.",
-                        "info",
-                    ),
-                    ("", "select Pad", "command"),
-                ],
-                "prompt": "Lua, or a command such as help",
-            },
-            "terrain": {
-                "tabs": ["Sculpt", "Materials"],
-                "tools": ["Raise / Lower", "Smooth", "Flatten"],
-            },
-            "assets": ["scorch.png", "grass.png", "rock.png", "Pad.glb", "theme.ogg"],
+            "properties": EDITOR_PROPERTIES,
+            "console": EDITOR_CONSOLE,
+            "terrain": EDITOR_TERRAIN,
+            "assets": EDITOR_ASSETS,
             # Each segment of the timeline by its module id, for the scrubber's spoken position.
             "segments": {
                 "workspace": "Scene 1, Workspace",
@@ -388,6 +584,9 @@ HOME_HERO = {
     "fallback": MEDIA["renderer"],
 }
 
+# The pause button on each animated recreation (screen-reader names; it shows icons).
+LOOP_CONTROLS = {"play": "Play animation", "pause": "Pause animation"}
+
 HOME_FEATURES = {
     "eyebrow": "Features",
     "title": "One editor, from the first block to the export.",
@@ -425,6 +624,7 @@ HOME_FEATURES = {
             MEDIA["editor"],
         ),
     ],
+    "loop_controls": LOOP_CONTROLS,
 }
 
 HOME_WORKFLOW = {

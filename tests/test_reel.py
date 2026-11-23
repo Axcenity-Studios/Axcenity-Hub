@@ -87,7 +87,8 @@ def test_without_the_reel_the_renderer_capture_shows(hero):
     """No JavaScript, no ES modules or no 2D canvas: the capture shows, the controls don't."""
     fallback = hero.split('<figure class="reel-fallback">', 1)[1].split("</figure>", 1)[0]
     capture = content.MEDIA["renderer"]
-    assert f'src="/static/{capture.src}"' in fallback and 'loading="lazy"' in fallback
+    assert f'src="/static/{capture.fallback.path}"' in fallback and 'loading="lazy"' in fallback
+    assert f'sizes="{capture.display["hero"].sizes}"' in fallback
     assert escape(capture.caption) in fallback
     # Only the inline probe (modules and a 2D canvas) hides it before layout; main.js
     # then marks the reel live, or falls back.
@@ -120,8 +121,12 @@ def test_the_controls_show_on_focus_when_paused_and_on_touch():
 # ---------- The scene contract, as written ----------
 
 SCENE_FILES = sorted(SCENES.glob("*.js"))
-# Everything a scene draws with: the scenes and their drawing helpers.
-PURE_FILES = SCENE_FILES + sorted(DRAWING.glob("*.js"))
+# The feature pillars' loops follow the same contract (tests/test_media.py).
+LOOP_FILES = sorted(
+    path for path in (REEL / "loops").glob("*.js") if path.stem not in {"main", "player"}
+)
+# Everything a scene or loop draws with: the scenes, the loops and their drawing helpers.
+PURE_FILES = SCENE_FILES + LOOP_FILES + sorted(DRAWING.glob("*.js"))
 REGISTERED = [
     ("workspace", 0, 4),
     ("renderer", 4, 4),

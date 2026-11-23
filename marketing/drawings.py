@@ -1,6 +1,6 @@
 """Drawn media for the marketing pages: geometry and code tokens, computed in Python.
 
-The drawings are illustrative stand-ins (see the media manifest in content.py);
+The drawings are the animated recreations' static fallbacks (see the media manifest in content.py);
 the templates in templates/marketing/media/ turn this data into SVG and HTML,
 coloured only by the axcenity tokens.
 """
@@ -77,31 +77,49 @@ def terrain_wireframe(
     return TerrainDrawing(f"0 0 {width} {height}", tuple(grid), tuple(trees))
 
 
+# The editor's Luau highlighter (crates/editor-kit/src/lua_syntax.rs): its keywords, literals and
+# builtins (the globals a script can use), and its rule that a name after "." or ":" is a field.
 LUAU_KEYWORDS = frozenset(
-    "and break do else elseif end false for function if in local nil not or repeat return "
-    "then true until while continue".split()
+    "and break do else elseif end for function goto if in local not or repeat return then until "
+    "while".split()
 )
-_TOKEN = re.compile(r'(?P<c>--.*$)|(?P<s>"[^"]*")|(?P<w>[A-Za-z_]\w*)|(?P<o>.)', re.M)
+LUAU_LITERALS = frozenset({"true", "false", "nil"})
+LUAU_BUILTINS = frozenset(
+    "game workspace script print Instance Vector3 Color3 Enum task math string table coroutine "
+    "utf8 os assert error pcall xpcall type tostring tonumber pairs ipairs next select rawget "
+    "rawset rawequal rawlen setmetatable getmetatable _G _VERSION".split()
+)
+_TOKEN = re.compile(
+    r"(?P<comment>--.*$)|(?P<string>\"[^\"\n]*\"?|'[^'\n]*'?)"
+    r"|(?P<number>(?:\d|\.\d)[\w.]*)|(?P<word>[A-Za-z_]\w*)|(?P<plain>.)",
+    re.M,
+)
 
 
 def luau_lines(source: str) -> list[list[tuple[str, str]]]:
-    """Split Luau source into lines of (kind, text) tokens for monochrome highlighting.
+    """Split Luau source into lines of (kind, text) tokens, as the editor colours them.
 
-    Kinds: "k" keyword, "c" comment, "s" string, "t" anything else. Neighbouring
-    plain tokens are merged, so the joined text of every line is exactly the
-    source line.
+    Kinds: "keyword", "literal", "builtin", "number", "string", "comment" and
+    "plain". Neighbouring plain tokens are merged, so the joined text of every
+    line is exactly the source line.
     """
     lines = []
     for line in source.split("\n"):
         tokens: list[tuple[str, str]] = []
         for match in _TOKEN.finditer(line):
             kind, text = match.lastgroup, match.group()
-            if kind == "w":
-                kind = "k" if text in LUAU_KEYWORDS else "t"
-            elif kind == "o":
-                kind = "t"
-            if tokens and kind == "t" and tokens[-1][0] == "t":
-                tokens[-1] = ("t", tokens[-1][1] + text)
+            if kind == "word":
+                field = match.start() > 0 and line[match.start() - 1] in ".:"
+                if text in LUAU_KEYWORDS:
+                    kind = "keyword"
+                elif text in LUAU_LITERALS:
+                    kind = "literal"
+                elif text in LUAU_BUILTINS and not field:
+                    kind = "builtin"
+                else:
+                    kind = "plain"
+            if tokens and kind == "plain" and tokens[-1][0] == "plain":
+                tokens[-1] = ("plain", tokens[-1][1] + text)
             else:
                 tokens.append((kind, text))
         lines.append(tokens)

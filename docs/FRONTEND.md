@@ -13,6 +13,7 @@ its code).
 | [frontend/theme.md](frontend/theme.md) | colours, the accent, light and dark, contrast, fonts, the logo, buttons, focus, the hover gate, motion primitives, reduced motion |
 | [frontend/home.md](frontend/home.md) | the Home's sections, copy as data, the media manifest and drawn media, the rotating headline, reveals, the pillars' sticky stage |
 | [frontend/reel.md](frontend/reel.md) | the showcase reel (`static/reel/`): the timeline and scene markers, the scene contract and its determinism rules, compact mode, playback, controls and fallbacks |
+| [frontend/media.md](frontend/media.md) | the media manifest, captures and `make_media`'s derivatives, `<picture>`, the pillars' animated loops (`static/reel/loops/`), their fallbacks and the screenshot test |
 
 Later phases add topic files for each area they build.
 
@@ -30,7 +31,8 @@ Later phases add topic files for each area they build.
 - Any JavaScript library is a vendored static file. `static/js/shell.js`
   runs on every page; `static/js/home.js` only on Home (its `head`
   block); the reel's ES modules (`static/reel/`) only from its own
-  template.
+  template, and the pillars' loops (`static/reel/loops/main.js`) once,
+  after the features section.
 
 ## Shells
 
@@ -63,7 +65,8 @@ Later phases add topic files for each area they build.
 - Copy and links live in `marketing/content.py`, not in templates
   (screen-reader-only labels and attributes may be written in place).
 - Every image or drawing is in the media manifest (`content.MEDIA`) and
-  captioned "Engine capture" or "Illustrative" ([home.md](frontend/home.md)).
+  captioned "Engine capture" or "Illustrative"; a capture is served only as
+  `make_media`'s derivatives, through `picture.html` ([media.md](frontend/media.md)).
 - Every `:hover` style sits behind the hover gate
   (`html[data-pointer] …`); keyboard focus never waits for it.
 - Drawn or stylised visuals are captioned as illustrative, never as

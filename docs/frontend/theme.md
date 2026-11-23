@@ -21,6 +21,29 @@ colours and page glows are not part of the Hub.
 - Every hex value in the file is on an allow-list, and `rgb()`/`hsl()`
   aren't used at all.
 
+## Content colours: code and node graphs only
+
+Colour that belongs to what's shown, never to the chrome. They're used
+only by the `.luau-*` rules (the Luau fallback) and on the canvas by
+`static/reel/drawing/code.js` and `blocks.js` (tested).
+
+- **`luau-keyword`, `-literal`, `-builtin`, `-number`, `-string`,
+  `-comment`:** the editor's syntax colours
+  (`crates/editor-kit/src/lua_syntax.rs`). Dark values are the editor's
+  own. The editor's light values sit on near-white, so on the site's
+  storm grey each is mixed toward black in 2 % steps until it reads at
+  4.5:1 on `inset` and `panel`.
+- **`node-events`, `node-looks`, `node-title`:** block category headers
+  (`theme.rs` `Hue` Amber and Violet), darkened as `Canvas::header` does
+  until the white title reads at 4.5:1; the same in both schemes.
+- **`pin-object`, `-any`, `-text`, `-vector`, `-number`:** the block
+  Graph view's pin colours, unchanged in light mode as in the editor. A
+  pin is never the only sign of its meaning (its row is labelled), so
+  pins aren't a contrast pair.
+
+The tests derive each of these from the engine's values and rules rather
+than trusting the numbers in the stylesheet.
+
 ## The one accent
 
 The editor's selection blue: `#19A0FF` on dark, `#0B67B8` on light. It is
@@ -42,12 +65,14 @@ stylesheet and checks each real foreground/background pair:
 
 - **Text, 4.5:1:** body and headline text, nav and footer links, pitch
   and badge text, the Soon label, footer headings, primary and quiet
-  buttons at rest and hovered or focused, status colours, and the Home's
-  media captions, Luau sample and drawn editor.
+  buttons at rest and hovered or focused, status colours, the Home's
+  media captions and drawn editor, every Luau colour on `inset` and
+  `panel`, node titles on their headers, and the loops' panes and menus.
 - **Non-text, 3:1:** the focus ring on app, panel and surface, the badge
   dot, the primary button's edge, the current-page underline, the
-  theme and menu icons, the workflow numerals' outline and the drawn
-  terrain's lines.
+  theme and menu icons, the workflow numerals' outline, the drawn
+  terrain's lines, node wires, the terrain brush ring and the loops'
+  pause button.
 
 Further tests tie each pair to its CSS rule, and check that a page's text
 colour classes are all from the tested set. **Adding a new colour pairing

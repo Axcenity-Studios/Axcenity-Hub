@@ -57,12 +57,52 @@ LIGHT_PALETTE = {
 LIGHT_STATUS = {"success": "#145A36", "warning": "#6B4800", "error": "#931F1F"}
 # The one accent: the editor's selection blue, darker on light.
 ACCENT = {"dark": "#19A0FF", "light": "#0B67B8"}
+
+# Content colours: code and node graphs only, never chrome (the Logic loop and the Luau
+# fallback). crates/editor-kit/src/lua_syntax.rs color(): (dark, light) for each kind.
+LUAU_EDITOR = {
+    "keyword": ("#C586C0", "#AF00DB"),
+    "literal": ("#569CD6", "#0000FF"),
+    "builtin": ("#4EC9B0", "#267F99"),
+    "number": ("#B5CEA8", "#098658"),
+    "string": ("#CE9178", "#A31515"),
+    "comment": ("#6A9955", "#008000"),
+}
+# theme.rs Hue::base for the block categories (Events: Amber; Looks: Violet), and the block
+# Graph view's pin colours (block_editor/graph/nodes.rs), the same in both schemes.
+NODE_HUES = {"events": "#BE8012", "looks": "#7658E0"}
+PIN_COLOURS = {
+    "object": "#41C3DC",
+    "any": "#AAAAB2",
+    "text": "#F05AD2",
+    "vector": "#F5C328",
+    "number": "#8CDC46",
+}
+
+
+def _rgb(hex_value: str) -> tuple[int, ...]:
+    return tuple(int(hex_value[i : i + 2], 16) for i in (1, 3, 5))
+
+
+def _hex(rgb) -> str:
+    return "#{:02X}{:02X}{:02X}".format(*rgb)
+
+
+def _mix(hex_value: str, toward: str, t: float) -> str:
+    """theme.rs mix(): each channel moved `t` of the way, rounded half away from zero."""
+    return _hex(
+        int(a + (b - a) * t + 0.5) for a, b in zip(_rgb(hex_value), _rgb(toward), strict=True)
+    )
+
+
 ALLOWED = (
     EDITOR_PALETTE
     | {"#FFFFFF", "#000000", "#18181B", "#2B2D31"}
     | set(LIGHT_PALETTE.values())
     | set(LIGHT_STATUS.values())
     | set(ACCENT.values())
+    | set(PIN_COLOURS.values())
+    | {dark for dark, _ in LUAU_EDITOR.values()}
 )
 
 
@@ -117,8 +157,16 @@ def test_axcenity_is_the_only_and_default_theme(css, daisy_theme):
     assert "color-scheme: dark;" in daisy_theme
 
 
-def test_every_colour_is_in_the_axcenity_palette(css):
-    stray = {h.upper() for h in re.findall(r"#[0-9A-Fa-f]{3,8}\b", css)} - ALLOWED
+def test_every_colour_is_in_the_axcenity_palette(css, palettes):
+    # The darkened light Luau colours and the node headers are derived from the editor's
+    # own values; the content-colour tests below check each derivation.
+    derived = {
+        value
+        for tokens in palettes.values()
+        for name, value in tokens.items()
+        if name.startswith(("luau-", "node-"))
+    }
+    stray = {h.upper() for h in re.findall(r"#[0-9A-Fa-f]{3,8}\b", css)} - ALLOWED - derived
     assert not stray, f"colours outside the axcenity palette: {sorted(stray)}"
     assert not re.search(r"\b(rgb|rgba|hsl|hsla|oklch|oklab)\(", css)
 
@@ -222,9 +270,18 @@ TEXT_PAIRS = [
     ("media caption chip", "fg-secondary", "app"),
     ("Toolbox feature title", "fg-strong", "panel"),
     ("Luau sample text", "fg", "inset"),
-    ("Luau keyword", "fg-strong", "inset"),
-    ("Luau string", "fg-secondary", "inset"),
-    ("Luau comment", "fg-weak", "inset"),
+    *[(f"Luau {kind}", f"luau-{kind}", bg) for kind in LUAU_EDITOR for bg in ("inset", "panel")],
+    # The Logic loop's Graph view (static/reel/drawing/blocks.js).
+    ("node titles: Events", "node-title", "node-events"),
+    ("node titles: Looks", "node-title", "node-looks"),
+    ("node rows and values", "fg", "surface"),
+    ("node value boxes", "fg", "inset"),
+    # The Editor and Terrain loops (static/reel/loops/).
+    ("loop: menu bar and Scatter shares", "fg-secondary", "app"),
+    ("loop: open menu, hovered item", "fg-strong", "control-active"),
+    ("loop: menu section label", "fg-weak", "app"),
+    ("loop: Scatter's item names", "fg", "panel"),
+    ("loop: Terrain's tool chip", "fg-strong", "app"),
     ("drawn editor: panel text", "fg", "panel"),
     ("drawn editor: active tab", "fg-strong", "surface"),
     ("drawn editor: selected row", "fg-strong", "control-active"),
@@ -254,6 +311,9 @@ NON_TEXT_PAIRS = [
     ("reel scrubber thumb", "ink", "app"),
     ("reel viewport grid", "fg-weak", "inset"),
     ("reel viewport block", "fg-strong", "inset"),
+    ("node wire and exec pins", "fg-secondary", "inset"),
+    ("terrain brush ring", "fg-strong", "surface"),
+    ("loop pause button edge", "fg-strong", "app"),
 ]
 PAIRS = [(*pair, 4.5) for pair in TEXT_PAIRS] + [(*pair, 3.0) for pair in NON_TEXT_PAIRS]
 
@@ -282,9 +342,9 @@ RULES = {
     ".media-cap {": "color: var(--color-fg-secondary); background: var(--color-app);",
     ".flow-num {": "-webkit-text-stroke: 1px var(--color-fg-weak);",
     ".drawn-code {": "color: var(--color-fg); background: var(--color-inset);",
-    ".tok-k {": "color: var(--color-fg-strong);",
-    ".tok-s {": "color: var(--color-fg-secondary);",
-    ".tok-c {": "color: var(--color-fg-weak);",
+    **{f".luau-{kind} {{": f"color: var(--color-luau-{kind});" for kind in LUAU_EDITOR},
+    ".loop-button {": "color: var(--color-fg-strong); background: var(--color-app);",
+    "html[data-pointer] .loop-button:hover {": "color: var(--color-on-ink); background: var(--color-ink);",
     ".drawn-grid {": "stroke: var(--color-fg-weak);",
     ".ed-tab[data-on] {": "background: var(--color-surface); color: var(--color-fg-strong);",
     ".ed-tree li[data-on] {": "background: var(--color-control-active); color: var(--color-fg-strong);",
@@ -342,3 +402,62 @@ def test_every_block_in_the_stylesheet_is_closed_once(css):
         depth += line.count("{") - line.count("}")
         assert depth >= 0, f"source.css closes a block that isn't open near line {number}"
     assert depth == 0
+
+
+# ---------- Content colours: code and node graphs ----------
+
+
+@pytest.mark.parametrize("kind", LUAU_EDITOR)
+def test_dark_luau_colours_are_the_editors(palettes, kind):
+    assert palettes["dark"][f"luau-{kind}"] == LUAU_EDITOR[kind][0]
+
+
+@pytest.mark.parametrize("kind", LUAU_EDITOR)
+def test_light_luau_colours_are_the_editors_darkened_just_enough(palettes, kind):
+    """The editor shows its light colours on near-white; on the site's storm grey each is
+    mixed toward black in 2 % steps until it reads at 4.5:1 on inset and panel."""
+    light = palettes["light"]
+    expected, t = LUAU_EDITOR[kind][1], 0.0
+    while min(_contrast(expected, light[bg]) for bg in ("inset", "panel")) < 4.5:
+        t += 0.02
+        expected = _mix(LUAU_EDITOR[kind][1], "#000000", t)
+    assert light[f"luau-{kind}"] == expected
+
+
+@pytest.mark.parametrize("hue", NODE_HUES)
+def test_node_headers_are_the_editors_category_hues(palettes, hue):
+    """theme.rs Canvas::header: the hue mixed 12 % toward black, then 4 % more at a time,
+    until its white title reads at 4.5:1. The same in both schemes."""
+    t = 0.12
+    expected = _mix(NODE_HUES[hue], "#000000", t)
+    while _contrast("#FFFFFF", expected) < 4.5 and t < 1:
+        t += 0.04
+        expected = _mix(NODE_HUES[hue], "#000000", t)
+    for mode in ("dark", "light"):
+        assert palettes[mode][f"node-{hue}"] == expected, mode
+        assert palettes[mode]["node-title"] == "#FFFFFF", mode
+
+
+@pytest.mark.parametrize("pin", PIN_COLOURS)
+def test_pin_colours_are_the_editors_in_both_schemes(palettes, pin):
+    """Pin colours are content in the editor too: unchanged in light mode. A pin is never
+    the only mark of its meaning (its row is labelled), so it isn't a contrast pair."""
+    for mode in ("dark", "light"):
+        assert palettes[mode][f"pin-{pin}"] == PIN_COLOURS[pin], mode
+
+
+def test_content_colours_stay_in_code_and_node_graphs(css):
+    """They're never chrome: the stylesheet uses only the Luau ones, in the .luau-* rules, and
+    on the canvas only the code and node drawings read them."""
+    for line in css.splitlines():
+        if re.search(r"var\(--color-(luau|node|pin)-", line):
+            assert re.match(r"\.luau-(\w+) \{ color: var\(--color-luau-\1\); \}$", line), line
+    reel = settings.BASE_DIR / "static" / "reel"
+    for path in reel.rglob("*.js"):
+        uses = re.findall(r"colors\.(luau|node|pin)\w*|\"(luau|node|pin)\w+\"", path.read_text())
+        if uses:
+            assert path.relative_to(reel).as_posix() in {
+                "canvas.js",
+                "drawing/blocks.js",
+                "drawing/code.js",
+            }, path

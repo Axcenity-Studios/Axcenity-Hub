@@ -7,12 +7,13 @@ enforces every rule here; the colour rules are in [theme.md](theme.md).
 
 | Path | Holds |
 |---|---|
-| `marketing/content.py` | All copy (`HOME_HERO`, `HOME_FEATURES`, `HOME_WORKFLOW`, `HOME_FACTS`, `HOME_TOOLBOX`, `HOME_COMMUNITY`, `HOME_FINAL`), `LUAU_SAMPLE` and the media manifest (`MEDIA`) |
-| `marketing/drawings.py` | `terrain_wireframe()` (SVG geometry) and `luau_lines()` (Luau tokens) |
+| `marketing/content.py` | All copy (`HOME_HERO`, `HOME_FEATURES`, `HOME_WORKFLOW`, `HOME_FACTS`, `HOME_TOOLBOX`, `HOME_COMMUNITY`, `HOME_FINAL`), `LUAU_SAMPLE` and the media manifest (`MEDIA`, [media.md](media.md)) |
+| `marketing/drawings.py` | `terrain_wireframe()` (SVG geometry) and `luau_lines()` (Luau tokens, as the editor colours them) |
 | `templates/marketing/home.html` | Includes one partial per section from `templates/marketing/home/` |
-| `templates/marketing/media/` | `frame.html` (a 16:10 media frame and its caption), the drawn stand-ins `terrain.html`, `luau.html`, `editor.html`, and `reel.html` (the hero's reel, [reel.md](reel.md)) |
+| `templates/marketing/media/` | `frame.html` (a 16:10 frame: a capture's `picture.html`, or a loop's canvas over its drawing, and the caption), the loops' fallback drawings `terrain.html`, `luau.html`, `editor.html`, and `reel.html` (the hero's reel, [reel.md](reel.md)) |
 | `static/js/home.js` | Rotation, reveals and the pillars' stage. Loaded only by Home, deferred |
-| `static/marketing/media/` | Media files, copied in (never edited at the source) |
+| `static/reel/loops/` | The pillars' animated recreations ([media.md](media.md)), loaded as one module after the features section |
+| `static/marketing/media/` | Capture derivatives written by `make_media` (sources in `marketing/media_sources/`) |
 
 ## Sections, in order
 
@@ -55,33 +56,24 @@ decal**, and their real Luau translation
 (`part.Touched:Connect(function(otherPart) … workspace:SpawnDecal(…))`).
 There is no OnTriggerEnter block.
 
-## The media manifest
+## Media
 
-`content.Media` records `kind` (`capture` or `illustrative`), `caption`,
-`alt`, `provenance`, and either `src` (a static file, with
-`source_size`) or `drawn` (a template). It refuses a caption that doesn't
-start with its kind's label ("Engine capture" or "Illustrative"), a drawn
-capture, and a file without its pixel size. Tests check that each file
-exists and its PNG header matches `source_size`, that each drawn
-template exists, and that every `<img>` and caption on the page is in the
-manifest.
+Each pillar's media is a manifest entry ([media.md](media.md)): the
+Renderer pillar shows the ray-traced capture as a `<picture>`; World,
+Logic and Editor show animated canvas recreations with their drawings as
+fallbacks. Every frame is captioned "Engine capture" or "Illustrative".
 
-| Key | Kind | Now | Phase 5 |
-|---|---|---|---|
-| `renderer` | capture | `renderer-2560x1440.png` (Showcase, RT on) | responsive derivatives |
-| `terrain` | illustrative | drawn wireframe hills and trees (SVG) | animated recreation |
-| `logic` | illustrative | `LUAU_SAMPLE` in the monochrome tiers | animated nodes and code |
-| `editor` | illustrative | drawn docking layout with a floated panel | animated recreation |
-| `reel` | illustrative | the hero's canvas film ([reel.md](reel.md)) | Phase 4: Scenes 2–4 |
+| Pillar | Key | Media |
+|---|---|---|
+| Renderer | `renderer` | Capture, AVIF/WebP/JPEG derivatives |
+| World | `terrain` | Loop: Raise / Lower hills, then Scatter plants |
+| Logic | `logic` | Loop: When Touched → Spawn Decal, and its Luau typing out |
+| Editor | `editor` | Loop: split the Scene View, float Properties, Reset Layout |
 
 Drawings use only the tokens through CSS classes: no hex values and no
-`fill`/`stroke` colours in the templates (tested). The Luau sample is
-monochrome (keywords `fg-strong`, strings `fg-secondary`, comments
-`fg-weak`) until the editor's syntax colours join the palette.
-
-Images carry intrinsic `width`/`height` and are `loading="lazy"`,
-including the hero's fallback capture (a browser running the reel never
-downloads it).
+`fill`/`stroke` colours in the templates (tested). The Luau fallback is
+highlighted in the editor's syntax colours (`.luau-*`,
+[theme.md](theme.md)), as the Logic loop draws it.
 
 ## The rotating headline
 
@@ -119,12 +111,16 @@ At start it picks the pillar already across the middle, so a
 - The stylesheet's reduced-motion block also forces any hidden reveal to
   its final state (if the setting changes while the page is open), and
   its blanket rule makes the stage swap instantly.
+- The pillars' loops don't autoplay: each shows its still frame and a Play
+  button ([media.md](media.md)).
 
 ## Phone width
 
-Nothing scrolls sideways at 360 px. The Luau sample scrolls inside its
+Nothing scrolls sideways at 360 px. The Luau fallback scrolls inside its
 own frame (`tabindex="0"`, so the keyboard can scroll it) and its frame
-grows to fit (`.pillar-media:has(.drawn-code)`). The drawn editor scales
-its text with the frame (`cqi` units; `.media` is a size container).
-The reel's phone layout is covered by `tests/test_reel_browser.py`; the
-rest of the layout is checked by hand.
+grows to fit until the loop is live (`.pillar-media:not([data-live]):has(.drawn-code)`).
+The stat band's titles step up to `text-7xl` only from `lg`, so the four
+columns fit at 768 px. The drawn editor scales its text with the frame
+(`cqi` units; `.media` is a size container). The reel's phone layout is
+covered by `tests/test_reel_browser.py`, the pillars' media at 360 to
+2560 px by `tests/test_media_browser.py`; the rest is checked by hand.

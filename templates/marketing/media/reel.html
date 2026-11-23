@@ -1,4 +1,4 @@
-{% load static shell_tags %}
+{% load static shell_tags home_tags %}
 {# The hero's showcase reel (docs/frontend/reel.md). static/reel/ draws it on the canvas and runs the controls. #}
 {# Without JavaScript, ES modules or a 2D canvas, the fallback capture shows instead and the controls stay hidden. #}
 {# Usage: {% include "marketing/media/reel.html" with media=hero.reel fallback=hero.fallback controls=hero.reel_controls %} #}
@@ -7,7 +7,7 @@
   <canvas class="reel-canvas" aria-hidden="true"></canvas>
   {# Lazy, so a browser that runs the reel never downloads it (data-pending hides it before layout). #}
   <figure class="reel-fallback">
-    <img src="{% static fallback.src %}" alt="{{ fallback.alt }}" width="{{ fallback.source_size.0 }}" height="{{ fallback.source_size.1 }}" loading="lazy" decoding="async">
+    {% include "marketing/media/picture.html" with media=fallback sizes=fallback|display_sizes:"hero" %}
     <figcaption class="media-cap micro">{{ fallback.caption }}</figcaption>
   </figure>
   <figcaption class="media-cap micro">{{ media.caption }}</figcaption>

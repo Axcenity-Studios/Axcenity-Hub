@@ -1,8 +1,17 @@
-{% load static %}
-{# One item from content.MEDIA in a 16:10 frame with its caption ("Engine capture" or "Illustrative"). #}
-{# Usage: {% include "marketing/media/frame.html" with media=pillar.media class="…" %}                #}
-<figure class="media {{ class }}">
-  {% if media.src %}<img src="{% static media.src %}" alt="{{ media.alt }}" width="{{ media.source_size.0 }}" height="{{ media.source_size.1 }}" loading="lazy" decoding="async">
+{% load home_tags %}
+{# One item from content.MEDIA in a 16:10 frame with its caption ("Engine capture" or "Illustrative").        #}
+{# A capture is a <picture> of its derivatives. A loop draws on a canvas (static/reel/loops/); its static     #}
+{# drawing shows until the loop is live, and for good where it can't run.                                    #}
+{# Usage: {% include "marketing/media/frame.html" with media=pillar.media slot="inline" controls=… class="…" %} #}
+<figure class="media {{ class }}"{% if media.loop %} data-loop="{{ media.loop }}" data-labels="{{ media.labels_json }}"{% endif %}>
+  {% if media.source %}{% include "marketing/media/picture.html" with media=media sizes=media|display_sizes:slot %}
+  {% elif media.loop %}<p class="sr-only loop-description">{{ media.alt }}</p>
+  <canvas class="loop-canvas" aria-hidden="true"></canvas>
+  <div class="loop-fallback">{% include media.drawn with media=media %}</div>
+  <button type="button" class="loop-button" data-loop-toggle aria-label="{{ controls.pause }}" data-play-label="{{ controls.play }}" data-pause-label="{{ controls.pause }}" hidden>
+    <svg class="reel-icon reel-icon-play" width="12" height="12" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M3 1.5v11l9.5-5.5z"/></svg>
+    <svg class="reel-icon reel-icon-pause" width="12" height="12" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M3 1.5h3v11H3zM8 1.5h3v11H8z"/></svg>
+  </button>
   {% else %}{% include media.drawn with media=media %}{% endif %}
   <figcaption class="media-cap micro">{{ media.caption }}</figcaption>
 </figure>

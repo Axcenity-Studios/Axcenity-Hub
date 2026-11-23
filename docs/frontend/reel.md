@@ -15,10 +15,12 @@ Chromium. The colour rules are in [theme.md](theme.md).
 | `static/reel/player.js` | Mounting, drawing, controls, keyboard, visibility, reduced motion, theme and resize |
 | `static/reel/timeline.js` | The registered segments, scene markers, `wrap`, `segmentAt`, `nextMarker`/`previousMarker`, the clock |
 | `static/reel/easing.js` | Pure helpers: `clamp`, `lerp`, `progress`, `expoOut`, `spring` (closed form), `lerpRect`, `rect` |
-| `static/reel/canvas.js` | Pixel ratio (capped at 2), logical size, `fit`, `useLogicalPixels`, `readPalette`, `tint`, `FONTS` |
+| `static/reel/canvas.js` | Pixel ratio (capped at 2), logical size (the layout box, so transforms don't shrink it), `fit`, `useLogicalPixels`, `groupLayer` (group opacity, shared with the loops), `readPalette`, `tint`, `FONTS` |
 | `static/reel/scenes/*.js` | One module per segment: `workspace`, `renderer`, `world`, `logic`, `lockup` |
 | `static/reel/drawing/layout.js` | Where everything goes: `stageRect`, `workspaceLayout` (the dock, the two floating windows), `COMPACT_TOP`/`COMPACT_ASPECT` |
 | `static/reel/drawing/editor.js` | The editor's pieces: windows, tab bars, panels, the viewport, Explorer, Properties, Console, Terrain and Assets panes, the pointer |
+| `static/reel/drawing/blocks.js`, `code.js`, `terrain.js` | The block Graph view, typed Luau, and the heightfield, brush and plants with the Terrain and Scatter panes. Drawn by the pillars' loops now ([media.md](media.md)), ready for Scenes 3 and 4 |
+| `static/reel/loops/` | The feature pillars' loops: the same contract plus a still frame ([media.md](media.md)) |
 | `marketing/content.py` | `MEDIA["reel"]`: caption, description (its `alt`), provenance, the drawn words (`labels`); `REEL_CONTROLS` |
 
 ## The timeline

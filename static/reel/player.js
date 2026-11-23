@@ -4,7 +4,7 @@
 // segmentAt(time).render(context, time into it, logical size).
 
 import * as timeline from "./timeline.js";
-import { FONTS, fit, logicalSize, pixelRatio, readPalette, tint, useLogicalPixels } from "./canvas.js";
+import { FONTS, fit, groupLayer, logicalSize, pixelRatio, readPalette, tint, useLogicalPixels } from "./canvas.js";
 
 /** How much of the reel must be on screen for it to play. */
 const VISIBLE_SHARE = 0.3;
@@ -53,39 +53,11 @@ export function mount(reel, canvas, g) {
   let scrubbing = false;
   let spoken = "";
 
-  // An offscreen layer the size of the canvas, for drawing something at a lower
-  // opacity as one picture (group opacity). It's cleared on every use, so a
-  // frame never depends on what it held before.
-  const layerCanvas = document.createElement("canvas");
-  const layerG = layerCanvas.getContext("2d");
+  // Group opacity: draws something made of overlapping pieces at a lower opacity as one picture.
+  const drawLayer = groupLayer(canvas, g);
 
   function layer(alpha, draw) {
-    if (alpha <= 0) return;
-    if (layerCanvas.width !== canvas.width) layerCanvas.width = canvas.width;
-    if (layerCanvas.height !== canvas.height) layerCanvas.height = canvas.height;
-    layerG.setTransform(1, 0, 0, 1, 0, 0);
-    layerG.globalAlpha = 1;
-    layerG.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
-    layerG.setTransform(g.getTransform());
-    layerG.save();
-    // A layer inside a layer draws straight into this one at its own alpha (no second buffer).
-    const inside = Object.freeze({
-      ...context,
-      g: layerG,
-      layer: (nestedAlpha, nested) => {
-        layerG.save();
-        layerG.globalAlpha *= nestedAlpha;
-        nested(inside);
-        layerG.restore();
-      },
-    });
-    draw(inside);
-    layerG.restore();
-    g.save();
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    g.globalAlpha *= alpha;
-    g.drawImage(layerCanvas, 0, 0);
-    g.restore();
+    drawLayer(context, alpha, draw);
   }
 
   function rebuildContext() {

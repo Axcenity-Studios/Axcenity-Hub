@@ -225,3 +225,6 @@ __marimo__/
 # Tailwind build output and the standalone CLI binary
 static/css/tailwind.css
 .django_tailwind_cli/
+
+# Browser test screenshots, for review by eye (tests/test_media_browser.py)
+screenshots/

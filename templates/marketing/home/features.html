@@ -1,3 +1,4 @@
+{% load shell_tags %}
 {# Feature pillars. Desktop (lg): text scrolls on the left while one sticky stage on the right #}
 {# shows the current pillar's media (home.js). Below lg each pillar shows its media inline.   #}
 <section id="features" class="mx-auto max-w-[1400px] px-4 py-24 md:px-8 md:py-32">
@@ -10,7 +11,7 @@
           <p class="micro flex gap-3 text-fg-weak"><span>{{ pillar.number }}</span><span>{{ pillar.label }}</span></p>
           <h3 class="headline mt-4 text-3xl text-fg-strong md:text-5xl">{{ pillar.title }}</h3>
           <p class="mt-4 max-w-md text-fg-secondary">{{ pillar.body }}</p>
-          {% include "marketing/media/frame.html" with media=pillar.media class="pillar-media mt-8" %}
+          {% include "marketing/media/frame.html" with media=pillar.media slot="inline" controls=features.loop_controls class="pillar-media mt-8" %}
         </article>
       {% endfor %}
     </div>
@@ -18,10 +19,12 @@
       <div class="stage">
         {% for pillar in features.pillars %}
           <div class="stage-item" data-stage-item="{{ forloop.counter0 }}"{% if forloop.first %} data-on{% endif %}>
-            {% include "marketing/media/frame.html" with media=pillar.media %}
+            {% include "marketing/media/frame.html" with media=pillar.media slot="stage" controls=features.loop_controls %}
           </div>
         {% endfor %}
       </div>
     </div>
   </div>
 </section>
+{# The animated recreations (static/reel/loops/). Without modules or a canvas their drawings stay. #}
+<script type="module" src="{% versioned_static 'reel/loops/main.js' %}"></script>

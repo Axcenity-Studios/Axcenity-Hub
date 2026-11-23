@@ -14,7 +14,10 @@ import socket
 from urllib.parse import urlsplit
 
 import pytest
+from django.conf import settings
 from django.core.cache import cache
+
+from config.theme import COOKIE_NAME
 
 _REAL_GETADDRINFO = socket.getaddrinfo
 _REAL_CONNECT = socket.socket.connect
@@ -126,3 +129,69 @@ def browser_server(request, network_guard):
 @pytest.fixture(autouse=True)
 def _fast_password_hashing(settings):
     settings.PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
+
+# ---------- Browser tests (Playwright) ----------
+
+# Counts requestAnimationFrame calls, so a test can see that a paused reel does no work.
+COUNT_FRAMES = """
+window.__frames = 0;
+const request = window.requestAnimationFrame.bind(window);
+window.requestAnimationFrame = (callback) => { window.__frames += 1; return request(callback); };
+"""
+
+# Lets a test hide and show the tab (Playwright pages are always "visible").
+CONTROL_VISIBILITY = """
+window.__visibility = window.__startHidden ? "hidden" : "visible";
+Object.defineProperty(document, "visibilityState", { get: () => window.__visibility });
+Object.defineProperty(document, "hidden", { get: () => window.__visibility === "hidden" });
+window.__setVisibility = (value) => {
+  window.__visibility = value;
+  document.dispatchEvent(new Event("visibilitychange"));
+};
+"""
+
+
+@pytest.fixture(scope="session")
+def built_stylesheet():
+    """Browser tests need the stylesheet built from the current source."""
+    stylesheet = settings.BASE_DIR / "static" / "css" / "tailwind.css"
+    source = settings.BASE_DIR / "styles" / "source.css"
+    if not stylesheet.exists() or stylesheet.stat().st_mtime < source.stat().st_mtime:
+        pytest.fail("Build the stylesheet first: uv run python manage.py tailwind build")
+
+
+@pytest.fixture
+def open_home(browser, browser_server, built_stylesheet):
+    """Opens Home in a fresh context; returns (page, errors). Only the live server is reachable.
+    `scheme` ("light" or "dark") sets the theme cookie first."""
+    contexts = []
+
+    def open_(*, width=1280, height=800, scale=1, init="", wait_ready=True, scheme=None, **options):
+        context = browser.new_context(
+            viewport={"width": width, "height": height}, device_scale_factor=scale, **options
+        )
+        contexts.append(context)
+        if scheme:
+            context.add_cookies([{"name": COOKIE_NAME, "value": scheme, "url": browser_server.url}])
+        context.route(
+            "**/*",
+            lambda route: (
+                route.continue_()
+                if route.request.url.startswith(browser_server.url)
+                else route.abort()
+            ),
+        )
+        page = context.new_page()
+        errors = []
+        page.on("console", lambda message: message.type == "error" and errors.append(message.text))
+        page.on("pageerror", lambda error: errors.append(str(error)))
+        page.add_init_script(COUNT_FRAMES + init)
+        page.goto(browser_server.url + "/")
+        if wait_ready:
+            page.wait_for_selector("#reel[data-ready]")
+        return page, errors
+
+    yield open_
+    for context in contexts:
+        context.close()

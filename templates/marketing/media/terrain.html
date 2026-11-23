@@ -1,6 +1,6 @@
 {% load home_tags %}{% terrain_drawing as drawing %}
-{# Illustrative stand-in: wireframe hills with scattered trees (marketing/drawings.py). #}
-<svg class="drawn-terrain" viewBox="{{ drawing.view_box }}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="{{ media.alt }}">
+{# The terrain loop's fallback: wireframe hills with scattered trees (marketing/drawings.py). #}
+<svg class="drawn-terrain" viewBox="{{ drawing.view_box }}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="{{ media.fallback_alt }}">
   <g class="drawn-grid" fill="none">{% for stroke in drawing.grid %}<path d="{{ stroke.d }}" opacity="{{ stroke.opacity|stringformat:'s' }}"/>{% endfor %}</g>
   <g class="drawn-trees">{% for stroke in drawing.trees %}<path d="{{ stroke.d }}" opacity="{{ stroke.opacity|stringformat:'s' }}"/>{% endfor %}</g>
 </svg>
