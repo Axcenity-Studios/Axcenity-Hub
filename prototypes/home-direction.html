@@ -1,0 +1,624 @@
+<!doctype html>
+<!--
+  THROWAWAY PROTOTYPE — Axcenity Hub marketing Home, three directions.
+  Question: what should the marketing Home look like (layout, hierarchy, reel framing)?
+  Open directly in a browser. Switch variants with the yellow bar or ← / →.
+  Not production code: no Tailwind build, no Django. Delete once a direction is chosen.
+-->
+<html lang="en" data-scheme="dark" data-accent="mono" data-motion="full">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hub Home Directions</title>
+<style>
+@font-face { font-family: "Inter"; src: url("assets/fonts/Inter-Regular.ttf"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("assets/fonts/Inter-SemiBold.ttf"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("assets/fonts/Inter-Bold.ttf"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("assets/fonts/JetBrainsMono-Regular.ttf"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Plus Jakarta Sans"; src: url("assets/fonts/PlusJakartaSans-Variable.ttf"); font-weight: 200 800; font-display: swap; }
+
+/* ---- Tokens: the Toolbox / editor palette, dark then light ---- */
+:root {
+  --app:#171717; --panel:#1E1E1E; --surface:#242424; --elevated:#292929; --inset:#191919;
+  --control:#2A2A2A; --line:#303030; --line-strong:#424242;
+  --fg:#E8E8EA; --fg-strong:#FAFAFA; --fg-2:#A1A1AA; --fg-muted:#63636B;
+  --ink:#FFFFFF; --on-ink:#000000; --shade:#000000; --logo-filter:none;
+  --blue:#19A0FF; /* the editor's SELECTED colour (editor-kit theme.rs) */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --sans:"Inter", ui-sans-serif, system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, monospace;
+  --display:"Plus Jakarta Sans", "Inter", sans-serif;
+  --grid-dot: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+html[data-scheme="light"] {
+  --app:#BEC0C2; --panel:#CACCCE; --surface:#D3D5D7; --elevated:#DCDEE0; --inset:#C4C6C8;
+  --control:#BABCBE; --line:#B5B7B9; --line-strong:#9FA1A3;
+  --fg:#1F2022; --fg-strong:#111214; --fg-2:#3D3F43; --fg-muted:#6E7075;
+  --ink:#18181B; --on-ink:#FFFFFF; --shade:#2B2D31; --logo-filter:invert(1);
+  --blue:#0B67B8; --grid-dot: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+html[data-accent="mono"] { --accent: var(--ink); --on-accent: var(--on-ink); }
+html[data-accent="blue"] { --accent: var(--blue); --on-accent: #FFFFFF; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--app); color: var(--fg); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+body { overflow-x: hidden; }
+img { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+.wordmark { height: 22px; width: auto; filter: var(--logo-filter); }
+.mark { filter: var(--logo-filter); }
+.mono { font-family: var(--mono); }
+.display { font-family: var(--display); font-weight: 800; letter-spacing: -0.035em; line-height: 0.98; margin: 0; }
+.muted { color: var(--fg-2); }
+.wrap { width: min(1200px, 100% - 32px); margin-inline: auto; }
+
+/* Buttons: inversion hover, like the Toolbox, but larger for marketing */
+.btn { display: inline-flex; align-items: center; gap: .5rem; height: 44px; padding: 0 18px; border: 1px solid var(--line-strong);
+  border-radius: 6px; font-weight: 600; font-size: 15px; background: transparent; color: var(--fg-strong); cursor: pointer;
+  transition: background .4s var(--ease), color .4s var(--ease), border-color .4s var(--ease), transform .4s var(--ease); }
+.btn:hover { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.btn-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn-primary:hover { transform: translateY(-2px); background: var(--accent); color: var(--on-accent); }
+.badge { display: inline-flex; align-items: center; gap: 6px; font: 12px/1 var(--mono); text-transform: uppercase; letter-spacing: .08em;
+  padding: 6px 9px; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--fg-2); }
+.badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+/* Rotating headline */
+.rot { display: inline-grid; overflow: hidden; vertical-align: bottom; padding-bottom: .08em; }
+.rot > span { grid-area: 1/1; transition: transform .7s var(--ease), opacity .7s var(--ease), filter .7s var(--ease); }
+.rot > span.out { transform: translateY(-105%); opacity: 0; filter: blur(6px); }
+.rot > span.pre { transform: translateY(105%); opacity: 0; filter: blur(6px); transition: none; }
+.rot .accent { color: var(--accent); }
+
+/* Scroll reveal */
+[data-reveal] { opacity: 0; transform: translateY(28px); filter: blur(8px); transition: opacity .9s var(--ease), transform .9s var(--ease), filter .9s var(--ease); transition-delay: var(--d, 0s); }
+[data-reveal].in { opacity: 1; transform: none; filter: none; }
+
+/* Reel slot (canvas placeholder) */
+.reel { position: relative; aspect-ratio: 16/9; background: var(--inset); overflow: hidden; }
+.reel canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.reel .reel-tag { position: absolute; left: 12px; top: 12px; font: 11px var(--mono); color: var(--fg-muted); letter-spacing: .06em; text-transform: uppercase; }
+.reel .reel-ctl { position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; align-items: center; gap: 10px; opacity: .85; }
+.reel .reel-ctl button { width: 28px; height: 28px; border: 1px solid var(--line-strong); background: color-mix(in srgb, var(--app) 70%, transparent); color: var(--fg); border-radius: 4px; font-size: 11px; cursor: pointer; }
+.reel .bar { flex: 1; height: 2px; background: var(--line-strong); position: relative; }
+.reel .bar i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--accent); }
+.reel .bar b { position: absolute; top: -3px; width: 1px; height: 8px; background: var(--fg-muted); }
+
+/* Media slot */
+.slot { position: relative; border: 1px solid var(--line); background: var(--inset); overflow: hidden; }
+.slot img { width: 100%; height: 100%; object-fit: cover; image-rendering: auto; }
+.slot .cap { position: absolute; left: 8px; bottom: 8px; font: 11px var(--mono); padding: 3px 6px; background: color-mix(in srgb, var(--app) 80%, transparent); border: 1px solid var(--line); color: var(--fg-2); }
+.slot.empty { display: grid; place-items: center; text-align: center; padding: 24px; color: var(--fg-muted); font: 12px/1.5 var(--mono);
+  background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px); background-size: 14px 14px; border-style: dashed; }
+pre.luau { margin: 0; padding: 16px; font: 13px/1.6 var(--mono); color: var(--fg); overflow: auto; height: 100%; background: var(--inset); }
+.k { color: #C792EA; } .s { color: #C3E88D; } .f { color: #82AAFF; } .c { color: var(--fg-muted); } .n { color: #F78C6C; }
+html[data-scheme="light"] .k { color: #7A3EB8; } html[data-scheme="light"] .s { color: #3B6E12; } html[data-scheme="light"] .f { color: #1E56C2; } html[data-scheme="light"] .n { color: #A3420E; }
+
+.variant { display: none; }
+body[data-variant="a"] #v-a, body[data-variant="b"] #v-b, body[data-variant="c"] #v-c { display: block; }
+
+/* ================= A · CINEMATIC ================= */
+#v-a .nav { position: fixed; inset: 0 0 auto 0; z-index: 20; height: 64px; display: flex; align-items: center; gap: 28px; padding: 0 32px;
+  transition: background .5s var(--ease), border-color .5s var(--ease); border-bottom: 1px solid transparent; }
+#v-a .nav.solid { background: color-mix(in srgb, var(--app) 86%, transparent); backdrop-filter: blur(14px); border-color: var(--line); }
+#v-a .nav .links { display: flex; gap: 22px; font-size: 14px; color: var(--fg-2); }
+#v-a .nav .links a:hover { color: var(--fg-strong); }
+#v-a .nav .end { margin-left: auto; display: flex; gap: 10px; }
+#v-a .hero { position: relative; height: 100svh; min-height: 560px; }
+#v-a .hero .reel { position: absolute; inset: 0; aspect-ratio: auto; }
+#v-a .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 30%, color-mix(in srgb, var(--app) 92%, transparent) 88%), linear-gradient(90deg, color-mix(in srgb, var(--app) 70%, transparent), transparent 60%); pointer-events: none; }
+#v-a .hero .copy { position: absolute; z-index: 2; left: 32px; right: 32px; bottom: 72px; max-width: 900px; }
+#v-a .hero h1 { font-size: clamp(44px, 8vw, 112px); color: var(--fg-strong); margin: 18px 0; }
+#v-a .hero p { font-size: clamp(16px, 1.6vw, 19px); max-width: 560px; color: var(--fg-2); line-height: 1.5; }
+#v-a .hero .ctas { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+#v-a .hero .reel-ctl { z-index: 3; left: auto; width: min(360px, 60%); bottom: 24px; right: 32px; }
+#v-a .sticky { display: grid; grid-template-columns: 1fr 1.25fr; gap: 64px; padding: 120px 0; }
+#v-a .sticky .items > div { min-height: 70vh; display: flex; flex-direction: column; justify-content: center; border-top: 1px solid var(--line); opacity: .35; transition: opacity .6s var(--ease); }
+#v-a .sticky .items > div.on { opacity: 1; }
+#v-a .sticky .items h3 { font-size: clamp(28px, 3.2vw, 44px); margin: 12px 0; }
+#v-a .sticky .items p { color: var(--fg-2); line-height: 1.6; max-width: 420px; }
+#v-a .sticky .stage { position: sticky; top: 15vh; height: 70vh; }
+#v-a .stage > * { position: absolute; inset: 0; opacity: 0; transform: scale(.96); transition: opacity .8s var(--ease), transform .8s var(--ease); }
+#v-a .stage > .on { opacity: 1; transform: none; }
+#v-a .flow { display: grid; grid-template-columns: repeat(4, 1fr); border-block: 1px solid var(--line); }
+#v-a .flow > div { padding: 40px 28px; border-left: 1px solid var(--line); }
+#v-a .flow > div:first-child { border-left: 0; }
+#v-a .flow .num { font: 800 clamp(64px, 9vw, 140px)/0.9 var(--display); color: transparent; -webkit-text-stroke: 1px var(--line-strong); letter-spacing: -.05em; }
+#v-a .flow h4 { font-size: 22px; margin: 18px 0 8px; }
+#v-a .band { padding: 120px 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+#v-a .band .stat { font: 800 clamp(36px, 5vw, 64px)/1 var(--display); letter-spacing: -.04em; }
+#v-a .banner { display: grid; grid-template-columns: 1.2fr 1fr; border: 1px solid var(--line); background: var(--panel); margin-bottom: 120px; }
+#v-a .banner .txt { padding: 48px; }
+#v-a .comm { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+#v-a .comm > div { background: var(--app); padding: 32px; min-height: 220px; display: flex; flex-direction: column; gap: 10px; }
+#v-a .final { text-align: left; padding: 160px 0 100px; }
+#v-a .final h2 { font-size: clamp(48px, 10vw, 160px); }
+#v-a footer { border-top: 1px solid var(--line); padding: 48px 0 120px; display: grid; grid-template-columns: 2fr repeat(3, 1fr); gap: 24px; font-size: 14px; }
+#v-a footer h5 { font: 12px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--fg-muted); margin: 0 0 12px; }
+#v-a footer a { display: block; color: var(--fg-2); padding: 4px 0; }
+
+/* ================= B · VIEWPORT (editor-native) ================= */
+#v-b { background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px); background-size: 18px 18px; }
+#v-b .menubar { position: sticky; top: 0; z-index: 20; height: 44px; display: flex; align-items: center; gap: 4px; padding: 0 12px; background: var(--panel); border-bottom: 1px solid var(--line); font-size: 13px; }
+#v-b .menubar .item { height: 30px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 4px; color: var(--fg-2); transition: background .3s var(--ease), color .3s var(--ease); }
+#v-b .menubar .item:hover { background: var(--ink); color: var(--on-ink); }
+#v-b .menubar .search { margin: 0 auto; width: min(380px, 30vw); height: 28px; border: 1px solid var(--line-strong); border-radius: 4px; display: flex; align-items: center; padding: 0 10px; color: var(--fg-muted); font: 12px var(--mono); }
+#v-b .menubar .sep { width: 1px; height: 20px; background: var(--line); margin: 0 8px; }
+#v-b .hero { display: grid; grid-template-columns: 1fr 1.4fr; gap: 40px; align-items: center; padding: 72px 0 48px; }
+#v-b .hero h1 { font-size: clamp(40px, 5.4vw, 76px); color: var(--fg-strong); margin: 18px 0; }
+#v-b .hero p { color: var(--fg-2); line-height: 1.6; max-width: 460px; }
+#v-b .hero .meta { margin-top: 28px; font: 12px/1.8 var(--mono); color: var(--fg-muted); }
+#v-b .hero .ctas { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+#v-b .win { border: 1px solid var(--line-strong); background: var(--panel); border-radius: 8px; overflow: hidden; box-shadow: 0 30px 80px -30px color-mix(in srgb, var(--shade) 70%, transparent); }
+#v-b .win .tabs { display: flex; height: 34px; border-bottom: 1px solid var(--line); font-size: 12px; }
+#v-b .win .tabs span { padding: 0 14px; display: flex; align-items: center; color: var(--fg-muted); border-right: 1px solid var(--line); }
+#v-b .win .tabs span.on { color: var(--fg-strong); background: var(--surface); box-shadow: inset 0 -1px 0 var(--accent); }
+#v-b .win .body { display: grid; grid-template-columns: 1fr 180px; }
+#v-b .win .side { border-left: 1px solid var(--line); font: 12px/2 var(--mono); padding: 8px 12px; color: var(--fg-2); }
+#v-b .win .side .h { color: var(--fg-muted); text-transform: uppercase; font-size: 10px; letter-spacing: .1em; }
+#v-b .win .side .sel { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--fg-strong); margin: 0 -12px; padding: 0 12px; }
+#v-b .ph { font: 11px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: var(--fg-muted); padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; }
+#v-b .bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; padding: 48px 0; }
+#v-b .cell { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; transition: border-color .4s var(--ease), transform .5s var(--ease); }
+#v-b .cell:hover { border-color: var(--line-strong); transform: translateY(-3px); }
+#v-b .cell .txt { padding: 18px; }
+#v-b .cell h3 { font-size: 22px; margin: 0 0 6px; font-family: var(--display); letter-spacing: -.02em; }
+#v-b .cell p { margin: 0; color: var(--fg-2); font-size: 14px; line-height: 1.55; }
+#v-b .cell .slot { border: 0; border-top: 1px solid var(--line); flex: 1; min-height: 200px; }
+#v-b .span4 { grid-column: span 4; } #v-b .span2 { grid-column: span 2; } #v-b .span3 { grid-column: span 3; } #v-b .span6 { grid-column: span 6; }
+#v-b .timeline { display: grid; grid-template-columns: repeat(4, 1fr); position: relative; }
+#v-b .timeline::before { content: ""; position: absolute; left: 0; right: 0; top: 23px; height: 1px; background: var(--line-strong); }
+#v-b .timeline > div { padding: 0 16px 0 0; position: relative; }
+#v-b .key { display: inline-grid; place-items: center; min-width: 46px; height: 46px; padding: 0 10px; border: 1px solid var(--line-strong); border-bottom-width: 3px; border-radius: 6px; background: var(--panel); font: 13px var(--mono); color: var(--fg-strong); position: relative; }
+#v-b .timeline h4 { margin: 16px 0 6px; font-size: 17px; }
+#v-b .timeline p { margin: 0; color: var(--fg-2); font-size: 14px; }
+#v-b .console { font: 13px/2 var(--mono); padding: 12px 16px; }
+#v-b .console .ok { color: var(--fg-muted); } #v-b .console .soon { color: var(--fg-strong); }
+#v-b .statusbar { margin-top: 64px; height: 30px; border-top: 1px solid var(--line); background: var(--panel); display: flex; align-items: center; gap: 18px; padding: 0 14px; font: 11px var(--mono); color: var(--fg-muted); }
+#v-b footer { display: grid; grid-template-columns: 2fr repeat(3, 1fr); gap: 24px; padding: 48px 0 110px; font-size: 14px; }
+#v-b footer h5 { font: 11px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: var(--fg-muted); margin: 0 0 10px; }
+#v-b footer a { display: block; color: var(--fg-2); padding: 3px 0; }
+
+/* ================= C · EDITORIAL ================= */
+#v-c .nav { position: sticky; top: 14px; z-index: 20; margin: 14px auto 0; width: min(760px, 100% - 32px); height: 52px; display: flex; align-items: center; gap: 18px; padding: 0 10px 0 18px;
+  border: 1px solid var(--line); border-radius: 999px; background: color-mix(in srgb, var(--panel) 80%, transparent); backdrop-filter: blur(14px); font-size: 14px; }
+#v-c .nav .links { display: flex; gap: 18px; color: var(--fg-2); margin-left: 8px; }
+#v-c .nav .end { margin-left: auto; } #v-c .nav .btn { height: 36px; border-radius: 999px; }
+#v-c .hero { text-align: center; padding: 110px 0 40px; }
+#v-c .hero h1 { font-size: clamp(44px, 7.5vw, 104px); color: var(--fg-strong); margin: 22px auto; max-width: 14ch; }
+#v-c .hero p { font-size: clamp(16px, 1.6vw, 20px); color: var(--fg-2); max-width: 600px; margin: 0 auto; line-height: 1.55; }
+#v-c .hero .ctas { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 30px; }
+#v-c .hero .btn { border-radius: 999px; }
+#v-c .monitor { position: relative; margin: 56px auto 0; width: min(1100px, 100% - 32px); }
+#v-c .monitor::before { content: ""; position: absolute; inset: 10% 5% -8%; background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 22%, transparent), transparent); filter: blur(50px); z-index: -1; }
+#v-c .monitor .reel { border: 1px solid var(--line-strong); border-radius: 14px; }
+#v-c section { padding: 130px 0 0; }
+#v-c .eyebrow { font: 12px var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--fg-muted); text-align: center; }
+#v-c h2.display { font-size: clamp(34px, 5vw, 64px); text-align: center; margin: 14px auto 40px; max-width: 18ch; }
+#v-c .tabs { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; margin-bottom: 28px; }
+#v-c .tabs button { height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--fg-2); font: 600 14px var(--sans); cursor: pointer; transition: all .4s var(--ease); }
+#v-c .tabs button.on { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+#v-c .tabpanel { display: grid; grid-template-columns: 1.5fr 1fr; gap: 40px; align-items: center; }
+#v-c .tabpanel .slot { aspect-ratio: 16/10; border-radius: 14px; }
+#v-c .tabpanel h3 { font: 700 30px/1.15 var(--display); letter-spacing: -.02em; margin: 0 0 12px; }
+#v-c .tabpanel p { color: var(--fg-2); line-height: 1.65; }
+#v-c .tabpanel .swap { animation: swapIn .7s var(--ease); }
+@keyframes swapIn { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } }
+#v-c .steps { max-width: 720px; margin: 0 auto; position: relative; }
+#v-c .steps::before { content: ""; position: absolute; left: 23px; top: 10px; bottom: 10px; width: 1px; background: var(--line-strong); }
+#v-c .steps > div { display: grid; grid-template-columns: 48px 1fr; gap: 22px; padding: 18px 0; }
+#v-c .steps .n { width: 47px; height: 47px; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--app); display: grid; place-items: center; font: 14px var(--mono); position: relative; }
+#v-c .steps h4 { margin: 6px 0 4px; font-size: 20px; } #v-c .steps p { margin: 0; color: var(--fg-2); }
+#v-c .manifesto { text-align: center; font: 600 clamp(24px, 3.4vw, 42px)/1.3 var(--display); letter-spacing: -.02em; max-width: 24ch; margin: 0 auto; }
+#v-c .manifesto em { font-style: normal; color: var(--fg-muted); }
+#v-c .chips { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 28px; }
+#v-c .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+#v-c .card { border: 1px solid var(--line); border-radius: 18px; padding: 36px; background: var(--panel); min-height: 300px; display: flex; flex-direction: column; gap: 14px; transition: transform .6s var(--ease), border-color .4s var(--ease); }
+#v-c .card:hover { transform: translateY(-4px); border-color: var(--line-strong); }
+#v-c .card h3 { font: 700 30px/1.1 var(--display); letter-spacing: -.02em; margin: 0; }
+#v-c .card p { color: var(--fg-2); line-height: 1.6; margin: 0; }
+#v-c .card .thumbs { display: flex; gap: 8px; margin-top: auto; } #v-c .card .thumbs img { width: 33%; border-radius: 8px; border: 1px solid var(--line); }
+#v-c .final { text-align: center; padding: 160px 0 80px; }
+#v-c .final h2 { font-size: clamp(48px, 9vw, 130px); }
+#v-c footer { border-top: 1px solid var(--line); padding: 36px 0 110px; display: flex; flex-wrap: wrap; gap: 24px; align-items: center; justify-content: space-between; font-size: 14px; color: var(--fg-2); }
+#v-c footer nav { display: flex; gap: 20px; flex-wrap: wrap; }
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+  #v-a .nav .links, #v-b .menubar .item.hide, #v-b .menubar .search, #v-c .nav .links { display: none; }
+  #v-a .nav { padding: 0 16px; } #v-a .hero .copy { left: 16px; right: 16px; bottom: 80px; } #v-a .hero .reel-ctl { left: 16px; right: 16px; width: auto; }
+  #v-a .sticky { grid-template-columns: 1fr; padding: 64px 0; gap: 0; }
+  #v-a .sticky .stage { position: relative; top: 0; height: auto; aspect-ratio: 16/10; order: -1; }
+  #v-a .sticky .stage { display: none; }
+  #v-a .sticky .items > div { min-height: auto; padding: 32px 0; opacity: 1; }
+  #v-a .sticky .items .m { display: block !important; aspect-ratio: 16/10; margin-top: 16px; }
+  #v-a .flow, #v-a .band { grid-template-columns: 1fr 1fr; } #v-a .flow > div:nth-child(3) { border-left: 0; } #v-a .flow > div { border-top: 1px solid var(--line); }
+  #v-a .banner, #v-a .comm { grid-template-columns: 1fr; } #v-a .banner .txt { padding: 28px; }
+  #v-a footer, #v-b footer { grid-template-columns: 1fr 1fr; }
+  #v-b .hero { grid-template-columns: 1fr; padding-top: 40px; } #v-b .win .body { grid-template-columns: 1fr; } #v-b .win .side { display: none; }
+  #v-b .bento { grid-template-columns: 1fr; } #v-b .bento > * { grid-column: auto !important; }
+  #v-b .timeline { grid-template-columns: 1fr 1fr; row-gap: 32px; } #v-b .timeline::before { display: none; }
+  #v-c .tabpanel, #v-c .duo { grid-template-columns: 1fr; } #v-c section { padding-top: 90px; } #v-c .card { padding: 24px; }
+}
+#v-a .sticky .items .m { display: none; }
+
+/* ---- Reduced motion (OS setting or the prototype's toggle) ---- */
+html[data-motion="reduced"] *, html[data-motion="reduced"] *::before { transition: none !important; animation: none !important; }
+html[data-motion="reduced"] [data-reveal] { opacity: 1; transform: none; filter: none; }
+
+/* ---- Prototype switcher: deliberately NOT part of the design ---- */
+#proto { position: fixed; z-index: 100; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;
+  padding: 6px 8px; background: #FFE14D; color: #111; border: 2px dashed #111; border-radius: 10px; font: 600 12px/1 system-ui, sans-serif; box-shadow: 0 8px 30px rgba(0,0,0,.4); max-width: calc(100% - 20px); }
+#proto button { font: inherit; border: 1px solid #111; background: #fff; color: #111; border-radius: 6px; height: 28px; padding: 0 9px; cursor: pointer; }
+#proto .cur { min-width: 120px; text-align: center; }
+#proto .state { font: 11px/1.3 ui-monospace, monospace; opacity: .8; width: 100%; text-align: center; }
+@media (max-width: 600px) { #proto { flex-wrap: nowrap; bottom: 8px; gap: 4px; padding: 4px; } #proto .state { display: none; } #proto .cur { min-width: 0; font-size: 11px; } }
+</style>
+</head>
+<body data-variant="a">
+
+<!-- ============================ A · CINEMATIC ============================ -->
+<div class="variant" id="v-a">
+  <header class="nav">
+    <img class="wordmark" src="assets/wordmark-white.png" alt="Axcenity">
+    <nav class="links"><a href="#">Engine</a><a href="#">Features</a><a href="#">Toolbox</a><a href="#">Docs</a><a href="#">Community</a></nav>
+    <div class="end"><button class="btn" style="height:36px">Sign in</button><a class="btn btn-primary" style="height:36px" href="#">Download</a></div>
+  </header>
+  <section class="hero">
+    <div class="reel"><canvas></canvas><span class="reel-tag" style="top:80px;left:32px">Reel · placeholder render</span></div>
+    <div class="copy">
+      <span class="badge"><span class="dot"></span>v0.3.0-alpha.1 · Free &amp; open source</span>
+      <h1 class="display">Axcenity Engine.<br><span class="rot" data-words="Build worlds.|Script in Luau.|Ray trace in real time.|Ship to every desktop."><span>Build worlds.</span></span></h1>
+      <p>A 3D game engine and editor written in Rust. Build, script, test with F5 and export for Windows, macOS and Linux.</p>
+      <div class="ctas"><a class="btn btn-primary" href="#">Download alpha</a><a class="btn" href="#">Read the docs</a></div>
+    </div>
+    <div class="reel-ctl"><button>❚❚</button><div class="bar"><i></i><b style="left:25%"></b><b style="left:50%"></b><b style="left:75%"></b></div></div>
+  </section>
+
+  <div class="wrap sticky">
+    <div class="items">
+      <div data-i="0"><span class="badge">01 · Renderer</span><h3 class="display">Ray-traced, in real time.</h3><p>Hardware ray-traced reflections, shadows, ambient occlusion and global illumination, with a path tracer for reference renders.</p>
+        <div class="slot m"><img src="assets/rt-render.png" alt=""><span class="cap">Engine render · 480×270</span></div></div>
+      <div data-i="1"><span class="badge">02 · World</span><h3 class="display">Sculpt terrain. Scatter life.</h3><p>Shape hills in Terrain Studio, then paint foliage and props across them with the Scatter pane.</p>
+        <div class="slot empty m">Capture pending<br>terrain sculpt + scatter loop</div></div>
+      <div data-i="2"><span class="badge">03 · Logic</span><h3 class="display">Blocks or Luau. Same game.</h3><p>Wire logic visually, like OnTriggerEnter → SpawnDecal, or write Luau directly. Client and server scripts, side by side.</p>
+        <div class="slot m"><pre class="luau">…</pre></div></div>
+      <div data-i="3"><span class="badge">04 · Editor</span><h3 class="display">Your layout, every monitor.</h3><p>Explorer, Properties, Console and the 3D viewport in one docking window. Split, float onto another monitor, or reset.</p>
+        <div class="slot m"><img src="assets/editor-layout.png" alt=""><span class="cap">Illustrative · engine docs</span></div></div>
+    </div>
+    <div class="stage">
+      <div class="slot on"><img src="assets/rt-render.png" alt=""><span class="cap">Engine render · hello-graphics · 480×270</span></div>
+      <div class="slot empty">Capture pending<br>terrain sculpt + scatter loop</div>
+      <div class="slot"><pre class="luau">…</pre><span class="cap">Illustrative</span></div>
+      <div class="slot"><img src="assets/editor-layout.png" alt="" style="object-fit:contain"><span class="cap">Illustrative · engine docs diagram</span></div>
+    </div>
+  </div>
+
+  <div class="flow">
+    <div data-reveal><div class="num">01</div><h4>Build</h4><p class="muted">Parts, models and terrain in the 3D viewport.</p></div>
+    <div data-reveal style="--d:.08s"><div class="num">02</div><h4>Script</h4><p class="muted">Luau or visual blocks, client and server.</p></div>
+    <div data-reveal style="--d:.16s"><div class="num">03</div><h4>Test</h4><p class="muted">Press F5 to play inside the editor.</p></div>
+    <div data-reveal style="--d:.24s"><div class="num">04</div><h4>Export</h4><p class="muted">Standalone games for three desktops.</p></div>
+  </div>
+
+  <div class="wrap band">
+    <div data-reveal><div class="stat">Free</div><p class="muted">Open source, no royalties.</p></div>
+    <div data-reveal style="--d:.08s"><div class="stat">Rust</div><p class="muted">Native, fast, memory-safe core.</p></div>
+    <div data-reveal style="--d:.16s"><div class="stat">3 OS</div><p class="muted">Windows · macOS · Linux.</p></div>
+    <div data-reveal style="--d:.24s"><div class="stat">Alpha</div><p class="muted">Early: expect breaking changes.</p></div>
+  </div>
+
+  <div class="wrap">
+    <div class="banner" data-reveal>
+      <div class="txt"><span class="badge">Companion tool</span><h3 class="display" style="font-size:clamp(30px,4vw,48px);margin:16px 0">Axcenity Toolbox</h3><p class="muted" style="line-height:1.6">Find free game assets from ambientCG, Poly Haven and Openverse, save them to a library, and build packs the engine imports.</p><a class="btn" href="#" style="margin-top:12px">Explore the Toolbox →</a></div>
+      <div class="slot empty" style="border:0;border-left:1px solid var(--line);min-height:260px">Toolbox screenshot<br>(captured from the running app)</div>
+    </div>
+    <div class="comm">
+      <div data-reveal><span class="badge">Coming soon</span><h4 style="font-size:22px;margin:8px 0 0">Forums</h4><p class="muted">Ask, answer and share engine knowledge.</p></div>
+      <div data-reveal style="--d:.08s"><span class="badge">Coming soon</span><h4 style="font-size:22px;margin:8px 0 0">Showcases</h4><p class="muted">Publish what you've built with Axcenity.</p></div>
+      <div data-reveal style="--d:.16s"><span class="badge">Coming soon</span><h4 style="font-size:22px;margin:8px 0 0">Projects</h4><p class="muted">Connect GitHub repos and organise your team.</p></div>
+    </div>
+    <div class="final"><h2 class="display" data-reveal>Start building.</h2><div style="display:flex;gap:10px;margin-top:28px"><a class="btn btn-primary" href="#">Download alpha</a><a class="btn" href="#">Getting started</a></div></div>
+    <footer>
+      <div><img class="wordmark" src="assets/wordmark-white.png" alt="Axcenity" style="height:28px"><p class="muted" style="margin-top:14px">Axcenity Studios · 2026</p></div>
+      <div><h5>Engine</h5><a href="#">Download</a><a href="#">Releases</a><a href="#">GitHub</a></div>
+      <div><h5>Learn</h5><a href="#">Docs</a><a href="#">Getting started</a><a href="#">Toolbox</a></div>
+      <div><h5>Community</h5><a href="#">Forums</a><a href="#">Showcases</a></div>
+    </footer>
+  </div>
+</div>
+
+<!-- ============================ B · VIEWPORT ============================ -->
+<div class="variant" id="v-b">
+  <header class="menubar">
+    <img class="mark" src="assets/mark-white.png" alt="Axcenity" style="width:22px;height:22px;margin-right:6px">
+    <a class="item" href="#"><b style="color:var(--fg-strong)">Axcenity</b></a><span class="sep"></span>
+    <a class="item hide" href="#">Engine</a><a class="item hide" href="#">Features</a><a class="item" href="#">Toolbox</a><a class="item hide" href="#">Docs</a><a class="item hide" href="#">Community</a>
+    <div class="search">Search docs, forums… (Ctrl+K)</div>
+    <a class="item" href="#">Sign in</a><a class="btn btn-primary" href="#" style="height:30px;font-size:13px;padding:0 12px">Download</a>
+  </header>
+  <div class="wrap">
+    <section class="hero">
+      <div>
+        <span class="badge"><span class="dot"></span>alpha · open source</span>
+        <h1 class="display"><span class="rot" data-words="Build worlds.|Script in Luau.|Ray trace in real time.|Ship to every desktop."><span>Build worlds.</span></span><br>In one editor.</h1>
+        <p>Axcenity is a 3D game engine and editor written in Rust. Build, script, test with F5 and export for every desktop.</p>
+        <div class="ctas"><a class="btn btn-primary" href="#">Download v0.3.0-alpha.1</a><a class="btn" href="#">Docs</a></div>
+        <div class="meta">&gt; platforms: windows · macos · linux<br>&gt; scripting: luau · visual blocks<br>&gt; renderer: rt reflections · ao · gi</div>
+      </div>
+      <div class="win">
+        <div class="tabs"><span class="on">Scene</span><span>MainScript.luau</span><span style="margin-left:auto;border-left:1px solid var(--line);border-right:0">● Live</span></div>
+        <div class="body">
+          <div class="reel"><canvas></canvas><span class="reel-tag">Reel · placeholder render</span>
+            <div class="reel-ctl"><button>❚❚</button><div class="bar"><i></i><b style="left:25%"></b><b style="left:50%"></b><b style="left:75%"></b></div></div></div>
+          <div class="side"><div class="h">Explorer</div>▾ Workspace<br>&nbsp;&nbsp;Baseplate<br>&nbsp;&nbsp;Terrain<br><div class="sel">&nbsp;&nbsp;HeroPart</div>▾ Lighting<br>▸ ServerScriptService<div class="h" style="margin-top:8px">Properties</div>Material&nbsp;&nbsp;Metal<br>Reflect&nbsp;&nbsp;&nbsp;RT</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="bento">
+      <div class="cell span4" data-reveal><div class="ph"><span>Renderer</span><span>01</span></div><div class="txt"><h3>Ray-traced, in real time.</h3><p>RT reflections, shadows, AO and GI, with a path tracer for reference.</p></div><div class="slot"><img src="assets/rt-render.png" alt=""><span class="cap">Engine render · 480×270</span></div></div>
+      <div class="cell span2" data-reveal style="--d:.06s"><div class="ph"><span>World</span><span>02</span></div><div class="txt"><h3>Terrain &amp; foliage</h3><p>Sculpt in Terrain Studio, scatter with the Scatter pane.</p></div><div class="slot empty">Capture pending<br>sculpt + scatter</div></div>
+      <div class="cell span3" data-reveal><div class="ph"><span>Logic</span><span>03</span></div><div class="txt"><h3>Blocks or Luau</h3><p>OnTriggerEnter → SpawnDecal, or the same thing in code.</p></div><div class="slot"><pre class="luau">…</pre></div></div>
+      <div class="cell span3" data-reveal style="--d:.06s"><div class="ph"><span>Editor</span><span>04</span></div><div class="txt"><h3>Dock it anywhere</h3><p>Split panels, float them onto another monitor, reset any time.</p></div><div class="slot"><img src="assets/editor-layout.png" alt="" style="object-fit:cover;object-position:top"><span class="cap">Illustrative</span></div></div>
+    </div>
+
+    <div class="cell" style="padding:28px 24px 32px" data-reveal>
+      <div class="ph" style="margin:-28px -24px 28px"><span>Workflow</span><span>4 steps</span></div>
+      <div class="timeline">
+        <div><span class="key">B</span><h4>Build</h4><p>Parts, models, terrain.</p></div>
+        <div><span class="key">S</span><h4>Script</h4><p>Luau or visual blocks.</p></div>
+        <div><span class="key">F5</span><h4>Test</h4><p>Play inside the editor.</p></div>
+        <div><span class="key">⇧E</span><h4>Export</h4><p>Win · macOS · Linux.</p></div>
+      </div>
+    </div>
+
+    <div class="bento">
+      <div class="cell span3" data-reveal><div class="ph"><span>Toolbox</span><span>↗</span></div><div class="txt"><h3>Axcenity Toolbox</h3><p>Free assets from ambientCG, Poly Haven and Openverse, saved to a library and packed for the engine.</p><a class="btn" href="#" style="margin-top:14px;height:36px">Open Toolbox page</a></div></div>
+      <div class="cell span3" data-reveal style="--d:.06s"><div class="ph"><span>Console</span><span>community</span></div>
+        <div class="console"><span class="ok">[info]</span> Hub online<br><span class="soon">[soon]</span> Forums: ask &amp; answer<br><span class="soon">[soon]</span> Showcases: publish your game<br><span class="soon">[soon]</span> Projects: link GitHub repos<br><span class="ok">&gt;</span> <span style="animation:blink 1s steps(1) infinite">▍</span></div></div>
+      <div class="cell span6" data-reveal style="padding:48px;text-align:center"><h2 class="display" style="font-size:clamp(40px,6vw,84px)">Press F5 on your idea.</h2><div style="display:flex;gap:10px;justify-content:center;margin-top:24px;flex-wrap:wrap"><a class="btn btn-primary" href="#">Download alpha</a><a class="btn" href="#">Getting started</a></div></div>
+    </div>
+  </div>
+  <div class="statusbar"><span>● Ready</span><span>v0.3.0-alpha.1</span><span>Rust</span><span style="margin-left:auto">Axcenity Studios · 2026</span></div>
+  <div class="wrap"><footer>
+    <div><img class="wordmark" src="assets/wordmark-white.png" alt="Axcenity"></div>
+    <div><h5>Engine</h5><a href="#">Download</a><a href="#">Releases</a><a href="#">GitHub</a></div>
+    <div><h5>Learn</h5><a href="#">Docs</a><a href="#">Toolbox</a></div>
+    <div><h5>Community</h5><a href="#">Forums</a><a href="#">Showcases</a></div>
+  </footer></div>
+  <style>@keyframes blink { 50% { opacity: 0; } }</style>
+</div>
+
+<!-- ============================ C · EDITORIAL ============================ -->
+<div class="variant" id="v-c">
+  <header class="nav">
+    <img class="wordmark" src="assets/wordmark-white.png" alt="Axcenity" style="height:20px">
+    <nav class="links"><a href="#">Features</a><a href="#">Toolbox</a><a href="#">Docs</a><a href="#">Community</a></nav>
+    <div class="end"><a class="btn btn-primary" href="#">Download</a></div>
+  </header>
+  <section class="hero wrap">
+    <span class="badge"><span class="dot"></span>v0.3.0-alpha.1 is out</span>
+    <h1 class="display"><span class="rot" data-words="Build worlds.|Script in Luau.|Ray trace in real time.|Ship to every desktop."><span>Build worlds.</span></span><br><span style="color:var(--fg-muted)">Free, in Rust.</span></h1>
+    <p>Axcenity is an open-source 3D game engine and editor. Build, script, test with F5, and export standalone games for Windows, macOS and Linux.</p>
+    <div class="ctas"><a class="btn btn-primary" href="#">Download alpha</a><a class="btn" href="#">Read the docs</a></div>
+  </section>
+  <div class="monitor"><div class="reel"><canvas></canvas><span class="reel-tag">Reel · placeholder render</span>
+    <div class="reel-ctl"><button>❚❚</button><div class="bar"><i></i><b style="left:25%"></b><b style="left:50%"></b><b style="left:75%"></b></div></div></div></div>
+
+  <section class="wrap">
+    <div class="eyebrow">Features</div>
+    <h2 class="display">Everything to build a 3D game.</h2>
+    <div class="tabs" id="c-tabs"></div>
+    <div class="tabpanel" id="c-panel"></div>
+  </section>
+
+  <section class="wrap">
+    <div class="eyebrow">Workflow</div>
+    <h2 class="display">Idea to export in four steps.</h2>
+    <div class="steps">
+      <div data-reveal><span class="n">1</span><div><h4>Build</h4><p>Parts, models and terrain in the 3D viewport.</p></div></div>
+      <div data-reveal><span class="n">2</span><div><h4>Script</h4><p>Luau or visual blocks, on the client and the server.</p></div></div>
+      <div data-reveal><span class="n">3</span><div><h4>Test</h4><p>Press F5 and play inside the editor.</p></div></div>
+      <div data-reveal><span class="n">4</span><div><h4>Export</h4><p>Standalone builds for Windows, macOS and Linux.</p></div></div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <p class="manifesto" data-reveal>Free and open source. <em>No royalties, no lock-in.</em> Written in Rust, built in the open.</p>
+    <div class="chips"><span class="badge">Windows</span><span class="badge">macOS</span><span class="badge">Linux</span><span class="badge">Rust</span><span class="badge">Alpha</span></div>
+  </section>
+
+  <section class="wrap">
+    <div class="duo">
+      <div class="card" data-reveal><span class="badge" style="align-self:start">Companion tool</span><h3>Axcenity Toolbox</h3><p>Find free assets from ambientCG, Poly Haven and Openverse, keep them in a library, and build packs the engine imports.</p><a class="btn" href="#" style="align-self:start;border-radius:999px">Explore the Toolbox →</a></div>
+      <div class="card" data-reveal style="--d:.08s"><span class="badge" style="align-self:start">Coming soon</span><h3>The community Hub</h3><p>Forums, showcases and GitHub-linked projects, all in one place.</p>
+        <div class="thumbs"><img src="assets/tpl-arena.png" alt=""><img src="assets/tpl-third-person.png" alt=""><img src="assets/tpl-vehicle.png" alt=""></div></div>
+    </div>
+  </section>
+
+  <div class="final wrap"><h2 class="display" data-reveal>Start building.</h2><div class="ctas" style="display:flex;justify-content:center;gap:10px;margin-top:28px"><a class="btn btn-primary" style="border-radius:999px" href="#">Download alpha</a></div></div>
+  <div class="wrap"><footer><img class="wordmark" src="assets/wordmark-white.png" alt="Axcenity"><nav><a href="#">Docs</a><a href="#">Toolbox</a><a href="#">GitHub</a><a href="#">Releases</a></nav><span>Axcenity Studios · 2026</span></footer></div>
+</div>
+
+<!-- ============================ PROTOTYPE SWITCHER ============================ -->
+<div id="proto" role="toolbar" aria-label="Prototype controls">
+  <button id="p-prev" aria-label="Previous variant">◀</button>
+  <span class="cur" id="p-cur"></span>
+  <button id="p-next" aria-label="Next variant">▶</button>
+  <button id="p-scheme">Theme</button>
+  <button id="p-accent">Accent</button>
+  <button id="p-motion">Motion</button>
+  <div class="state" id="p-state"></div>
+</div>
+
+<script>
+const LUAU = `<span class="c">-- Illustrative: the Luau a SpawnDecal block compiles to</span>
+<span class="k">local</span> trigger = workspace.Arena.Trigger
+
+trigger.Touched:<span class="f">Connect</span>(<span class="k">function</span>(hit)
+  <span class="k">local</span> pos = hit.Position
+  <span class="f">SpawnDecal</span>(<span class="s">"scorch"</span>, pos, {
+    size = <span class="n">2.5</span>,
+    fade = <span class="n">4</span>,
+  })
+<span class="k">end</span>)`;
+document.querySelectorAll('pre.luau').forEach(p => p.innerHTML = LUAU);
+
+const VARIANTS = [
+  { k: 'a', n: 'Cinematic', note: 'full-bleed reel hero, sticky-scroll features' },
+  { k: 'b', n: 'Viewport', note: 'editor-native: menubar, framed reel, bento panels' },
+  { k: 'c', n: 'Editorial', note: 'centred, airy, tabbed features, pill nav' },
+];
+const root = document.documentElement;
+const store = { get(k) { try { return localStorage.getItem('hubproto-' + k); } catch { return null; } },
+                set(k, v) { try { localStorage.setItem('hubproto-' + k, v); } catch {} } };
+const osReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const state = {
+  variant: new URLSearchParams(location.search).get('v') || store.get('variant') || 'a',
+  scheme: new URLSearchParams(location.search).get('scheme') || store.get('scheme') || 'dark',
+  accent: store.get('accent') || 'mono',
+  motion: store.get('motion') || (osReduced ? 'reduced' : 'full'),
+};
+const expoOut = t => t >= 1 ? 1 : 1 - Math.pow(2, -10 * t);
+const clamp = t => Math.max(0, Math.min(1, t));
+
+function apply() {
+  document.body.dataset.variant = state.variant;
+  root.dataset.scheme = state.scheme; root.dataset.accent = state.accent; root.dataset.motion = state.motion;
+  const v = VARIANTS.find(v => v.k === state.variant);
+  document.getElementById('p-cur').textContent = `${v.k.toUpperCase()} · ${v.n}`;
+  document.getElementById('p-state').textContent =
+    `variant=${v.k} (${v.note}) · scheme=${state.scheme} · accent=${state.accent} · motion=${state.motion}`;
+  Object.entries(state).forEach(([k, val]) => store.set(k, val));
+  colors = null; setupVariant(); window.scrollTo(0, 0);
+}
+function step(d) { const i = VARIANTS.findIndex(v => v.k === state.variant); state.variant = VARIANTS[(i + d + 3) % 3].k; apply(); }
+document.getElementById('p-prev').onclick = () => step(-1);
+document.getElementById('p-next').onclick = () => step(1);
+document.getElementById('p-scheme').onclick = () => { state.scheme = state.scheme === 'dark' ? 'light' : 'dark'; apply(); };
+document.getElementById('p-accent').onclick = () => { state.accent = state.accent === 'mono' ? 'blue' : 'mono'; apply(); };
+document.getElementById('p-motion').onclick = () => { state.motion = state.motion === 'full' ? 'reduced' : 'full'; apply(); };
+addEventListener('keydown', e => {
+  if (e.target.closest('input,textarea,select')) return;
+  if (e.key === 'ArrowLeft') step(-1); if (e.key === 'ArrowRight') step(1);
+});
+
+/* ---- Rotating headline ---- */
+setInterval(() => {
+  if (state.motion === 'reduced') return;
+  document.querySelectorAll('.variant .rot').forEach(rot => {
+    if (!rot.offsetParent) return;
+    const words = rot.dataset.words.split('|');
+    const cur = rot.querySelector('span:not(.out)');
+    const next = words[(words.indexOf(cur.textContent) + 1) % words.length];
+    const el = document.createElement('span'); el.textContent = next; el.className = 'pre';
+    if (next.includes('Ray trace')) el.innerHTML = 'Ray trace <span class="accent">in real time.</span>';
+    rot.appendChild(el);
+    requestAnimationFrame(() => requestAnimationFrame(() => { el.className = ''; cur.className = 'out'; }));
+    setTimeout(() => cur.remove(), 800);
+  });
+}, 2600);
+
+/* ---- Scroll reveal + per-variant wiring ---- */
+let io, stickyIo;
+function setupVariant() {
+  io?.disconnect(); stickyIo?.disconnect();
+  const scope = document.getElementById('v-' + state.variant);
+  io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .15 });
+  scope.querySelectorAll('[data-reveal]').forEach(el => { el.classList.remove('in'); io.observe(el); });
+  if (state.variant === 'a') {
+    const stage = scope.querySelectorAll('.stage > *');
+    stickyIo = new IntersectionObserver(es => es.forEach(e => {
+      if (!e.isIntersecting) return;
+      const i = +e.target.dataset.i;
+      scope.querySelectorAll('.items > div').forEach(d => d.classList.toggle('on', +d.dataset.i === i));
+      stage.forEach((s, j) => s.classList.toggle('on', j === i));
+    }), { rootMargin: '-45% 0px -45% 0px' });
+    scope.querySelectorAll('.items > div').forEach(d => stickyIo.observe(d));
+  }
+  observeReels(scope);
+}
+const nav = document.querySelector('#v-a .nav');
+addEventListener('scroll', () => nav.classList.toggle('solid', scrollY > 40), { passive: true });
+
+/* ---- C: tabbed features ---- */
+const PILLARS = [
+  { t: 'Renderer', h: 'Ray-traced, in real time.', p: 'Hardware ray-traced reflections, shadows, ambient occlusion and global illumination, with a path tracer for reference renders.', m: '<img src="assets/rt-render.png" alt=""><span class="cap">Engine render · 480×270</span>' },
+  { t: 'Terrain', h: 'Sculpt terrain. Scatter life.', p: 'Shape hills in Terrain Studio, then paint foliage and props across them with the Scatter pane.', m: 'Capture pending<br>terrain sculpt + scatter loop', empty: true },
+  { t: 'Blocks + Luau', h: 'Blocks or Luau. Same game.', p: 'Wire OnTriggerEnter → SpawnDecal visually, or write it in Luau. Client and server scripts live side by side.', m: '<pre class="luau">' + LUAU + '</pre><span class="cap">Illustrative</span>' },
+  { t: 'Editor', h: 'Your layout, every monitor.', p: 'Explorer, Properties, Console and the 3D viewport in one docking window. Split panels and float them anywhere.', m: '<img src="assets/editor-layout.png" alt="" style="object-fit:contain"><span class="cap">Illustrative · engine docs</span>' },
+];
+const tabs = document.getElementById('c-tabs'), panel = document.getElementById('c-panel');
+function showTab(i) {
+  tabs.querySelectorAll('button').forEach((b, j) => { b.classList.toggle('on', i === j); b.setAttribute('aria-selected', i === j); });
+  const x = PILLARS[i];
+  panel.innerHTML = `<div class="slot swap ${x.empty ? 'empty' : ''}">${x.m}</div><div class="swap"><h3>${x.h}</h3><p>${x.p}</p></div>`;
+}
+PILLARS.forEach((x, i) => { const b = document.createElement('button'); b.textContent = x.t; b.setAttribute('role', 'tab'); b.onclick = () => showTab(i); tabs.appendChild(b); });
+showTab(0);
+
+/* ---- Reel placeholder: wireframe terrain rising, foliage scattering (HiDPI) ---- */
+let colors = null, reels = [], reelIo;
+function readColors() {
+  const cs = getComputedStyle(root);
+  colors = { line: cs.getPropertyValue('--fg-muted').trim(), fg: cs.getPropertyValue('--fg-2').trim(), accent: cs.getPropertyValue('--accent').trim(), bg: cs.getPropertyValue('--inset').trim() };
+}
+function observeReels(scope) {
+  reelIo?.disconnect(); reels = [];
+  reelIo = new IntersectionObserver(es => es.forEach(e => { e.target._visible = e.isIntersecting; }), { threshold: .3 });
+  scope.querySelectorAll('.reel canvas').forEach(cv => { reels.push(cv); reelIo.observe(cv); });
+}
+function size(cv) {
+  const dpr = Math.min(devicePixelRatio || 1, 2), w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  return { dpr, w, h };
+}
+const TREES = Array.from({ length: 46 }, (_, i) => ({ x: ((i * 7919) % 1000) / 1000 * 10 - 5, z: 3 + ((i * 4241) % 1000) / 1000 * 10, d: (i % 12) * .03 }));
+function height(x, z, rise) { return rise * (Math.sin(x * .55 + z * .35) * 1.1 + Math.cos(z * .45 - x * .25) * .8 + 1); }
+function draw(cv, t) {
+  const { dpr, w, h } = size(cv); const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+  const compact = w < 640, cyc = (t % 8) / 8;
+  const rise = expoOut(clamp((cyc - .08) / .45)) * (1 - expoOut(clamp((cyc - .9) / .1)));
+  const camH = 3.4, f = Math.min(w, h * 1.6) * .55;
+  const P = (x, z, y) => [w / 2 + x / z * f, h * .32 + (camH - y) / z * f * .55];
+  const X0 = -7, X1 = 7, Z0 = 2, Z1 = 15, nx = compact ? 18 : 30, nz = compact ? 14 : 24;
+  ctx.lineWidth = 1;
+  for (let j = 0; j <= nz; j++) {
+    const z = Z0 + (Z1 - Z0) * j / nz; ctx.globalAlpha = .9 - j / nz * .75; ctx.strokeStyle = colors.line; ctx.beginPath();
+    for (let i = 0; i <= nx; i++) { const x = X0 + (X1 - X0) * i / nx; const [sx, sy] = P(x, z, height(x, z, rise)); i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy); }
+    ctx.stroke();
+  }
+  for (let i = 0; i <= nx; i++) {
+    const x = X0 + (X1 - X0) * i / nx; ctx.beginPath();
+    for (let j = 0; j <= nz; j++) { const z = Z0 + (Z1 - Z0) * j / nz; ctx.globalAlpha = .5; const [sx, sy] = P(x, z, height(x, z, rise)); j ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy); }
+    ctx.stroke();
+  }
+  // scan line (the "shader wipe" stand-in)
+  const sz = Z0 + (Z1 - Z0) * clamp((cyc - .05) / .5); ctx.globalAlpha = 1 - clamp((cyc - .5) / .1); ctx.strokeStyle = colors.accent; ctx.lineWidth = 1.5; ctx.beginPath();
+  for (let i = 0; i <= nx; i++) { const x = X0 + (X1 - X0) * i / nx; const [sx, sy] = P(x, sz, height(x, sz, rise)); i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy); }
+  ctx.stroke();
+  // foliage scatter: staggered expo-out scale-in
+  ctx.fillStyle = colors.fg;
+  TREES.forEach(tr => {
+    const s = expoOut(clamp((cyc - .55 - tr.d) / .18)) * (1 - expoOut(clamp((cyc - .9) / .1))); if (s <= 0) return;
+    const [sx, sy] = P(tr.x, tr.z, height(tr.x, tr.z, rise)); const r = 26 / tr.z * s * (compact ? .8 : 1);
+    ctx.globalAlpha = .85 - tr.z / 20; ctx.beginPath(); ctx.moveTo(sx, sy - r * 2.2); ctx.lineTo(sx - r * .7, sy); ctx.lineTo(sx + r * .7, sy); ctx.closePath(); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  const bar = cv.parentElement.querySelector('.bar i') || cv.closest('section, .win, .monitor')?.querySelector('.bar i');
+  if (bar) bar.style.width = (cyc * 100).toFixed(2) + '%';
+}
+const t0 = performance.now();
+function loop(now) {
+  if (!colors) readColors();
+  const t = state.motion === 'reduced' ? 7 : (now - t0) / 1000; // reduced: hold a settled frame
+  reels.forEach(cv => { if (cv._visible !== false && !document.hidden) draw(cv, t); });
+  requestAnimationFrame(loop);
+}
+apply();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
