@@ -80,10 +80,10 @@ indexes), then continue phase by phase.
 ## Suggested skills
 
 - **`/implement axcenity-hub phase 1`** (user-invoked): builds one plan
-  phase end to end and decides whether to delegate to `tdd`. Phases 1–6 are
-  mostly front-end (`no-tdd` is reasonable, with tests per the criteria).
-  Phase 7 onward is test-first (`tdd`).
-- **`tdd`**: Phases 7–17, or when `/implement` delegates.
+  phase end to end and decides whether to delegate to `tdd`. Each phase's
+  "TDD behaviors" section in the plan lists what to build test-first
+  (none for Phases 1–6 and 12A); everything else gets tests alongside.
+- **`tdd`**: only for the behaviors a phase's "TDD behaviors" section lists.
 - **`run`**: start the Django app and check pages in a browser, and run
   the Toolbox locally for Phase 6's screenshots.
 - **`prototype`**: only if a visual question reopens (for example reel

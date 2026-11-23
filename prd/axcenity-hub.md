@@ -36,7 +36,7 @@ tool-like, with the editor's selection blue as its single accent.
 page, accounts, GitHub sign-in and repo linking, projects and teams,
 forums, showcases, bug reports and report management, moderation, a REST
 API, and eventually porting the Toolbox's apps into the Hub. Each later
-slice is built test-first.
+slice builds its key business rules test-first.
 
 ## User Stories
 
@@ -190,7 +190,7 @@ slice is built test-first.
 - django-allauth for registration, login, logout and password recovery, plus its GitHub provider. Start with an OAuth App and no scopes (public data only); move to a GitHub App if private-repository access is confirmed as needed.
 - Email: Django's console backend in development and locmem in tests; a provider (Resend or Postmark through django-anymail) once a domain is owned. SendGrid is dropped because its free plan is retired.
 - Spam protection: a honeypot plus server-side limits first; Cloudflare Turnstile on signup, password reset and any anonymous form.
-- Posting and creation limits (5 projects per user; 5 posts per day; 5 comments per minute; 1 showcase per day; report rate limits) are enforced as database count checks in model and service logic, not with a cache-backed rate-limit library.
+- Posting and creation limits (5 projects per user; 5 posts per day; 5 comments per minute; 1 showcase per day; 5 bug reports per day) are enforced as database count checks in model and service logic, not with a cache-backed rate-limit library.
 - Models per the proposal: User/Profile, Project (owner, repository info), ProjectMembership (user–project with role: Owner, Maintainer, Viewer), Showcase, Tag (many-to-many with showcases), ForumPost, Comment, BugReport (status with permitted transitions), Report, ModerationAction (recorded admin actions).
 - Access: members-only views require login; anything the caller doesn't own or can't see returns 404, never 403; every write is CSRF protected, including HTMX.
 - File uploads go through Django's storage setting so that R2 later is a configuration change only.
@@ -199,7 +199,7 @@ slice is built test-first.
 - pytest and pytest-django. Every test runs offline; an autouse guard blocks network access and external HTTP is mocked with the responses library.
 - First slice: tests that pages return 200, every nav and content link resolves, every referenced media file exists, the theme and colour rules hold (ported theme tests), and the reduced-motion and no-JavaScript fallback markup is present.
 - About five Playwright smoke tests (pytest-playwright, installed through uv) marked as browser tests: the reel mounts with no console errors; play/pause toggles; ←/→ jump scenes; reduced motion shows the lockup and doesn't autoplay; a phone-width viewport has no horizontal scroll. Day to day the fast suite runs without the browser marker.
-- Later slices are test-first: each starts with failing tests for its business rules (limits, ownership, roles, unique names, status transitions, admin permissions, API access, GitHub failure handling).
+- Later slices use TDD for at most three key behaviors per phase, listed in the plan (drawn from limits, ownership, roles, unique names, status transitions, admin permissions, API access and GitHub failure handling). Everything else gets tests written alongside the code.
 
 ## Out of Scope
 

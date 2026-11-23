@@ -28,6 +28,50 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-23 — Plan re-check against the PRD (`/prd-to-plan`)
+
+A new session after `/clear`, starting from `HANDOFF.md`.
+
+### Prompts
+1. "@HANDOFF.md /prd-to-plan @prd/axcenity-hub.md - Also please append
+   this session and all conversations to PROMPTS.md according to source
+   formatting."
+2. (Plan quiz answers) Granularity: "Keep as is (Recommended)". Fixes: all
+   four ("API before assets exist", "Reel doc + test count", "Report model
+   ordering", "Verification gate"). Bug-report limit: "5 per day
+   (Recommended)".
+3. "Go ahead and run through the plan and use the TDD skill to determine
+   which phases need TDD if absolutely necessary"
+4. "yes, record them in the plan and update the test-first lines"
+5. "yes, update PROMPTS.md then commit"
+
+### Summary
+- **Outcome:** `plans/axcenity-hub.md` already existed (approved last
+  session), so the skill checked it against the PRD instead of redrafting
+  it. Stories 1–73 were all covered. The 19-phase breakdown is unchanged.
+  The `tdd` skill's selection step then ran over every phase: Phases 1–6
+  and 12A have no TDD behaviors, and the other 12 phases have 1–3 each (25
+  in all). Each phase now has a "TDD behaviors" section. The blanket
+  "Phase 7 onward is test-first" wording was replaced across the plan, the
+  PRD and `HANDOFF.md`: TDD covers only the listed behaviors, and everything
+  else gets tests alongside the code.
+  Fixes applied: Phase 16's API covers projects only, and Phase 17 adds the
+  asset endpoints (assets only exist after the Toolbox port). Phase 12B
+  introduces the `Report` model that Phase 14 builds on. The Phase 8
+  email-verification gate is now tested in Phases 10, 12B, 13 and 14, and
+  Phase 15's restrictions cover every create action. Phase 3 requires
+  `docs/frontend/reel.md`. Phase 5's per-width screenshots are recorded as
+  visual checks, not pixel comparisons, and they don't count toward the ~5
+  reel smoke tests. Bug reports are limited to 5 per user per day (plan
+  Phase 14 and the PRD's limits line).
+- **Deviations:** None; every recommendation was accepted. The user asked
+  for TDD only where absolutely necessary, which reversed last session's
+  plan to build everything from Phase 7 onward test-first.
+- **Sideways:** Nothing went wrong. The request ran a planning skill on a
+  plan that already existed, so the session became a gap review rather than
+  a new plan. The first log entry was written mid-session and extended
+  here at the user's request.
+
 ## 2026-11-23 — Research, Home prototype, engine showcase captures, PRD and plan
 
 Continues the grill-me session logged below (same day, same session).

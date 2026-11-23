@@ -3,8 +3,9 @@
 > Source PRD: [prd/axcenity-hub.md](../prd/axcenity-hub.md). Story numbers below refer to its User Stories.
 > Supporting notes: [prototypes/home-direction.md](../prototypes/home-direction.md) (chosen Home direction and fixes),
 > [docs/research/external-services.md](../docs/research/external-services.md) (external services).
-> Ticked boxes are done. Phases 1–6 are the first slice (public marketing site). Phase 7 onward is test-first:
-> write the failing tests for a phase's rules before its code.
+> Ticked boxes are done. Phases 1–6 are the first slice (public marketing site). Each phase lists its
+> TDD behaviors (at most three, built test-first with the `tdd` skill); everything else in a phase is built and
+> tested normally, with tests written alongside the code.
 
 ## Architectural decisions
 
@@ -57,6 +58,10 @@ network guard, the `browser` marker, and the ported theme tests. Start the layer
 (FRONTEND, ARCHITECTURE and TESTING indexes, plus a theme topic file). Sign in is hidden or marked coming soon, never
 a dead link.
 
+### TDD behaviors
+
+None: setup and a port of the Toolbox's theme, whose tests already exist.
+
 ### Acceptance criteria
 
 - [ ] `uv sync` then `manage.py tailwind runserver` serves `/` with the marketing shell in dark and light
@@ -81,6 +86,10 @@ with outlined numerals; the stat band; the Toolbox banner; the coming-soon commu
 reveals. Under reduced motion, everything appears in its final state. Download links to the engine's GitHub Releases
 list; Docs links to the engine's documentation. Media slots may hold Phase 5's final assets or provisional assets
 already shaped like them; Phase 5 makes them final.
+
+### TDD behaviors
+
+None: copy and data; the link and media checks are tests in their own right, with no code to drive.
 
 ### Acceptance criteria
 
@@ -111,6 +120,10 @@ smoke tests.
 **Split point (if this phase proves difficult):** 3A covers the timeline, controls, accessibility, reduced motion,
 visibility pausing and smoke tests, with a trivial test scene. 3B covers Scene 1 and compact mode.
 
+### TDD behaviors
+
+None: the behaviors are visible only through the planned Playwright smoke tests, so writing them first gains little, and the PRD rules out JavaScript unit tests.
+
 ### Acceptance criteria
 
 - [ ] Scrubbing to any time renders that exact frame (pure function of time); play/pause/scrub never desync
@@ -120,6 +133,7 @@ visibility pausing and smoke tests, with a trivial test scene. 3B covers Scene 1
 - [ ] Crisp on DPR 2; holds ~60 fps on a mid-range laptop at 1440p; compact mode is readable at 360 px
 - [ ] Scene 1 palette, panel names and layout match the engine editor (checked against the editor theme source)
 - [ ] Browser tests (about 5): mounts with no console errors; play/pause toggles; arrow keys jump; reduced motion shows the lockup without autoplay; no horizontal scroll at phone width
+- [ ] `docs/frontend/reel.md` documents the scene contract, the timeline, compact mode and playback rules, and the FRONTEND index points to it
 
 ---
 
@@ -135,6 +149,10 @@ terrain grid displacing into hills, then staggered expo-out foliage scale-in. Sc
 SpawnDecal nodes linked by glowing Bezier wires, with Luau typing out beside them in the editor's real syntax
 colours. 16–18 s: panels collapse into the Axcenity logo lockup. The loop's final frame flows into its first with no
 visible reset. Each scene has a compact layout.
+
+### TDD behaviors
+
+None: the scenes are visual; Phase 3's smoke tests cover them.
 
 ### Acceptance criteria
 
@@ -159,13 +177,17 @@ recreation of sculpting and scattering. The existing terrain capture is excluded
 decent trees and textures exists. Each asset gets responsive derivatives (WebP or AVIF with a fallback, sized
 for 1× and 2× of its display size) and an entry in the media manifest.
 
+### TDD behaviors
+
+None: the media is visual, and the manifest check is a check on data, not code to drive.
+
 ### Acceptance criteria
 
 - [ ] **No placeholder media anywhere:** no "capture pending" boxes, grey blocks, lorem, or test-reference images (the 480×270 engine references are never used)
 - [ ] Every media item's manifest entry records kind (`capture` or `illustrative`), provenance (scene or project, command and settings, or source code it recreates), source pixel dimensions and intended display dimensions per breakpoint
 - [ ] A test checks every manifest entry: the file exists, its real pixel size matches the recorded source size, and display size × 2 never exceeds the source size (no upscaling on 2× screens)
 - [ ] Real captures and illustrative recreations are distinguishable (a consistent caption or badge: "Engine capture" vs "Illustrative") and both look finished and on-brand
-- [ ] Media stays sharp and correctly framed at 360, 768, 1280, 1440 and 2560 px wide, in dark and light, on 1× and 2× screens (checked by screenshots in the browser tests at those widths)
+- [ ] Media stays sharp and correctly framed at 360, 768, 1280, 1440 and 2560 px wide, in dark and light, on 1× and 2× screens (checked by screenshots taken in one parametrised browser test at those widths and reviewed by eye; these aren't pixel comparisons, and they don't count toward the ~5 reel smoke tests)
 - [ ] Images use `srcset`/`sizes` with intrinsic width and height (no layout shift); below-the-fold media lazy-loads; animated recreations pause off screen and respect reduced motion
 - [ ] Captions and alt text are accurate; nothing illustrative is labelled as an engine capture
 
@@ -181,6 +203,10 @@ for 1× and 2× of its display size) and an entry in the media manifest.
 Openverse; private library; engine-ready packs), two or three real screenshots captured by running the Toolbox
 locally, a "run it locally" block with its uv commands, and a GitHub link. It uses the Toolbox's panel styling
 inside for continuity. The screenshots go through Phase 5's media pipeline and rules.
+
+### TDD behaviors
+
+None: a content page that reuses Phase 5's media checks.
 
 ### Acceptance criteria
 
@@ -203,9 +229,17 @@ shows version, date, sizes and GitHub's per-asset SHA-256 digests. Uses ETag con
 of caching. When GitHub fails it falls back to cached data, then to a plain link to GitHub Releases. Home's
 Download CTA switches to this page.
 
+### TDD behaviors
+
+Built test-first with the `tdd` skill; the rest of the phase is built and tested normally.
+
+1. Release selection picks the newest non-draft release, includes prereleases and marks them alpha.
+2. Failures fall back in order: a 5xx, timeout, 403 or 429 serves cached data, then the plain GitHub link, and never an error page.
+3. A 304 reply to a request that sent the stored ETag reuses the cached data.
+
 ### Acceptance criteria
 
-- [ ] Tests first, with `responses` fixtures trimmed from a real release payload: OS grouping, newest non-draft selection, alpha marking, digest display
+- [ ] Tests use `responses` fixtures trimmed from a real release payload: OS grouping, newest non-draft selection, alpha marking, digest display
 - [ ] A 304 response reuses the cache; a 5xx, timeout, or 403/429 rate limit serves cached data or the GitHub link, never an error page
 - [ ] OS detection highlights the right build and every build stays reachable
 - [ ] No test reaches the network
@@ -226,9 +260,16 @@ and server-side limits protect signup and reset. Cloudflare Turnstile is added o
 anonymous form, to supplement the server-side protections, never replace them. Email uses the console backend in
 development and locmem in tests.
 
+### TDD behaviors
+
+Built test-first with the `tdd` skill; the rest of the phase is built and tested normally.
+
+1. The email-verification gate: unverified users can sign in but can't post, create or report.
+2. Usernames and emails are unique regardless of case.
+
 ### Acceptance criteria
 
-- [ ] Tests first for every item below
+- [ ] Every item below has tests
 - [ ] **Sessions and cookies:** HttpOnly session cookie; Secure session and CSRF cookies in production; SameSite=Lax; the session rotates on login and privilege change; sessions expire after a documented idle and absolute age; logout invalidates the session server-side
 - [ ] **CSRF:** every state-changing view rejects requests without a valid token, HTMX included; no `csrf_exempt` outside the webhook endpoint (Phase 10)
 - [ ] **Password reset:** tokens are single-use, expire after a documented window (≤ 1 hour), and are invalidated by any password change; the reset page doesn't leak the token through referrers
@@ -253,9 +294,16 @@ Connect a GitHub account to an existing Hub account through allauth's GitHub pro
 by default; a GitHub App if private repos are confirmed). Covers OAuth state validation, encrypted token storage,
 and handling of revoked and expired tokens.
 
+### TDD behaviors
+
+Built test-first with the `tdd` skill; the rest of the phase is built and tested normally.
+
+1. Tokens are encrypted at rest: the stored value is never the plain token, it decrypts with the environment key, and unlinking deletes it.
+2. A 401 from GitHub marks the link as needing reconnection instead of crashing the page.
+
 ### Acceptance criteria
 
-- [ ] Tests first; no test drives real OAuth (SocialAccount rows are created directly; token endpoints are mocked)
+- [ ] No test drives real OAuth (SocialAccount rows are created directly; token endpoints are mocked)
 - [ ] **OAuth state:** a callback with a missing, mismatched or reused `state` is rejected and links nothing
 - [ ] **Token storage:** GitHub tokens are encrypted at rest with a key from the environment, never logged, never shown in the admin or API, and deleted on unlink
 - [ ] **Revoked or expired tokens:** a 401 from GitHub marks the link as needing reconnection, prompts the user, and never crashes a page; refresh tokens (GitHub App) are rotated and stored encrypted
@@ -273,10 +321,19 @@ Create projects (slug URLs) and link a GitHub repository. Includes the 5-project
 unique names, rate-limit-aware GitHub API calls, signed webhooks keeping repository info current, duplicate-link
 prevention, and a check that GitHub permission is still valid before every repo-dependent operation.
 
+### TDD behaviors
+
+Built test-first with the `tdd` skill; the rest of the phase is built and tested normally.
+
+1. Webhook verification accepts only a valid `X-Hub-Signature-256` and rejects unsigned, mis-signed and replayed deliveries.
+2. A sixth project is rejected (the first count-based limit; later limits follow its pattern).
+3. Repository permission is rechecked before repo-dependent actions; downgraded or removed access blocks them.
+
 ### Acceptance criteria
 
-- [ ] Tests first for each rule below
+- [ ] Every rule below has tests
 - [ ] The 6th project is rejected; names are unique case-insensitively; owners can edit and delete, others get 404
+- [ ] Unverified accounts can't create projects (the Phase 8 email-verification gate)
 - [ ] **Rate limits:** GitHub calls read `X-RateLimit-*` and `Retry-After`, back off, use ETags, and are budgeted per user; exhaustion shows cached data with a clear notice, never an error page
 - [ ] **Webhooks:** payloads are verified with `X-Hub-Signature-256` (HMAC-SHA256, constant-time compare) using a secret from the environment; unsigned, mis-signed or replayed deliveries (duplicate `X-GitHub-Delivery`) are rejected; the endpoint is the only CSRF-exempt view
 - [ ] **Duplicate linking:** a repository can be linked to only one Hub project; a second attempt is refused with a clear message
@@ -294,9 +351,16 @@ prevention, and a check that GitHub permission is still valid before every repo-
 ProjectMembership with Owner, Maintainer and Viewer roles. Owners invite members and assign roles; only owners
 manage memberships and permissions; Viewers get read-only access to what they're granted.
 
+### TDD behaviors
+
+Built test-first with the `tdd` skill; the rest of the phase is built and tested normally.
+
+1. The role matrix (Owner, Maintainer, Viewer) against each action, with a 404 where access is denied.
+2. A project always keeps at least one Owner.
+
 ### Acceptance criteria
 
-- [ ] Tests first: role matrix per action (view, edit, manage members, delete, rename)
+- [ ] Tests: role matrix per action (view, edit, manage members, delete, rename)
 - [ ] Non-members and insufficient roles get 404 for private resources
 - [ ] A project always keeps at least one Owner; ownership transfer is explicit
 - [ ] Invites are accepted or declined by the invitee only
@@ -312,9 +376,13 @@ manage memberships and permissions; Viewers get read-only access to what they're
 Create, view, edit and delete forum posts. Only the author can edit or delete (admins later through moderation).
 The email-verification gate from Phase 8 applies.
 
+### TDD behaviors
+
+None: CRUD where others get a 404 follows the ownership pattern that Phases 10–11 already settle.
+
 ### Acceptance criteria
 
-- [ ] Tests first: CRUD, ownership (others get 404 on edit and delete), validation, unverified users blocked
+- [ ] Tests: CRUD, ownership (others get 404 on edit and delete), validation, unverified users blocked
 - [ ] HTMX partial updates for edit and delete with CSRF
 
 ---
@@ -327,11 +395,20 @@ The email-verification gate from Phase 8 applies.
 
 Comments and ratings on posts, the posting limits (5 new posts per day, 5 comments per minute) as database count
 checks, and hooks moderation will use (reporting a post or comment, hidden or removed states that Phase 15's
-actions set).
+actions set). This phase introduces the `Report` model (feedback or abuse, generic over its target) in the
+`reports` app; Phase 14 adds BugReport and report management on top of it.
+
+### TDD behaviors
+
+Built test-first with the `tdd` skill; the rest of the phase is built and tested normally.
+
+1. Time-windowed limits: the sixth comment within a minute is rejected, and one after the window passes is allowed.
+2. Hidden or removed content is invisible to non-admins in every list and detail view.
 
 ### Acceptance criteria
 
-- [ ] Tests first: the 6th post in a day and the 6th comment in a minute are rejected with a clear message
+- [ ] Tests: the 6th post in a day and the 6th comment in a minute are rejected with a clear message
+- [ ] Unverified accounts can't comment, rate or report (the Phase 8 email-verification gate)
 - [ ] One rating per user per post (changeable, not stackable); authors can't rate their own posts
 - [ ] Users can report a post or comment; hidden or removed content is invisible to non-admins
 
@@ -346,9 +423,15 @@ actions set).
 Server-side search, filters, sorting and pagination for forum lists, using a shared pattern that later lists
 (projects, showcases, reports) reuse.
 
+### TDD behaviors
+
+Built test-first with the `tdd` skill; the rest of the phase is built and tested normally.
+
+1. Invalid or hostile query parameters (a bad page, an unknown sort, a non-numeric filter) fall back safely instead of erroring.
+
 ### Acceptance criteria
 
-- [ ] Tests first: search terms, each filter, each sort order, page boundaries, invalid parameters handled safely
+- [ ] Tests: search terms, each filter, each sort order, page boundaries, invalid parameters handled safely
 - [ ] HTMX updates the list without a full reload; URLs are shareable (state in the query string)
 
 *(12A–12C may be merged back into one phase if the forum turns out small.)*
@@ -364,9 +447,16 @@ Server-side search, filters, sorting and pagination for forum lists, using a sha
 Publish, edit, delete and interact with showcases, limited to 1 new showcase per day, with many-to-many tags,
 browsing by tag, and the shared list pattern from 12C. Showcase media goes through Django's storage setting.
 
+### TDD behaviors
+
+Built test-first with the `tdd` skill; the rest of the phase is built and tested normally.
+
+1. Image uploads are rejected for the wrong type, oversized files and out-of-range dimensions.
+
 ### Acceptance criteria
 
-- [ ] Tests first: the daily limit, ownership, tag filtering, pagination
+- [ ] Tests: the daily limit, ownership (others get 404 on edit and delete), tag filtering, pagination
+- [ ] Unverified accounts can't publish showcases (the Phase 8 email-verification gate)
 - [ ] Uploaded images are validated (type, size, dimensions) and processed with Pillow
 
 ---
@@ -377,13 +467,22 @@ browsing by tag, and the shared list pattern from 12C. Showcase media goes throu
 
 ### What to build
 
-Validated, rate-limited bug reports and feedback with supporting information. Project owners and admins review,
-assign, comment on and update them. Status changes follow a permitted-transition table. Access is restricted to
-the relevant project's authorities and admins.
+Validated, rate-limited bug reports (BugReport) and feedback (12B's Report) with supporting information. Project
+owners and admins review, assign, comment on and update them. Status changes follow a permitted-transition table.
+Access is restricted to the relevant project's authorities and admins.
+
+### TDD behaviors
+
+Built test-first with the `tdd` skill; the rest of the phase is built and tested normally.
+
+1. Status changes follow the permitted-transition table; every allowed and forbidden change is tested.
+2. Access is limited to the project's authorities, admins and the submitter; everyone else gets a 404.
 
 ### Acceptance criteria
 
-- [ ] Tests first: every allowed and forbidden status transition; the access matrix (outsiders get 404); submission limits; required-field validation
+- [ ] Tests: every allowed and forbidden status transition; the access matrix (outsiders get 404); required-field validation
+- [ ] The 6th bug report a user submits in a day is rejected with a clear message (a database count check)
+- [ ] Unverified accounts can't submit reports (the Phase 8 email-verification gate)
 
 ---
 
@@ -396,32 +495,46 @@ the relevant project's authorities and admins.
 Admin tools to review reported content, issue warnings, hide or remove content (through 12B's hooks) and restrict
 accounts. Every action writes an append-only ModerationAction.
 
+### TDD behaviors
+
+Built test-first with the `tdd` skill; the rest of the phase is built and tested normally.
+
+1. ModerationAction is append-only: it can't be edited or deleted through the app, and every action records the actor, target, reason and time.
+2. Restricted accounts are blocked from every create action.
+
 ### Acceptance criteria
 
-- [ ] Tests first: only authorised admins can act; every action is recorded with actor, target, reason and time; records can't be edited or deleted through the app
-- [ ] Restricted accounts can't post, comment or submit while restricted
+- [ ] Tests: only authorised admins can act; every action is recorded with actor, target, reason and time; records can't be edited or deleted through the app
+- [ ] Restricted accounts can't post, comment, rate, publish showcases, create projects or submit reports while restricted
 
 ---
 
 ## Phase 16: REST API
 
-**User stories**: 67
+**User stories**: 67 (projects)
 
 ### What to build
 
-A versioned DRF API (`/api/v1/`) exposing project and asset information for the engine, with token
-authentication and the same permission rules as the web views.
+A versioned DRF API (`/api/v1/`) exposing project information for the engine, with token authentication and the
+same permission rules as the web views. Asset endpoints arrive in Phase 17, once the Toolbox's assets live in the
+Hub.
+
+### TDD behaviors
+
+Built test-first with the `tdd` skill; the rest of the phase is built and tested normally.
+
+1. The API shows a user exactly what the web app would show them, and a 404 otherwise.
 
 ### Acceptance criteria
 
-- [ ] Tests first: unauthenticated requests are refused; users see only what they could see in the web app (404 otherwise); throttling on
+- [ ] Tests: unauthenticated requests are refused; users see only what they could see in the web app (404 otherwise); throttling on
 - [ ] Tokens are never returned after creation; tokens can be revoked
 
 ---
 
 ## Phase 17: Toolbox port
 
-**User stories**: 68
+**User stories**: 68, 67 (assets)
 
 ### What to build
 
@@ -429,6 +542,13 @@ Bring the Toolbox's `catalog`, `packs` and `providers` apps into the Hub under `
 feature and its data. Follow an explicit migration strategy that preserves the existing models and records, and
 integrate Hub authentication without breaking existing Toolbox accounts. The standalone Toolbox stays fully working
 until the migration is complete and signed off.
+
+### TDD behaviors
+
+Built test-first with the `tdd` skill; the rest of the phase is built and tested normally.
+
+1. Accounts are matched by verified email: existing password hashes carry over, and collisions are reported instead of merged.
+2. The migration dry run checks row counts and integrity and reports mismatches.
 
 ### Acceptance criteria
 
@@ -439,4 +559,5 @@ until the migration is complete and signed off.
 - [ ] **Packs:** pack export and import formats stay byte-for-byte compatible with what the engine imports; packs made before the port still import
 - [ ] **Tests:** the Toolbox's test suite is ported and passes in the Hub unchanged in intent; the network guard stays on
 - [ ] **No regressions in the standalone Toolbox** while the migration runs: its repository and test suite stay green, and both run side by side until cut-over is signed off
+- [ ] **API:** `/api/v1/` gains asset endpoints (library and packs) under Phase 16's token auth and permission rules, with tests
 - [ ] The marketing `/toolbox/` overview page becomes the entry point to the live tool
