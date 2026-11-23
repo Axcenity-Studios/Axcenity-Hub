@@ -1,6 +1,7 @@
 """The Cinematic Home: sections, copy as data, media manifest, motion fallbacks and honesty."""
 
 import dataclasses
+import json
 import re
 import struct
 from html.parser import HTMLParser
@@ -136,7 +137,8 @@ def test_features_is_in_the_nav_and_points_at_the_section(home):
 
 def test_every_section_renders_from_the_content_module(home):
     for text in HOME_COPY:
-        assert escape(text) in home, text
+        # The reel's words reach the page as JSON for its canvas (json_script), not as HTML.
+        assert escape(text) in home or json.dumps(text)[1:-1] in home, text
 
 
 def test_the_visible_prose_and_labels_come_from_the_content_module(home):

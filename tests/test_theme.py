@@ -95,7 +95,7 @@ def _tokens(block: str) -> dict[str, str]:
 @pytest.fixture(scope="module")
 def palettes(css, daisy_theme, light_block):
     """Every colour token's value in each mode, read from the stylesheet itself."""
-    dark = _tokens(_block(css, "@theme {")) | _tokens(daisy_theme)
+    dark = _tokens(_block(css, "@theme static {")) | _tokens(daisy_theme)
     return {"dark": dark, "light": dark | _tokens(light_block)}
 
 
@@ -103,7 +103,7 @@ def palettes(css, daisy_theme, light_block):
 
 
 def test_tailwind_default_palette_is_reset(css):
-    assert "--color-*: initial;" in _block(css, "@theme {")
+    assert "--color-*: initial;" in _block(css, "@theme static {")
 
 
 def test_daisyui_builtin_themes_are_off(css):
@@ -229,7 +229,11 @@ TEXT_PAIRS = [
     ("drawn editor: active tab", "fg-strong", "surface"),
     ("drawn editor: selected row", "fg-strong", "control-active"),
     # The reel's canvas (static/reel/scenes) draws only these pairs, plus ones above.
-    ("reel: Explorer rows", "fg-secondary", "panel"),
+    ("reel: Explorer rows, Properties names and section titles", "fg-secondary", "panel"),
+    ("reel: Terrain tool buttons", "fg-secondary", "control"),
+    ("reel: Terrain's chosen tab", "fg-strong", "control-active"),
+    ("reel: field values and the Console log", "fg", "inset"),
+    ("reel: field placeholders", "fg-weak", "inset"),
     ("reel: Properties names", "fg-weak", "panel"),
     ("reel: window titles", "fg-weak", "app"),
     ("reel: play and pause button", "fg-strong", "app"),

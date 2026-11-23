@@ -56,6 +56,13 @@ Each entry has this shape:
    cases each should satisfy the same scene contract start duration,
    render(context,time,size) this is so that phase 4 can replace the
    implementaition without changing the engine."
+3. (After the commit) "Ok I like the animations a lot now I just feel like
+   there could be more stuff on the left where the page is somewhat empty
+   maybe dragging around windows and making the actual properties windows
+   look more like my engine. Also when it fades into the Axcenity logo it
+   looks a little bit glitched but not toobad if that caould be adjuststed
+   slightly as well. Essentially expand the amount of windows and dragging
+   to make it look cooler."
 
 ### Summary
 
@@ -167,6 +174,53 @@ Each entry has this shape:
   - A test helper seeked with only an `input` event, which left the
     scrubbing flag on. The helper now also fires `change`, and marker
     jumps clear the flag.
+- **Follow-up (prompt 3):** The work after the first commit.
+  - **Scene 1 rebuilt** on the editor's real default dock (`layout.rs`):
+    - Scene View | Animation | UI Designer, with Console | Assets |
+      Profiler below.
+    - Explorer above Properties | Terrain.
+    - Tabs styled as egui_dock's.
+    - The window is titled "Arena - Axcenity Editor".
+  - **Two pointer drags.** Properties moves to "Monitor 2" on the right,
+    and the Console to "Monitor 3" in the empty upper left. Each tears off
+    to window size, lifts and bobs on drop. Terrain and Assets take over
+    the docked places.
+  - **Properties** now follows `properties.rs`:
+    - the Pad/Part header and the filter field
+    - the Data, Appearance, Behavior and Part sections, with chevrons,
+      fields, checkboxes and a swatch
+    - Part's real defaults
+  - **Console** follows `output.rs`, `console.rs` and `session.rs`: the
+    timed project-opened line, a `select` echo and the command-line hint.
+  - **Lockup.** The workspace now fades as one picture through
+    `context.layer` (an offscreen buffer). Before, every piece faded
+    separately, so overlapping windows showed through each other; that
+    was the "glitch". The wordmark now arrives once the workspace is
+    mostly gone.
+  - **Gradient.** The hero gradient now darkens only the bottom left,
+    behind the copy.
+  - **Code split.** Drawing moved into `static/reel/drawing/` (`layout.js`,
+    `editor.js`), which falls under the same purity tests.
+  - **Tests.** 350 pass (340 fast, 10 browser), and Ruff is clean. New
+    tests cover:
+    - the default dock
+    - the Properties sections and values
+    - the Console messages
+    - every drawn font being preloaded
+    - every token resolving in both schemes
+  - **Sideways:**
+    - The Terrain tool buttons drew as bright bars. Tailwind v4 drops
+      `--color-control` in dark mode because no utility used it, so the
+      canvas got an empty colour and kept its previous fill. The fix
+      switches the theme to `@theme static`.
+    - The determinism test caught Inter 500 being drawn before it had
+      loaded, which made the first frame differ. It's now in `FONTS`.
+    - The browser suite failed about one run in three. The `pause()`
+      helper read `data-state` before the visibility observer had fired.
+      It now uses `data-intent`, and six runs in a row pass.
+    - In light mode the colour swatch was drawn dark while its value
+      reads 163, 163, 163. It now uses the token nearest that grey in
+      each scheme.
 
 ## 2026-11-23 — Plan a dedicated documentation site (Phases 6B–6C)
 

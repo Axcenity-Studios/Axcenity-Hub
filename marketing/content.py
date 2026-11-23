@@ -198,24 +198,36 @@ MEDIA = {
         alt=(
             "A looping film, about 18 seconds long, recreating the Axcenity editor. The words "
             "Scene View, Explorer and Properties appear in large type, then shrink into the tabs "
-            "of three panels that spring together inside one editor window: the 3D Scene View on "
-            "the left, the Explorer's tree of Workspace, Arena and Pad beside it, and Properties "
-            "for the selected Pad docked below the Explorer. Properties then undocks: it lifts out "
-            "of the window and floats onto a second monitor as its own window, and the Explorer "
-            "grows to fill the space it left. The workspace holds in that layout, then gives way "
-            "to the Axcenity logo before the film starts again. On narrow screens it shows only "
-            "the Scene View and the Explorer, docked side by side."
+            "of panels that spring together into the editor's default layout: the 3D Scene View "
+            "with the Console docked below it, and beside them the Explorer's tree of Workspace, "
+            "Arena and Pad above the Properties. A pointer then drags the Properties tab out of "
+            "the window onto a second monitor to the right, where it shows the selected Pad's "
+            "Data, Appearance, Behavior and Part settings, and drags the Console onto a third "
+            "monitor to the left. The Terrain and Assets tabs that shared their places take "
+            "over. The workspace holds in that layout, then gives way to the Axcenity logo "
+            "before the film starts again. On narrow screens it shows only the Scene View and "
+            "the Explorer, docked side by side."
         ),
         provenance=(
             "Drawn live on a canvas by static/reel/ in the site's colour tokens, whose dark values "
-            "are the editor's Dark theme (crates/editor-kit/src/theme.rs ThemeTokens), with the "
-            "editor's pane labels (crates/editor/src/layout.rs Pane::label)."
+            "are the editor's Dark theme (crates/editor-kit/src/theme.rs ThemeTokens). The dock "
+            "and its tabs follow crates/editor/src/layout.rs (default_dock, style, Pane::label); "
+            "the Properties pane follows crates/editor/src/properties.rs and Part's defaults in "
+            "crates/core/src/class.rs; the Console follows output.rs, console.rs and the "
+            "project-opened message in app/session.rs; the window title follows the editor's "
+            '"<project> - Axcenity Editor".'
         ),
         drawn="marketing/media/reel.html",
         labels={
-            "panels": {"scene": "Scene View", "explorer": "Explorer", "properties": "Properties"},
-            "window": "Axcenity Editor",
-            "floating": "Floating · Monitor 2",
+            # The editor's default dock (layout.rs default_dock), each place's tabs in order.
+            "tabs": {
+                "scene": ["Scene View", "Animation", "UI Designer"],
+                "explorer": ["Explorer"],
+                "properties": ["Properties", "Terrain"],
+                "console": ["Console", "Assets", "Profiler"],
+            },
+            "window": "Arena - Axcenity Editor",
+            "monitors": {"properties": "Monitor 2", "console": "Monitor 3"},
             "tree": [
                 ("Workspace", 0),
                 ("Arena", 1),
@@ -225,7 +237,53 @@ MEDIA = {
                 ("ServerScriptService", 0),
             ],
             "selected": "Pad",
-            "rows": [("Name", "Pad"), ("Anchored", "true"), ("Size", "8, 1, 8")],
+            # The selected Pad (an anchored 8 × 1 × 8 Part, otherwise Part's defaults).
+            "properties": {
+                "name": "Pad",
+                "class": "Part",
+                "filter": "Filter properties",
+                "sections": [
+                    ("Data", [("Name", "Pad", "field")]),
+                    (
+                        "Appearance",
+                        [
+                            ("Color", "163, 163, 163", "color"),
+                            ("Material", "Plastic", "field"),
+                            ("Transparency", "0", "field"),
+                        ],
+                    ),
+                    (
+                        "Behavior",
+                        [("Anchored", "true", "check"), ("CanCollide", "true", "check")],
+                    ),
+                    (
+                        "Part",
+                        [
+                            ("Shape", "Block", "field"),
+                            ("Position", "0, 0.5, 0", "field"),
+                            ("Size", "8, 1, 8", "field"),
+                        ],
+                    ),
+                ],
+            },
+            "console": {
+                "filter": "Filter logs",
+                "lines": [
+                    (
+                        "12:04:28",
+                        'Opened "Arena" from `Arena`: 6 objects, 1 script. '
+                        "Press Play (F5) to run it.",
+                        "info",
+                    ),
+                    ("", "select Pad", "command"),
+                ],
+                "prompt": "Lua, or a command such as help",
+            },
+            "terrain": {
+                "tabs": ["Sculpt", "Materials"],
+                "tools": ["Raise / Lower", "Smooth", "Flatten"],
+            },
+            "assets": ["scorch.png", "grass.png", "rock.png", "Pad.glb", "theme.ogg"],
             # Each segment of the timeline by its module id, for the scrubber's spoken position.
             "segments": {
                 "workspace": "Scene 1, Workspace",

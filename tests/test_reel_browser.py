@@ -104,7 +104,9 @@ def frames_requested(page) -> int:
 
 
 def pause(page) -> None:
-    if state(page) == "playing":
+    """Pause the way a visitor does. It goes by their intent (data-intent, set at mount),
+    not by data-state: just after load the reel may not have been seen on screen yet."""
+    if page.get_attribute(".reel-controls", "data-intent") == "playing":
         page.click("[data-reel-toggle]")
     page.wait_for_function("document.querySelector('#reel').dataset.state === 'paused'")
 
@@ -120,6 +122,13 @@ def test_the_reel_mounts_sharp_with_no_console_errors(open_home):
     )
     assert size[0] == size[2] * 2 and size[1] == size[3] * 2  # DPR 3 is capped at 2
     assert page.locator(".reel-marker").count() == 4  # one per scene
+    # Every colour the canvas reads resolves, in both schemes (Tailwind emits each token).
+    for scheme in ("dark", "light"):
+        page.evaluate(f"document.documentElement.dataset.scheme = '{scheme}'")
+        palette = page.evaluate(
+            """async () => (await import('/static/reel/canvas.js')).readPalette(document.documentElement)"""
+        )
+        assert all(value.startswith("#") for value in palette.values()), (scheme, palette)
     page.wait_for_function("document.querySelector('#reel').dataset.state === 'playing'")
     assert errors == []
 

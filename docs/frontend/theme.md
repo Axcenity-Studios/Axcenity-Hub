@@ -7,7 +7,7 @@ colours and page glows are not part of the Hub.
 
 ## The palette
 
-- `@theme { --color-*: initial; }` drops Tailwind's palette, and the
+- `@theme static { --color-*: initial; }` drops Tailwind's palette, and the
   DaisyUI plugin's `themes: false` drops DaisyUI's themes. The only theme
   is `axcenity` (`<html data-theme="axcenity">`).
 - **Utility colours** (the editor's palette, `crates/editor-kit/src/theme.rs`):
@@ -76,7 +76,8 @@ means adding its row to `TEXT_PAIRS` or `NON_TEXT_PAIRS`.**
   JavaScript, the form POSTs `choice` (with CSRF) to `marketing:theme`.
   That view rejects unknown values with a 400 and only follows a
   same-site `next`.
-- **Dark** is the default (the `@theme` values). **Light** is
+- **Dark** is the default (the `@theme static` values; `static` emits every
+  token as a variable, used or not, because the reel's canvas reads them). **Light** is
   `html[data-scheme="light"] { … }`: the Toolbox's storm grey (app
   `#BEC0C2`, panel `#CACCCE`), darker text, lines and status colours, the
   darker accent, and `--logo-filter: invert(1)` for the white wordmark.

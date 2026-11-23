@@ -1,11 +1,14 @@
 // The outro (16–18 s): the workspace draws in towards its centre and fades as
-// the Axcenity logo (the wordmark, which includes the mark) comes up; then the logo fades to the
-// empty page, which is exactly the first frame of Scene 1, so the loop wraps
-// without a visible reset. Phase 4 adds the panels collapsing into the logo.
-// The lockup frame (the logo fully shown, for reduced motion) is 1 s in.
+// one picture (an offscreen layer, so overlapping windows never show through
+// each other mid-fade), the Axcenity wordmark (which includes the mark) comes
+// up once it's mostly gone, then fades to the empty page: exactly Scene 1's
+// first frame, so the loop wraps without a visible reset. Phase 4 adds the
+// panels collapsing into the logo. The lockup frame (the logo fully shown,
+// for reduced motion) is 1 s in.
 
 import { clamp, expoOut, lerp, progress } from "../easing.js";
-import { restingWorkspace, stageRect } from "./workspace.js";
+import { stageRect } from "../drawing/layout.js";
+import { restingWorkspace } from "./workspace.js";
 
 const START = 16;
 const DURATION = 2;
@@ -31,23 +34,21 @@ export default Object.freeze({
   start: START,
   duration: DURATION,
   render(context, time, size) {
-    const { g } = context;
-    const away = expoOut(progress(time, 0, 0.7));
+    const away = expoOut(progress(time, 0, 0.6));
     if (away < 1) {
       const stage = stageRect(size);
       const cx = stage.x + stage.width / 2;
       const cy = stage.y + stage.height / 2;
-      const scale = lerp(1, 0.9, away);
-      g.save();
-      g.globalAlpha = 1 - away;
-      g.translate(cx, cy);
-      g.scale(scale, scale);
-      g.translate(-cx, -cy);
-      restingWorkspace(context, size, START + time);
-      g.restore();
+      const scale = lerp(1, 0.94, away);
+      context.layer(1 - away, (layer) => {
+        layer.g.translate(cx, cy);
+        layer.g.scale(scale, scale);
+        layer.g.translate(-cx, -cy);
+        restingWorkspace(layer, size, START + time);
+      });
     }
-    const arrive = expoOut(progress(time, 0.25, 0.6));
+    const arrive = expoOut(progress(time, 0.3, 0.6));
     const leave = progress(time, 1.45, 0.55);
-    logo(context, size, arrive * (1 - leave * leave), lerp(0.94, 1, arrive));
+    logo(context, size, arrive * (1 - leave * leave), lerp(0.96, 1, arrive));
   },
 });

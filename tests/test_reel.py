@@ -19,6 +19,7 @@ pytestmark = pytest.mark.django_db
 
 REEL = settings.BASE_DIR / "static" / "reel"
 SCENES = REEL / "scenes"
+DRAWING = REEL / "drawing"
 SOURCE = (settings.BASE_DIR / "styles" / "source.css").read_text(encoding="utf-8")
 
 
@@ -45,7 +46,18 @@ def test_the_hero_holds_the_reel_with_its_caption_and_description(hero):
 
 def test_the_description_explains_the_workspace_and_its_undocking():
     description = content.MEDIA["reel"].alt
-    for words in ("Scene View", "Explorer", "Properties", "undocks", "second monitor", "logo"):
+    for words in (
+        "Scene View",
+        "Explorer",
+        "Properties",
+        "Console",
+        "pointer",
+        "drags",
+        "second monitor",
+        "third",
+        "Terrain and Assets",
+        "logo",
+    ):
         assert words in description, words
     assert "Illustrative" in content.MEDIA["reel"].caption
 
@@ -108,6 +120,8 @@ def test_the_controls_show_on_focus_when_paused_and_on_touch():
 # ---------- The scene contract, as written ----------
 
 SCENE_FILES = sorted(SCENES.glob("*.js"))
+# Everything a scene draws with: the scenes and their drawing helpers.
+PURE_FILES = SCENE_FILES + sorted(DRAWING.glob("*.js"))
 REGISTERED = [
     ("workspace", 0, 4),
     ("renderer", 4, 4),
@@ -139,7 +153,7 @@ def test_each_scene_satisfies_the_contract(name, start, duration):
     )
 
 
-@pytest.mark.parametrize("path", SCENE_FILES, ids=lambda path: path.stem)
+@pytest.mark.parametrize("path", PURE_FILES, ids=lambda path: f"{path.parent.name}/{path.stem}")
 def test_scenes_hold_no_state_and_read_no_clock_or_device(path):
     """A scene is a pure function of (context, time, size): nothing at module level
     changes, and it never reads the real time, randomness or physical pixels."""
@@ -174,7 +188,7 @@ def test_scenes_use_only_the_tokens_the_canvas_reads():
         for name in re.findall(r'"([\w-]+)"', tokens)
     }
     used = set()
-    for path in SCENE_FILES:
+    for path in PURE_FILES:
         used |= set(re.findall(r"colors\.(\w+)", _js(path)))
     assert used and used <= names, used - names
 
@@ -190,9 +204,9 @@ def test_the_pixel_ratio_is_capped_at_two_and_scenes_draw_in_logical_pixels():
 
 
 def test_compact_mode_reserves_the_same_space_above_the_copy():
-    workspace = _js(SCENES / "workspace.js")
-    assert "export const COMPACT_TOP = 108;" in workspace
-    assert "export const COMPACT_ASPECT = 0.62;" in workspace
+    layout = _js(DRAWING / "layout.js")
+    assert "export const COMPACT_TOP = 108;" in layout
+    assert "export const COMPACT_ASPECT = 0.62;" in layout
     assert (
         "@media (width < 40rem) { .hero-copy { padding-top: calc(108px - 4rem + (100vw - 2rem) * 0.62 + 1.5rem); } }"
         in SOURCE
@@ -201,8 +215,13 @@ def test_compact_mode_reserves_the_same_space_above_the_copy():
 
 # ---------- Fidelity to the editor ----------
 
-# crates/editor/src/layout.rs, Pane::label.
-EDITOR_PANE_LABELS = {"scene": "Scene View", "explorer": "Explorer", "properties": "Properties"}
+# crates/editor/src/layout.rs default_dock, with each pane's Pane::label.
+EDITOR_DEFAULT_DOCK = {
+    "scene": ["Scene View", "Animation", "UI Designer"],
+    "explorer": ["Explorer"],
+    "properties": ["Properties", "Terrain"],
+    "console": ["Console", "Assets", "Profiler"],
+}
 
 # crates/editor-kit/src/theme.rs, ThemeChoice::Dark's ThemeTokens, by site token.
 EDITOR_DARK_THEME = {
@@ -224,11 +243,49 @@ EDITOR_DARK_THEME = {
 }
 
 
-def test_the_panels_have_the_editors_names():
-    assert content.MEDIA["reel"].labels["panels"] == EDITOR_PANE_LABELS
+def test_the_dock_is_the_editors_default_layout_with_its_pane_names():
+    assert content.MEDIA["reel"].labels["tabs"] == EDITOR_DEFAULT_DOCK
+
+
+def test_the_properties_pane_shows_the_editors_sections_for_a_part():
+    """crates/editor/src/properties.rs: Data first, then the groups in panel order
+    (properties/groups.rs), each property in its group; the values are Part's defaults
+    (crates/core/src/class.rs) for an anchored 8 × 1 × 8 Pad."""
+    pane = content.MEDIA["reel"].labels["properties"]
+    assert (pane["name"], pane["class"], pane["filter"]) == ("Pad", "Part", "Filter properties")
+    sections = {title: [row[0] for row in rows] for title, rows in pane["sections"]}
+    assert list(sections) == ["Data", "Appearance", "Behavior", "Part"]
+    assert sections["Data"] == ["Name"]
+    assert set(sections["Appearance"]) <= {"Color", "Material", "Transparency"}
+    assert set(sections["Behavior"]) <= {"Locked", "Anchored", "CanCollide", "CanTouch"}
+    assert set(sections["Part"]) <= {"Shape", "Position", "Orientation", "Size"}
+    values = {row[0]: row[1] for _, rows in pane["sections"] for row in rows}
+    assert values["Color"] == "163, 163, 163" and values["Material"] == "Plastic"
+
+
+def test_the_console_uses_the_editors_messages():
+    pane = content.MEDIA["reel"].labels["console"]
+    assert pane["prompt"] == "Lua, or a command such as help"  # console.rs hint
+    opened = pane["lines"][0][1]
+    # app/session.rs: Opened "<name>" from `<folder>`: N objects, N script(s). Press Play (F5) to run it.
+    assert re.fullmatch(
+        r'Opened "\w+" from `\w+`: \d+ objects, \d+ scripts?\. Press Play \(F5\) to run it\.',
+        opened,
+    )
+    assert content.MEDIA["reel"].labels["window"].endswith(" - Axcenity Editor")
 
 
 @pytest.mark.parametrize(("token", "value"), EDITOR_DARK_THEME.items())
 def test_the_dark_tokens_the_reel_draws_with_are_the_editors_dark_theme(token, value):
-    theme = SOURCE.split("@theme {", 1)[1].split("\n}", 1)[0]
+    theme = SOURCE.split("@theme static {", 1)[1].split("\n}", 1)[0]
     assert f"--color-{token}: {value};" in theme
+
+
+def test_every_font_the_scenes_draw_with_is_loaded_before_the_first_ready_frame():
+    """A face drawn before it has loaded paints in a fallback first, so the same moment
+    would look different on its first draw: the player loads every one up front."""
+    loaded = set(re.findall(r"'(\d{3}) \d+px \"([^\"]+)\"'", _js(REEL / "canvas.js")))
+    used = set()
+    for path in PURE_FILES:
+        used |= set(re.findall(r'font\((\d{3}), [^,]+, "([^"]+)"\)', _js(path)))
+    assert used and used <= loaded, used - loaded

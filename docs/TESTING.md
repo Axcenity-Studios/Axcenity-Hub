@@ -20,7 +20,7 @@ is on, so an unregistered marker fails.
 | `test_theme_switch.py` | The theme cookie (validation, attributes), pre-paint script, switch markup, `ThemeView` and CSRF |
 | `test_network_guard.py` | The network guard and its single browser-test opening |
 | `test_browser_server.py` | `browser`: the live server is reachable at its own address and nowhere else |
-| `test_reel.py` | The reel without a browser: markup, labels, description, fallbacks, the scene contract and determinism rules as written, fidelity to the editor's pane names and Dark theme |
+| `test_reel.py` | The reel without a browser: markup, labels, description, fallbacks, the scene contract and determinism rules as written (scenes and drawing helpers), preloaded fonts, fidelity to the editor's default dock, Properties sections, Console messages and Dark theme |
 | `test_reel_browser.py` | `browser` (Playwright): the reel mounts sharp with no console errors; play/pause and no frames while paused; Space and the marker jumps, with the range's own arrows left alone; reduced motion (and changing it live); frames as a pure function of time (seek, resize, wrap, the contract at runtime); off-screen and hidden-tab pausing; phone width; the no-canvas fallback |
 
 Add a row when you create a file.

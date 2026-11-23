@@ -82,6 +82,7 @@ export function tint(image, color) {
 export const FONTS = Object.freeze([
   '800 48px "Plus Jakarta Sans"',
   '400 12px "Inter"',
+  '500 12px "Inter"',
   '600 12px "Inter"',
   '400 12px "JetBrains Mono"',
 ]);

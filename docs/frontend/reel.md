@@ -17,17 +17,19 @@ Chromium. The colour rules are in [theme.md](theme.md).
 | `static/reel/easing.js` | Pure helpers: `clamp`, `lerp`, `progress`, `expoOut`, `spring` (closed form), `lerpRect`, `rect` |
 | `static/reel/canvas.js` | Pixel ratio (capped at 2), logical size, `fit`, `useLogicalPixels`, `readPalette`, `tint`, `FONTS` |
 | `static/reel/scenes/*.js` | One module per segment: `workspace`, `renderer`, `world`, `logic`, `lockup` |
+| `static/reel/drawing/layout.js` | Where everything goes: `stageRect`, `workspaceLayout` (the dock, the two floating windows), `COMPACT_TOP`/`COMPACT_ASPECT` |
+| `static/reel/drawing/editor.js` | The editor's pieces: windows, tab bars, panels, the viewport, Explorer, Properties, Console, Terrain and Assets panes, the pointer |
 | `marketing/content.py` | `MEDIA["reel"]`: caption, description (its `alt`), provenance, the drawn words (`labels`); `REEL_CONTROLS` |
 
 ## The timeline
 
 | Segment | Time | Marker | Now |
 |---|---|---|---|
-| `workspace` (Scene 1) | 0–4 s | 0 s | Kinetic type, panels spring into the window, Properties undocks |
+| `workspace` (Scene 1) | 0–4 s | 0 s | Kinetic type, panels spring into the dock, the pointer drags Properties and the Console out |
 | `renderer` (Scene 2) | 4–8 s | 4 s | The finished workspace (Phase 4: the graybox-to-lit wipe) |
 | `world` (Scene 3) | 8–12 s | 8 s | The finished workspace (Phase 4: terrain and foliage) |
 | `logic` (Scene 4) | 12–16 s | 12 s | The finished workspace (Phase 4: blocks and Luau) |
-| `lockup` (outro) | 16–18 s | none | Workspace fades, wordmark comes up, then fades to the empty first frame |
+| `lockup` (outro) | 16–18 s | none | Workspace shrinks and fades as one layer, wordmark comes up, then fades to the empty first frame |
 
 - `DURATION` is 18 s. `wrap(t)` maps any time into [0, 18): **18 s is
   the loop's first frame**, and anything not finite is 0.
@@ -67,14 +69,19 @@ mode becomes a prop.
 - **`context`** (frozen, rebuilt by the player): `g` (the 2D context,
   already mapped to logical pixels), `colors` (the tokens, camelCase),
   `labels` (the words from `content.py`, deep-frozen), `images`
-  (`wordmark`, tinted `fg-strong`, or `null` until loaded).
+  (`wordmark`, tinted `fg-strong`, or `null` until loaded), and
+  `layer(alpha, draw)`: draws `draw(layerContext)` into an offscreen
+  buffer (with `g`'s current transform) and composites it at `alpha` as
+  one picture. Use it to fade anything made of overlapping pieces;
+  drawing each piece at partial alpha lets the ones beneath show
+  through. The buffer is cleared on every use.
 - **`size`** (frozen): `width` and `height` in **logical (CSS) pixels**,
   and `compact` (width under 640). Scenes never see physical pixels.
 
 ### Determinism rules (tested)
 
-- **Pure:** a frame depends only on `(context, time, size)`. No state
-  at module level (`let`/`var`), and no `Math.random`, `Date`,
+- **Pure:** a frame depends only on `(context, time, size)`. These
+  rules cover `scenes/` and `drawing/`. No state at module level (`let`/`var`), and no `Math.random`, `Date`,
   `performance`, `requestAnimationFrame`, `window`, `document`,
   `devicePixelRatio` or `canvas.width`/`height` in a scene.
 - **Seek anywhere:** a frame never depends on the frames before it.
@@ -95,19 +102,42 @@ mode becomes a prop.
 
 ## Scene 1: the workspace
 
-The panel names from `Pane::label` (`crates/editor/src/layout.rs`):
-**Scene View**, **Explorer**, **Properties**, styled from the editor's
-Dark theme tokens (`crates/editor-kit/src/theme.rs`, which the site's
-dark tokens equal; tested) and its square 1px panels.
+A recreation of the editor's default dock (`layout.rs` `default_dock`,
+pane names from `Pane::label`): Scene View | Animation | UI Designer,
+with Console | Assets | Profiler below, and Explorer above
+Properties | Terrain on the right. Tabs follow the dock's style: a quiet
+bar on `app`, the active tab joined to its panel, the others `fg-weak`.
+Colours are the site's tokens; their dark values are the editor's Dark
+theme (`theme.rs`, tested).
 
-1. 0.1 s: the names rise in as big kinetic type, staggered.
-2. From 1.2 s: each word shrinks into its panel's tab (Plus Jakarta
-   handing over to Inter) while the panel springs from the word's box to
-   its dock place; the "Axcenity Editor" window fades in around them.
-3. 1.9 s: the viewport (grid and a slowly turning block), the Explorer
-   tree and the Properties rows appear.
-4. 2.5 s: Properties undocks onto "Floating · Monitor 2" with a spring
-   and a shadow; the Explorer grows into the space it left.
+1. 0.1 s: Scene View, Explorer and Properties rise in as kinetic type.
+2. From 1.0 s: each word shrinks into its tab (Plus Jakarta handing
+   over to Inter) as its panel springs from the word's box into the
+   dock. The other tabs fade in as each word lands. The "Arena - Axcenity
+   Editor" window (the editor's title format) and the docked Console
+   arrive.
+3. 1.45 s: the contents appear:
+   - the viewport: a grid and a slowly turning block
+   - the Explorer tree, with Pad selected
+   - Properties (`properties.rs`): the Pad/Part header, "Filter
+     properties", then Data, Appearance, Behavior and Part, with Part's
+     real defaults (`class.rs`)
+   - the Console (`output.rs`, `console.rs`): the real project-opened
+     line from `app/session.rs`, a `select` command and the
+     "Lua, or a command such as help" field
+4. 1.75 s: a pointer comes in and drags the Properties tab out onto
+   "Monitor 2" to the right (2.1–2.65 s). The window tears off to its own
+   size, and its chrome and lifted shadow come up. Terrain takes its
+   docked place.
+5. 3.0–3.55 s: it drags the Console onto "Monitor 3" in the hero's empty
+   upper left, and Assets takes over below the Scene View.
+6. Each drop bobs once (`settle`, zero at the drop). The pointer drifts
+   off and is gone by 3.95 s.
+
+Drags are pure functions of time: the pointer eases from the tab's
+docked grip to its floating grip, and the window follows it exactly, so
+it lands on its final rectangle at release. The dock overlay's accent
+highlight is left out: the accent is reserved for the site's fixed uses.
 
 `drawWorkspace(context, size, build, clock)` draws it at any moment of
 its build; `restingWorkspace` (build ≥ `SETTLED`) is what the
@@ -119,7 +149,8 @@ loop time.
 The same timeline. The stage is the top of the hero (`COMPACT_TOP` 108 px,
 `COMPACT_ASPECT` 0.62 of its width); the hero's CSS reserves the same
 space above the copy (`.hero-copy`, tested). Only the Scene View and the
-Explorer, docked side by side, at larger type; nothing undocks.
+Explorer (their active tabs only), docked side by side, at larger type;
+no pointer and nothing undocks.
 
 ## Playback
 
@@ -159,6 +190,13 @@ visible. Otherwise no animation frame is requested at all.
 - Theme changes (`html[data-scheme]`) re-read the tokens and redraw.
 
 ## Gotchas
+
+- Every font a scene draws with must be in `canvas.js` `FONTS` (tested):
+  a face drawn before it loads paints in a fallback on its first frame,
+  so the same moment would look different twice.
+- The canvas reads every token at runtime, so `source.css` uses
+  `@theme static` (Tailwind otherwise drops a token no utility uses, and
+  an empty colour silently keeps the previous fill).
 
 - Keep a `MediaQueryList` reachable from something long-lived (the
   player reads `reduce` in `update()`): one held only by its own listener

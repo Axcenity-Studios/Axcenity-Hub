@@ -60,7 +60,9 @@
   --noise: 0;
 }
 
-@theme {
+/* static: every token is emitted as a variable even when no utility uses it,
+   because the reel's canvas reads them all at runtime (static/reel/canvas.js). */
+@theme static {
   /* Drop Tailwind's default palette; only these colours exist. */
   --color-*: initial;
   --color-white: #FFFFFF;
@@ -233,7 +235,7 @@ html[data-pointer] .lift:hover::after { content: ""; position: absolute; inset: 
 
 /* ---------- The showcase reel (static/reel/, docs/frontend/reel.md) ----------
    Full bleed behind the hero copy, fading to the page colour where the text
-   sits. The canvas shows once main.js has mounted (data-live). Until then, and
+   sits (the bottom left), so the windows above it stay clear. The canvas shows once main.js has mounted (data-live). Until then, and
    for good when the browser can't run it, the renderer capture shows instead;
    data-pending (set by an inline script when the reel can run) hides that
    capture before layout, so it's never downloaded. */
@@ -241,7 +243,7 @@ html[data-pointer] .lift:hover::after { content: ""; position: absolute; inset: 
 .reel::after { content: ""; position: absolute; inset: 0; pointer-events: none;
   background: linear-gradient(180deg, color-mix(in srgb, var(--color-app) 60%, transparent), transparent 14%, transparent 52%,
       color-mix(in srgb, var(--color-app) 95%, transparent) 86%),
-    linear-gradient(90deg, color-mix(in srgb, var(--color-app) 85%, transparent), transparent 58%); }
+    radial-gradient(ellipse 75% 70% at 0% 100%, color-mix(in srgb, var(--color-app) 88%, transparent) 35%, transparent); }
 .reel-canvas { display: block; width: 100%; height: 100%; }
 .reel:not([data-live]) > .reel-canvas, .reel:not([data-live]) > figcaption { display: none; }
 .reel[data-live] > .reel-fallback, .reel[data-pending] > .reel-fallback { display: none; }

@@ -53,9 +53,44 @@ export function mount(reel, canvas, g) {
   let scrubbing = false;
   let spoken = "";
 
+  // An offscreen layer the size of the canvas, for drawing something at a lower
+  // opacity as one picture (group opacity). It's cleared on every use, so a
+  // frame never depends on what it held before.
+  const layerCanvas = document.createElement("canvas");
+  const layerG = layerCanvas.getContext("2d");
+
+  function layer(alpha, draw) {
+    if (alpha <= 0) return;
+    if (layerCanvas.width !== canvas.width) layerCanvas.width = canvas.width;
+    if (layerCanvas.height !== canvas.height) layerCanvas.height = canvas.height;
+    layerG.setTransform(1, 0, 0, 1, 0, 0);
+    layerG.globalAlpha = 1;
+    layerG.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
+    layerG.setTransform(g.getTransform());
+    layerG.save();
+    // A layer inside a layer draws straight into this one at its own alpha (no second buffer).
+    const inside = Object.freeze({
+      ...context,
+      g: layerG,
+      layer: (nestedAlpha, nested) => {
+        layerG.save();
+        layerG.globalAlpha *= nestedAlpha;
+        nested(inside);
+        layerG.restore();
+      },
+    });
+    draw(inside);
+    layerG.restore();
+    g.save();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalAlpha *= alpha;
+    g.drawImage(layerCanvas, 0, 0);
+    g.restore();
+  }
+
   function rebuildContext() {
     const images = Object.freeze({ wordmark: tint(wordmark, palette.fgStrong) });
-    context = Object.freeze({ g, colors: palette, labels, images });
+    context = Object.freeze({ g, colors: palette, labels, images, layer });
   }
 
   // ---------- Drawing ----------

@@ -23,6 +23,12 @@ export function expoOut(amount) {
   return p === 1 ? 1 : 1 - Math.pow(2, -10 * p);
 }
 
+/** Ease in and out (cubic): a hand moving the pointer, slow to start and to stop. */
+export function easeInOut(amount) {
+  const p = clamp(amount);
+  return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+}
+
 /**
  * A damped spring released `seconds` ago, from 0 towards 1, overshooting and
  * settling (closed form, so any moment can be computed directly without
