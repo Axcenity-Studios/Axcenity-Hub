@@ -63,7 +63,7 @@ HOME_COPY = {text for block in HOME_BLOCKS for text in _copy(block)}
 
 class _VisibleText(HTMLParser):
     """Collects the text a sighted visitor reads inside <main>: not attributes, not the
-    screen-reader-only labels, and not code (checked on its own)."""
+    screen-reader-only labels, not scripts or data, and not code (checked on its own)."""
 
     VOID = {"img", "br", "hr", "input", "meta", "link", "source", "path", "i"}
 
@@ -83,7 +83,7 @@ class _VisibleText(HTMLParser):
             self.in_main = True
         if tag in self.VOID:
             return
-        skip = "sr-only" in (attrs.get("class") or "").split() or tag == "pre"
+        skip = "sr-only" in (attrs.get("class") or "").split() or tag in {"pre", "script", "style"}
         self.stack.append((tag, skip))
 
     def handle_startendtag(self, tag, attrs):
@@ -100,6 +100,8 @@ class _VisibleText(HTMLParser):
 
     def handle_data(self, data):
         if not self.in_main:
+            return
+        if any(t in {"script", "style"} for t, _ in self.stack):
             return
         if any(t == "pre" for t, _ in self.stack):
             self.code.append(data)
@@ -286,8 +288,10 @@ def test_images_carry_intrinsic_size_and_below_the_fold_ones_lazy_load(home):
     main = _part_main(home)
     for img in re.findall(r"<img [^>]+>", main):
         assert re.search(r'width="\d+" height="\d+"', img), img
+    # The hero's capture is only the reel's fallback: lazy, so a browser running the reel
+    # never downloads it (an inline script hides it before layout).
     hero_img = re.search(r"<img [^>]+>", _section(home, "hero")).group()
-    assert 'fetchpriority="high"' in hero_img and "lazy" not in hero_img
+    assert 'loading="lazy"' in hero_img
     for img in re.findall(r"<img [^>]+>", _section(home, "features")):
         assert 'loading="lazy"' in img
 
@@ -331,7 +335,7 @@ def test_the_terrain_drawing_is_deterministic():
 
 
 def test_drawn_media_uses_only_the_tokens(home):
-    for name in ("terrain", "luau", "editor"):
+    for name in ("terrain", "luau", "editor", "reel"):
         source = (
             settings.BASE_DIR / "templates" / "marketing" / "media" / f"{name}.html"
         ).read_text()

@@ -12,9 +12,9 @@ its code).
 |---|---|
 | [frontend/theme.md](frontend/theme.md) | colours, the accent, light and dark, contrast, fonts, the logo, buttons, focus, the hover gate, motion primitives, reduced motion |
 | [frontend/home.md](frontend/home.md) | the Home's sections, copy as data, the media manifest and drawn media, the rotating headline, reveals, the pillars' sticky stage |
+| [frontend/reel.md](frontend/reel.md) | the showcase reel (`static/reel/`): the timeline and scene markers, the scene contract and its determinism rules, compact mode, playback, controls and fallbacks |
 
-Later phases add `frontend/reel.md` (Phase 3) and topic files for each
-area they build.
+Later phases add topic files for each area they build.
 
 ## Tailwind + DaisyUI (no Node)
 
@@ -29,7 +29,8 @@ area they build.
   full**; a class built from pieces at runtime won't be found.
 - Any JavaScript library is a vendored static file. `static/js/shell.js`
   runs on every page; `static/js/home.js` only on Home (its `head`
-  block).
+  block); the reel's ES modules (`static/reel/`) only from its own
+  template.
 
 ## Shells
 

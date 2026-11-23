@@ -131,14 +131,14 @@ None: the behaviors are visible only through the planned Playwright smoke tests,
 
 ### Acceptance criteria
 
-- [ ] Scrubbing to any time renders that exact frame (pure function of time); play/pause/scrub never desync
-- [ ] Space toggles, ←/→ jump scene boundaries; controls are labelled buttons and a range input
-- [ ] Reduced motion: no autoplay, the lockup frame is shown, and Play starts it
-- [ ] Pauses off screen and in hidden tabs (no requestAnimationFrame work while paused)
+- [x] Scrubbing to any time renders that exact frame (pure function of time); play/pause/scrub never desync
+- [x] Space toggles, ←/→ jump scene boundaries; controls are labelled buttons and a range input
+- [x] Reduced motion: no autoplay, the lockup frame is shown, and Play starts it
+- [x] Pauses off screen and in hidden tabs (no requestAnimationFrame work while paused)
 - [ ] Crisp on DPR 2; holds ~60 fps on a mid-range laptop at 1440p; compact mode is readable at 360 px
-- [ ] Scene 1 palette, panel names and layout match the engine editor (checked against the editor theme source)
-- [ ] Browser tests (about 5): mounts with no console errors; play/pause toggles; arrow keys jump; reduced motion shows the lockup without autoplay; no horizontal scroll at phone width
-- [ ] `docs/frontend/reel.md` documents the scene contract, the timeline, compact mode and playback rules, and the FRONTEND index points to it
+- [x] Scene 1 palette, panel names and layout match the engine editor (checked against the editor theme source)
+- [x] Browser tests (about 5): mounts with no console errors; play/pause toggles; arrow keys jump; reduced motion shows the lockup without autoplay; no horizontal scroll at phone width
+- [x] `docs/frontend/reel.md` documents the scene contract, the timeline, compact mode and playback rules, and the FRONTEND index points to it
 
 ---
 

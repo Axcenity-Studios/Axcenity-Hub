@@ -1,12 +1,8 @@
-{% load static %}
-{# Hero: the badge, the headline with its rotating line, the pitch and the two calls to action.  #}
-{# The renderer capture sits behind it until Phase 3's reel. It's above the fold: no reveals.    #}
+{# Hero: the showcase reel behind the badge, the headline with its rotating line, the pitch and the #}
+{# two calls to action. The reel's controls sit bottom right. It's above the fold: no reveals.      #}
 <section id="hero" class="hero under-nav relative flex min-h-[100svh] items-end overflow-hidden">
-  <figure class="hero-backdrop">
-    <img src="{% static hero.backdrop.src %}" alt="{{ hero.backdrop.alt }}" width="{{ hero.backdrop.source_size.0 }}" height="{{ hero.backdrop.source_size.1 }}" fetchpriority="high" decoding="async">
-    <figcaption class="media-cap micro">{{ hero.backdrop.caption }}</figcaption>
-  </figure>
-  <div class="relative z-10 mx-auto w-full max-w-[1400px] px-4 pt-24 pb-16 md:px-8 md:pb-24">
+  {% include "marketing/media/reel.html" with media=hero.reel fallback=hero.fallback controls=hero.reel_controls %}
+  <div class="hero-copy relative z-10 mx-auto w-full max-w-[1400px] px-4 pt-24 pb-24 md:px-8">
     <p class="badge-pill micro"><span class="badge-dot" aria-hidden="true"></span>{{ hero.badge }}</p>
     <h1 class="display mt-6 text-5xl text-fg-strong sm:text-6xl md:text-8xl">
       <span class="block">{{ hero.headline }}</span>

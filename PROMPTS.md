@@ -28,6 +28,146 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-23 — Axcenity Hub: Phase 3/17, Reel engine and Scene 1
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub.md phase 3`.
+2. (Approval of the brief, with changes) "Ok looks good but I would just
+   make sure of a few things: resolve the inconsistency between scene
+   boundaries and segment transitions. The controls should distinguish
+   between four scene markers and the beginning and end of the timeline.
+   Make sure that seeking has 18 seconds wraps or resolves consistently to
+   the loops first frame. I like drawng the panels on a canvas rather than
+   using the DOM/SVG but I think it would be a good idea to enforce
+   deterministic scene rendering. make sure that rendering does not mutate
+   a scene, seeking should not depend on previous freams, resizign should
+   not change the animation timing, all scene coordinates must device from
+   logical dimensions not physical canvas pixels, scene transitions should
+   work when seeking directly in the middle of the scene. Also I would like
+   you to improve accesiblity features with playback behavior, respect the
+   reduced motion preference changes while the page is opened, do not
+   autoplay when the brower is hidden, ensure that the keyboard controls do
+   not interfere with range-input navigation, provide a meaningful fallback
+   when the canvas is not supported and ensure that the screen reader
+   description explains teh workspace and its undocking behavior not just
+   that the animation is playing. Keep scenes 2-4 but make sure they are
+   actual registered scene implementations rather than special timeline
+   cases each should satisfy the same scene contract start duration,
+   render(context,time,size) this is so that phase 4 can replace the
+   implementaition without changing the engine."
+
+### Summary
+
+- **Outcome:** The showcase reel now runs behind the hero, in place of the
+  renderer capture, which becomes its fallback. It has:
+  - an 18 s timeline of five registered segments: Scene 1, placeholder
+    Scenes 2–4 and the lockup outro
+  - a master clock with seek and wrap
+  - a HiDPI canvas capped at DPR 2
+  - controls: play/pause, a scrubber with four scene markers, Space, and
+    ←/→ jumps
+  - autoplay only while 30% or more is on screen in a visible tab
+  - reduced-motion handling that follows changes live
+  - a compact phone layout
+  - a no-canvas fallback
+  - a screen-reader description of the workspace and the undocking
+
+  Scene 1 shows kinetic panel names shrinking into tabs as the panels
+  spring into the editor window, then Properties undocking onto a second
+  monitor. 335 tests pass (325 fast, 10 `browser`), and Ruff check and
+  format are clean. 7 of the 8 criteria are ticked. The ~60 fps criterion
+  is left for a check on a real laptop.
+- **Changes:**
+  - `static/reel/main.js`: the entry. It checks for a 2D canvas, loads the
+    player, and falls back on any failure.
+  - `static/reel/player.js`: draws the frame for the clock's time in
+    logical pixels. Also handles the controls, keyboard, visibility,
+    reduced motion, theme and resize.
+  - `static/reel/timeline.js`: the registered segments, checked against
+    the contract on load. Also the scene markers (0, 4, 8, 12), `wrap` (18
+    s is 0), `segmentAt`, the marker jumps and the clock.
+  - `static/reel/easing.js`: pure helpers, including a closed-form spring.
+  - `static/reel/canvas.js`: the pixel-ratio cap, the logical size, the
+    logical-pixel transform, token reading and logo tinting.
+  - `static/reel/scenes/`:
+    - `workspace.js`: Scene 1, and the resting workspace.
+    - `renderer.js`, `world.js`, `logic.js`: real scene modules that show
+      the resting workspace until Phase 4 replaces them.
+    - `lockup.js`: the outro, ending on the empty first frame.
+  - `templates/marketing/media/reel.html`: the figure with its canvas,
+    fallback capture, caption and description. Also the inline probe, the
+    labels as JSON, the controls and the module script.
+  - `templates/marketing/home/hero.html`: includes the reel (`.hero-copy`
+    for the phone reserve).
+  - `marketing/content.py`: `MEDIA["reel"]` (illustrative, with the
+    description as its alt and the drawn words as labels),
+    `REEL_CONTROLS`, and the hero's `reel`, `reel_controls` and
+    `fallback`.
+  - `styles/source.css`: the reel, its fallback and the controls.
+    Changes:
+    - The accent gains `.reel-fill`.
+    - Hover sits behind the hover gate.
+    - The phone copy reserve.
+    - `.hero-backdrop` is removed.
+  - `tests/test_reel.py` (new): markup, labels, fallbacks, the contract and
+    the determinism rules as written, and the editor's pane names and Dark
+    theme.
+  - `tests/test_reel_browser.py` (new): 8 Playwright tests. Every request
+    except the live server's is aborted.
+  - `tests/test_home.py`: the visible-text parser skips `<script>`, and
+    the hero image is now the lazy fallback.
+  - `tests/test_theme.py`: the accent's uses, and the reel's contrast
+    pairs and rules.
+  - `pyproject.toml`, `uv.lock`: `pytest-playwright`.
+  - `docs/frontend/reel.md` (new). Also updates to the FRONTEND index,
+    `home.md`, `theme.md`, `TESTING.md` (rows and a Playwright section)
+    and `ARCHITECTURE.md`.
+  - `plans/axcenity-hub.md`: ticks.
+- **TDD:** skipped, as the plan says. The behaviours show only in the
+  browser, and the PRD rules out JavaScript unit tests. The Playwright
+  tests and the fast contract tests cover them.
+- **Decisions:**
+  - **Canvas, not DOM/SVG.** The panels are drawn on the canvas, unlike
+    the PRD. The user approved it.
+  - **Colours from the tokens.** Colours come from the site's tokens at
+    runtime, and the dark tokens are pinned by tests to the editor's Dark
+    `ThemeTokens`.
+  - **Panel names** come from `Pane::label`: Scene View, Explorer and
+    Properties.
+  - **Markers and the outro.** The lockup is an outro segment with no
+    marker. ← within 0.3 s of a marker goes back to the one before it,
+    and both arrows wrap.
+  - **Logo.** The lockup draws the wordmark alone, since the image already
+    includes the mark.
+  - **Controls.** They stay visible while paused, so reduced motion's Play
+    shows. The range keeps its native arrows (0.1 s steps).
+  - **Fallback.** It is the lazy renderer capture, hidden before layout by
+    an inline probe, so browsers that run the reel never download it.
+- **Deviations:** In the brief, the scrubber ticks (4, 8, 12, 16) and the
+  arrow stops (0, 4, 8, 12, 16) didn't agree. At the user's request they
+  now use the same four scene markers, and the start and end of the
+  timeline are told apart from them. The user also asked for stricter
+  determinism, live reduced motion, no autoplay in hidden tabs, range
+  arrows left alone, a canvas fallback, a fuller description, and Scenes
+  2–4 as real registered modules. All are built and tested.
+- **Sideways:**
+  - The lockup first drew the mark next to the wordmark, which already
+    contains it. Caught in screenshots.
+  - On phones the copy covered the compact workspace. The fix reserves
+    its height in CSS, less the section's nav padding. The first try
+    missed that padding; screenshots caught both.
+  - The dev server ran with `--noreload` and served stale templates for a
+    round of screenshots.
+  - The live reduced-motion test failed twice:
+    - `prefers-reduced-motion`'s `MediaQueryList` was held only by its own
+      listener and could be garbage-collected. `update()` now reads it.
+    - The test switched the setting twice within one frame, so the
+      switches cancelled out. It now waits on `data-motion`.
+  - A test helper seeked with only an `input` event, which left the
+    scrubbing flag on. The helper now also fires `change`, and marker
+    jumps clear the flag.
+
 ## 2026-11-23 — Plan a dedicated documentation site (Phases 6B–6C)
 
 ### Prompts

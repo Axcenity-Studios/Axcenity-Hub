@@ -145,10 +145,12 @@ def test_the_accent_hex_appears_only_on_its_token_lines(css):
             assert re.match(r"\s*--color-(primary|accent): #", line), line
 
 
-def test_the_accent_is_used_only_by_the_badge_dot(css):
-    """The primary button reads it through DaisyUI; the reel adds its own uses in Phase 3."""
-    users = [line for line in css.splitlines() if "var(--color-accent)" in line]
-    assert len(users) == 1 and users[0].strip().startswith(".badge-dot {")
+def test_the_accent_is_used_only_by_the_badge_dot_and_the_reel_progress(css):
+    """The primary button reads it through DaisyUI; Phase 4's scan line is drawn on the canvas."""
+    users = [
+        line.strip().split(" {", 1)[0] for line in css.splitlines() if "var(--color-accent)" in line
+    ]
+    assert users == [".badge-dot", ".reel-fill"]
     assert "var(--color-primary)" not in css
 
 
@@ -226,6 +228,12 @@ TEXT_PAIRS = [
     ("drawn editor: panel text", "fg", "panel"),
     ("drawn editor: active tab", "fg-strong", "surface"),
     ("drawn editor: selected row", "fg-strong", "control-active"),
+    # The reel's canvas (static/reel/scenes) draws only these pairs, plus ones above.
+    ("reel: Explorer rows", "fg-secondary", "panel"),
+    ("reel: Properties names", "fg-weak", "panel"),
+    ("reel: window titles", "fg-weak", "app"),
+    ("reel: play and pause button", "fg-strong", "app"),
+    ("reel: button hovered", "on-ink", "ink"),
 ]
 NON_TEXT_PAIRS = [
     ("focus ring on the page", "ink", "app"),
@@ -237,6 +245,11 @@ NON_TEXT_PAIRS = [
     ("theme switch and menu icons", "fg-secondary", "app"),
     ("workflow numeral outline", "fg-weak", "app"),
     ("drawn terrain lines", "fg-weak", "inset"),
+    ("reel progress", "accent", "app"),
+    ("reel scene markers", "fg-weak", "app"),
+    ("reel scrubber thumb", "ink", "app"),
+    ("reel viewport grid", "fg-weak", "inset"),
+    ("reel viewport block", "fg-strong", "inset"),
 ]
 PAIRS = [(*pair, 4.5) for pair in TEXT_PAIRS] + [(*pair, 3.0) for pair in NON_TEXT_PAIRS]
 
@@ -271,6 +284,12 @@ RULES = {
     ".drawn-grid {": "stroke: var(--color-fg-weak);",
     ".ed-tab[data-on] {": "background: var(--color-surface); color: var(--color-fg-strong);",
     ".ed-tree li[data-on] {": "background: var(--color-control-active); color: var(--color-fg-strong);",
+    ".reel-fill {": "background: var(--color-accent);",
+    ".reel-marker {": "background: var(--color-fg-weak);",
+    ".reel-button {": "color: var(--color-fg-strong);",
+    "html[data-pointer] .reel-button:hover {": "color: var(--color-on-ink); background: var(--color-ink);",
+    ".reel-controls {": "background: var(--color-app);",
+    ".reel-range::-webkit-slider-thumb {": "background: var(--color-ink);",
 }
 
 

@@ -1,0 +1,39 @@
+{% load static shell_tags %}
+{# The hero's showcase reel (docs/frontend/reel.md). static/reel/ draws it on the canvas and runs the controls. #}
+{# Without JavaScript, ES modules or a 2D canvas, the fallback capture shows instead and the controls stay hidden. #}
+{# Usage: {% include "marketing/media/reel.html" with media=hero.reel fallback=hero.fallback controls=hero.reel_controls %} #}
+<figure id="reel" class="reel" data-reel data-controls="reel-controls" data-labels="reel-labels" data-description="reel-description"
+        data-wordmark="{% static 'brand/wordmark-white.png' %}">
+  <canvas class="reel-canvas" aria-hidden="true"></canvas>
+  {# Lazy, so a browser that runs the reel never downloads it (data-pending hides it before layout). #}
+  <figure class="reel-fallback">
+    <img src="{% static fallback.src %}" alt="{{ fallback.alt }}" width="{{ fallback.source_size.0 }}" height="{{ fallback.source_size.1 }}" loading="lazy" decoding="async">
+    <figcaption class="media-cap micro">{{ fallback.caption }}</figcaption>
+  </figure>
+  <figcaption class="media-cap micro">{{ media.caption }}</figcaption>
+  <p id="reel-description" class="sr-only">{{ media.alt }}</p>
+</figure>
+<script>
+  // Hide the fallback before layout when this browser can run the reel (ES modules and a
+  // 2D canvas). static/reel/main.js replaces data-pending with data-live, or with
+  // data-fallback if mounting fails.
+  (function (reel) {
+    var probe = document.createElement("canvas");
+    if ("noModule" in HTMLScriptElement.prototype && probe.getContext && probe.getContext("2d")) {
+      reel.dataset.pending = "";
+    }
+  })(document.getElementById("reel"));
+</script>
+{{ media.labels|json_script:"reel-labels" }}
+<div id="reel-controls" class="reel-controls" role="group" aria-label="{{ controls.group }}" data-of="{{ controls.of }}" hidden>
+  <button type="button" class="reel-button" data-reel-toggle aria-label="{{ controls.play }}"
+          data-play-label="{{ controls.play }}" data-pause-label="{{ controls.pause }}" aria-keyshortcuts="Space ArrowLeft ArrowRight">
+    <svg class="reel-icon reel-icon-play" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M3 1.5v11l9.5-5.5z"/></svg>
+    <svg class="reel-icon reel-icon-pause" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M3 1.5h3v11H3zM8 1.5h3v11H8z"/></svg>
+  </button>
+  <div class="reel-scrub">
+    <div class="reel-track" aria-hidden="true"><span class="reel-fill"></span></div>
+    <input class="reel-range" type="range" min="0" step="0.1" value="0" aria-label="{{ controls.scrub }}">
+  </div>
+</div>
+<script type="module" src="{% versioned_static 'reel/main.js' %}" onerror="document.getElementById('reel').removeAttribute('data-pending')"></script>

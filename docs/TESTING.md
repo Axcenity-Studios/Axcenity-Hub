@@ -20,6 +20,8 @@ is on, so an unregistered marker fails.
 | `test_theme_switch.py` | The theme cookie (validation, attributes), pre-paint script, switch markup, `ThemeView` and CSRF |
 | `test_network_guard.py` | The network guard and its single browser-test opening |
 | `test_browser_server.py` | `browser`: the live server is reachable at its own address and nowhere else |
+| `test_reel.py` | The reel without a browser: markup, labels, description, fallbacks, the scene contract and determinism rules as written, fidelity to the editor's pane names and Dark theme |
+| `test_reel_browser.py` | `browser` (Playwright): the reel mounts sharp with no console errors; play/pause and no frames while paused; Space and the marker jumps, with the range's own arrows left alone; reduced motion (and changing it live); frames as a pure function of time (seek, resize, wrap, the contract at runtime); off-screen and hidden-tab pausing; phone width; the no-canvas fallback |
 
 Add a row when you create a file.
 
@@ -48,7 +50,22 @@ instead of `live_server`:
 - It loads `transactional_db` before the live server, since pytest-django
   only does that itself when `live_server` is a declared fixture.
 
-Phase 3 adds pytest-playwright and the reel smoke tests on top of it.
+### Playwright
+
+- Install Chromium once: `uv run playwright install chromium`.
+- Build the stylesheet first (`uv run python manage.py tailwind build`);
+  the browser tests fail with that instruction if it's missing or older
+  than `styles/source.css`.
+- `open_home` (in `test_reel_browser.py`) opens Home in a fresh context
+  whose requests to anything but the live server are **aborted**, and
+  collects console errors. Its init script counts
+  `requestAnimationFrame` calls (`window.__frames`).
+- The module sets `DJANGO_ALLOW_ASYNC_UNSAFE`: Playwright's sync API runs
+  an event loop, and the live server's database teardown is synchronous.
+- Seek the way the scrubber does (set the range, fire `input` then
+  `change`). Wait on the figure's `data-state`, `data-motion`, `data-size`
+  and `data-ready` rather than sleeping. Two `emulate_media` switches
+  within one frame cancel out: wait for each to land.
 
 ## Mocking
 

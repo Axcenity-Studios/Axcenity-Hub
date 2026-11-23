@@ -10,7 +10,7 @@ enforces every rule here; the colour rules are in [theme.md](theme.md).
 | `marketing/content.py` | All copy (`HOME_HERO`, `HOME_FEATURES`, `HOME_WORKFLOW`, `HOME_FACTS`, `HOME_TOOLBOX`, `HOME_COMMUNITY`, `HOME_FINAL`), `LUAU_SAMPLE` and the media manifest (`MEDIA`) |
 | `marketing/drawings.py` | `terrain_wireframe()` (SVG geometry) and `luau_lines()` (Luau tokens) |
 | `templates/marketing/home.html` | Includes one partial per section from `templates/marketing/home/` |
-| `templates/marketing/media/` | `frame.html` (a 16:10 media frame and its caption) and the drawn stand-ins `terrain.html`, `luau.html`, `editor.html` |
+| `templates/marketing/media/` | `frame.html` (a 16:10 media frame and its caption), the drawn stand-ins `terrain.html`, `luau.html`, `editor.html`, and `reel.html` (the hero's reel, [reel.md](reel.md)) |
 | `static/js/home.js` | Rotation, reveals and the pillars' stage. Loaded only by Home, deferred |
 | `static/marketing/media/` | Media files, copied in (never edited at the source) |
 
@@ -23,9 +23,11 @@ link is never marked as the current page). Every `[id]` in `<main>` has
 `scroll-margin-top: 4rem`, so anchors stop below the fixed nav.
 
 - **Hero:** the version badge (`ENGINE_VERSION`), "Axcenity Engine.",
-  the rotating line, the pitch, Download alpha and Read the docs. The
-  renderer capture sits behind it, faded towards the page colour, until
-  Phase 3's reel takes its place. Nothing in the hero uses a reveal.
+  the rotating line, the pitch, Download alpha and Read the docs, over
+  the full-bleed showcase reel ([reel.md](reel.md)) with its controls
+  bottom right. The renderer capture is the reel's fallback. On phones
+  the copy starts below the reel's compact workspace (`.hero-copy`).
+  Nothing in the hero uses a reveal.
 - **Features:** four pillars (Renderer, World, Logic, Editor). Below `lg`
   each shows its media inline (`.pillar-media`); from `lg` the text
   scrolls past one sticky `.stage` that shows the current pillar's media.
@@ -70,14 +72,16 @@ manifest.
 | `terrain` | illustrative | drawn wireframe hills and trees (SVG) | animated recreation |
 | `logic` | illustrative | `LUAU_SAMPLE` in the monochrome tiers | animated nodes and code |
 | `editor` | illustrative | drawn docking layout with a floated panel | animated recreation |
+| `reel` | illustrative | the hero's canvas film ([reel.md](reel.md)) | Phase 4: Scenes 2–4 |
 
 Drawings use only the tokens through CSS classes: no hex values and no
 `fill`/`stroke` colours in the templates (tested). The Luau sample is
 monochrome (keywords `fg-strong`, strings `fg-secondary`, comments
 `fg-weak`) until the editor's syntax colours join the palette.
 
-Images carry intrinsic `width`/`height`. The hero image loads eagerly
-(`fetchpriority="high"`); the rest are `loading="lazy"`.
+Images carry intrinsic `width`/`height` and are `loading="lazy"`,
+including the hero's fallback capture (a browser running the reel never
+downloads it).
 
 ## The rotating headline
 
@@ -122,4 +126,5 @@ Nothing scrolls sideways at 360 px. The Luau sample scrolls inside its
 own frame (`tabindex="0"`, so the keyboard can scroll it) and its frame
 grows to fit (`.pillar-media:has(.drawn-code)`). The drawn editor scales
 its text with the frame (`cqi` units; `.media` is a size container).
-Layout behaviour is checked by hand until Phase 3's Playwright tests.
+The reel's phone layout is covered by `tests/test_reel_browser.py`; the
+rest of the layout is checked by hand.

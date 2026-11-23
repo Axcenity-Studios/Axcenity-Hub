@@ -12,7 +12,7 @@ index:** the rules below apply everywhere; topic files under
 | `marketing/` | Public signed-out pages: Home now, Toolbox (Phase 6), Download (Phase 7). `content.py` holds their copy, links and media manifest as data; `drawings.py` computes the drawn media |
 | `templates/` | `base.html` (shared by every shell), `marketing/` (the marketing shell and its pages), `partials/` |
 | `styles/source.css` | The Tailwind source; built into `static/css/tailwind.css` (git-ignored) |
-| `static/` | `js/`, `fonts/`, `brand/`, `marketing/media/` (copied from the engine, Toolbox and Showcase captures; never edited there) |
+| `static/` | `js/`, `reel/` (the showcase reel's ES modules), `fonts/`, `brand/`, `marketing/media/` (copied from the engine, Toolbox and Showcase captures; never edited there) |
 | `tests/` | Every test (see [TESTING.md](TESTING.md)) |
 
 Later phases add `accounts`, `projects`, `forums`, `showcases`, `reports`,

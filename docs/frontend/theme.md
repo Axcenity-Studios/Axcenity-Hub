@@ -28,7 +28,8 @@ DaisyUI's `primary` and `accent` role and has exactly these uses:
 
 - the primary button (`btn btn-primary`): Download, Download alpha
 - the version badge's dot (`.badge-dot`, the only `var(--color-accent)`)
-- Phase 3: the reel's progress and scan line
+- the reel's progress fill (`.reel-fill`); Phase 4 adds its scan line,
+  drawn on the canvas
 
 Its hex values appear only on the token lines (tested). On dark the
 primary button's text is `#171717`: white on `#19A0FF` is 2.8:1 and fails

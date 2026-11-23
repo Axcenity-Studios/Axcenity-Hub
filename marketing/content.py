@@ -189,6 +189,62 @@ MEDIA = {
             "console_line": "Press Play (F5) to test.",
         },
     ),
+    # The hero's showcase reel, drawn live on a canvas by static/reel/ (docs/frontend/reel.md).
+    # Its labels go to the page as JSON; the alt text is the reel's screen-reader description.
+    "reel": Media(
+        key="reel",
+        kind="illustrative",
+        caption="Illustrative · editor recreation",
+        alt=(
+            "A looping film, about 18 seconds long, recreating the Axcenity editor. The words "
+            "Scene View, Explorer and Properties appear in large type, then shrink into the tabs "
+            "of three panels that spring together inside one editor window: the 3D Scene View on "
+            "the left, the Explorer's tree of Workspace, Arena and Pad beside it, and Properties "
+            "for the selected Pad docked below the Explorer. Properties then undocks: it lifts out "
+            "of the window and floats onto a second monitor as its own window, and the Explorer "
+            "grows to fill the space it left. The workspace holds in that layout, then gives way "
+            "to the Axcenity logo before the film starts again. On narrow screens it shows only "
+            "the Scene View and the Explorer, docked side by side."
+        ),
+        provenance=(
+            "Drawn live on a canvas by static/reel/ in the site's colour tokens, whose dark values "
+            "are the editor's Dark theme (crates/editor-kit/src/theme.rs ThemeTokens), with the "
+            "editor's pane labels (crates/editor/src/layout.rs Pane::label)."
+        ),
+        drawn="marketing/media/reel.html",
+        labels={
+            "panels": {"scene": "Scene View", "explorer": "Explorer", "properties": "Properties"},
+            "window": "Axcenity Editor",
+            "floating": "Floating · Monitor 2",
+            "tree": [
+                ("Workspace", 0),
+                ("Arena", 1),
+                ("Pad", 2),
+                ("Terrain", 1),
+                ("Lighting", 0),
+                ("ServerScriptService", 0),
+            ],
+            "selected": "Pad",
+            "rows": [("Name", "Pad"), ("Anchored", "true"), ("Size", "8, 1, 8")],
+            # Each segment of the timeline by its module id, for the scrubber's spoken position.
+            "segments": {
+                "workspace": "Scene 1, Workspace",
+                "renderer": "Scene 2, Renderer",
+                "world": "Scene 3, World",
+                "logic": "Scene 4, Logic",
+                "lockup": "Logo",
+            },
+        },
+    ),
+}
+
+# The reel's control labels (screen-reader names; the controls show icons).
+REEL_CONTROLS = {
+    "group": "Reel controls",
+    "play": "Play reel",
+    "pause": "Pause reel",
+    "scrub": "Reel position",
+    "of": "of",
 }
 
 
@@ -267,8 +323,11 @@ HOME_HERO = {
     ),
     "primary": Link("Download alpha", external=RELEASES_URL),
     "secondary": Link("Read the docs", external=DOCS_URL),
-    # Until Phase 3's reel takes its place.
-    "backdrop": MEDIA["renderer"],
+    # The full-bleed reel behind the hero, and what shows when it can't run (no JavaScript,
+    # no ES modules or no canvas).
+    "reel": MEDIA["reel"],
+    "reel_controls": REEL_CONTROLS,
+    "fallback": MEDIA["renderer"],
 }
 
 HOME_FEATURES = {
