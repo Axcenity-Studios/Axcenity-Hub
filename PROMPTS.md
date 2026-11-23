@@ -28,6 +28,123 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-23 — Axcenity Hub: Phase 1/17, Skeleton, theme and marketing shell
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub.md phase 1`.
+2. (Approval of the brief, with additions) "It looks good I would just add
+   these things: Theme cookies set an explicit SameSite=Lax for secure in
+   production and appropriate lifetimes, validate the incoming themes
+   against the system, light nd dark. Never trust arbitrary values. Test
+   the contrast aith the actual foreground/background combinations
+   including buttons links focusing and indicators not just using the
+   primary blue. Make the loopback exemption narrow in scope to test the
+   browsers required address do not broadly exempt localhost or disable
+   the netwrokguard for browser tests. Other than that continue to the
+   build"
+
+### Summary
+
+- **Outcome:** A runnable Django 6.1 project (uv, Python 3.13) with:
+  - the axcenity theme foundation ported from the Toolbox
+  - the marketing shell: fixed nav that goes solid on scroll, a phone
+    menu, the System/Light/Dark switch, and the four-column footer
+  - a bare Home at `/`
+  - the test layout, with a network guard that has one narrow
+    browser-test opening
+  - the four docs
+  188 tests pass (186 fast, 2 `browser`). Ruff check and format are clean.
+  All six Phase 1 criteria are ticked.
+- **Changes:**
+  - `pyproject.toml`, `uv.lock`, `.python-version`, `manage.py`: the
+    project. Ruff and pytest config; `--strict-markers`; the `browser`
+    marker; `--liveserver=127.0.0.1`.
+  - `.gitignore`: ignores the built CSS and `.django_tailwind_cli/`.
+  - `config/settings.py`: env-driven DEBUG, secret key and hosts. Lax
+    cookies, Secure when DEBUG is off (`THEME_COOKIE_SECURE`). DaisyUI
+    loads as the official plugin.
+  - `config/theme.py`, `config/context_processors.py`: the validated
+    `ax-theme` cookie (three exact values, Lax, one year, Secure in
+    production).
+  - `config/urls.py`, `wsgi.py`, `asgi.py`: root URLs and entry points.
+  - `marketing/`:
+    - `content.py`: nav, footer and Home copy and links as data, with a
+      `Link` type that refuses ambiguous targets
+    - `views.py`: `MarketingPageMixin`, `HomeView`, and `ThemeView` (the
+      POST fallback; 400 on unknown values; same-site `next` only)
+    - `urls.py`
+    - `templatetags/shell_tags.py`: `versioned_static`
+  - `templates/base.html`, `templates/marketing/shell.html` and `home.html`,
+    and the `partials/` (`site_nav`, `site_footer`, `nav_link`, `icon`): the
+    shared document with the pre-paint scheme script, the marketing shell,
+    and the bare Home.
+  - `styles/source.css`: tokens (dark and light storm grey), the accent
+    as the `primary`/`accent` role, fonts, focus ring, buttons, nav and
+    footer, the hover gate on every `:hover`, the spotlight, lift and
+    blur-up primitives, and reduced motion.
+  - `static/js/shell.js`: hover gate, the validated theme switch, nav
+    scroll state, spotlight.
+  - `static/fonts/` (copied from the Toolbox) and `static/brand/` (copied
+    from the engine's `assets/branding/`).
+  - `tests/`:
+    - `conftest.py`: `NetworkGuard`, plus the `browser_server` fixture that
+      opens exactly `127.0.0.1:<live port>`
+    - `test_theme.py`: ported, plus contrast checks pair by pair in both
+      modes, tied to their CSS rules
+    - `test_shell.py`, `test_theme_switch.py`, `test_network_guard.py`
+    - `test_browser_server.py`: marked `browser`
+  - `docs/ARCHITECTURE.md`, `docs/FRONTEND.md`, `docs/frontend/theme.md`,
+    `docs/TESTING.md`: the docs `CLAUDE.md` points to.
+  - `plans/axcenity-hub.md`: Phase 1 criteria ticked.
+- **TDD:** Skipped. The plan lists no TDD behaviours for Phase 1 (setup
+  and a port of tested Toolbox rules). Tests were written alongside the
+  code.
+- **Decisions:**
+  - **Accent:** `#19A0FF` / `#0B67B8` is DaisyUI's `primary` and
+    `accent`. The dark-mode primary text is `#171717`, because white on
+    the blue is 2.8:1.
+  - **Nav links with no page yet:** Sign in, Toolbox and Community are
+    "Soon" labels, never links. Features stays out of the nav until
+    Phase 2.
+  - **Docs link:** points to the engine repo's `documentation/` folder,
+    since `axcenity.com/docs` isn't confirmed.
+  - **Phone menu:** a `<details>`, so it works without JavaScript.
+  - **Theme fallback:** the no-JavaScript view lives in `marketing`
+    because `accounts` doesn't exist yet.
+  - **Hover gate:** now covers buttons too.
+  - **New packages:** none until a phase needs one.
+  - **Visual polish:** menu links hug their labels, so the current-page
+    underline doesn't read as a divider.
+- **Deviations:** The user approved the brief and added three
+  requirements, all built:
+  - **Theme cookie:** explicit `SameSite=Lax`, `Secure` in production and
+    a one-year lifetime. The value is validated against
+    system/light/dark on every read and write, including in the inline
+    script and `shell.js`. Hostile cookie and POST values are tested.
+  - **Contrast:** tests cover the real pairs (text, links, both button
+    types at rest and hovered, the focus ring, the badge dot, the
+    current-page underline, icons) in both modes, rather than only the
+    primary blue.
+  - **Network guard:** the browser-test opening is an exact
+    IP-literal-and-port allow-list, refused for unmarked tests,
+    hostnames, non-loopback IPs and other ports.
+- **Sideways:**
+  - django-tailwind-cli 4.10 warned that the Toolbox's tailwind-cli-extra
+    DaisyUI route is deprecated. Switched to the official plugin bundles
+    before writing the theme tests.
+  - The `browser` test passed alone but returned a 500 in the full run.
+    Loading `live_server` lazily skipped pytest-django's automatic
+    `transactional_db`. Fixed by requesting it first.
+  - Python's cookie jar refused a control-character test value, so
+    hostile-cookie render tests now send a raw `Cookie` header.
+  - Headless Firefox screenshots ignore scroll state, so the solid nav and
+    footer were checked on a copy of the page with `data-scrolled`
+    preset. That copy used fallback fonts (a `file://` CORS limit, not a
+    site bug).
+  - Forcing dark mode in headless Firefox needed `ui.systemUsesDarkTheme`
+    as well as the content override.
+
 ## 2026-11-23 — Plan re-check against the PRD (`/prd-to-plan`)
 
 A new session after `/clear`, starting from `HANDOFF.md`.

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{# The marketing shell: the fixed nav, full-bleed sections, and the four-column footer. #}
+{# Views using it mix in marketing.views.MarketingPageMixin for the nav and footer data. #}
+{% block body %}
+<a href="#content" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 btn btn-sm">Skip to content</a>
+{% include "partials/site_nav.html" %}
+<main id="content" tabindex="-1">
+  {% block content %}{% endblock %}
+</main>
+{% include "partials/site_footer.html" %}
+{% endblock %}

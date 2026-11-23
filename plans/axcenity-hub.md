@@ -64,12 +64,12 @@ None: setup and a port of the Toolbox's theme, whose tests already exist.
 
 ### Acceptance criteria
 
-- [ ] `uv sync` then `manage.py tailwind runserver` serves `/` with the marketing shell in dark and light
-- [ ] Theme choice persists and applies before first paint (no flash); System follows the OS
-- [ ] Only axcenity tokens exist (Tailwind and DaisyUI palettes off); the ported theme tests pass
-- [ ] The nav is transparent at the top and solid after scrolling; on phones it collapses with no horizontal scroll
-- [ ] `uv run pytest -m "not browser"` is green; any attempt to reach the network fails the test; Ruff is clean
-- [ ] Docs indexes and the theme topic file exist and match the code
+- [x] `uv sync` then `manage.py tailwind runserver` serves `/` with the marketing shell in dark and light
+- [x] Theme choice persists and applies before first paint (no flash); System follows the OS
+- [x] Only axcenity tokens exist (Tailwind and DaisyUI palettes off); the ported theme tests pass
+- [x] The nav is transparent at the top and solid after scrolling; on phones it collapses with no horizontal scroll
+- [x] `uv run pytest -m "not browser"` is green; any attempt to reach the network fails the test; Ruff is clean
+- [x] Docs indexes and the theme topic file exist and match the code
 
 ---
 

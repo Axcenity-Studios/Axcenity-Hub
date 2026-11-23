@@ -1,0 +1,15 @@
+{% extends "marketing/shell.html" %}
+{# The bare Home (Phase 1). Phase 2 adds the Cinematic sections; copy comes from marketing/content.py. #}
+{% block content %}
+<section id="hero" class="under-nav grid-bg relative flex min-h-[100svh] items-end">
+  <div class="mx-auto w-full max-w-[1400px] px-4 pb-16 md:px-8 md:pb-24">
+    <p class="badge-pill micro"><span class="badge-dot" aria-hidden="true"></span>{{ hero.badge }}</p>
+    <h1 class="display mt-6 text-5xl text-fg-strong sm:text-6xl md:text-8xl">{{ hero.headline }}</h1>
+    <p class="mt-6 max-w-xl text-lg text-fg-secondary">{{ hero.pitch }}</p>
+    <div class="mt-8 flex flex-wrap gap-3">
+      <a href="{{ hero.primary.href }}" rel="noopener" class="btn btn-primary">{{ hero.primary.label }}</a>
+      <a href="{{ hero.secondary.href }}" rel="noopener" class="btn btn-quiet">{{ hero.secondary.label }}</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

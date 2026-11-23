@@ -1,0 +1,294 @@
+/*
+  Axcenity Hub styles: the Tailwind source that django-tailwind-cli builds
+  into static/css/tailwind.css. Ported from the Axcenity Toolbox's theme
+  foundation (tokens, fonts, buttons, focus, hover gate, motion primitives).
+
+  Colour rules (see docs/frontend/theme.md):
+  - Only the axcenity palette exists. Tailwind's own colours are reset and
+    DaisyUI's built-in themes are off, so a stray `bg-red-500` or
+    `data-theme="dracula"` produces nothing.
+  - The chrome is monochrome. The one accent (the editor's selection blue)
+    is the primary button, the reel's progress and scan line, and the
+    badge dot, and nothing else.
+  - tests/test_theme.py checks every hex value and contrast pair here.
+*/
+
+@import "tailwindcss";
+
+/* DaisyUI's official plugin bundles (django-tailwind-cli downloads them into
+   .django_tailwind_cli/). The bundles hold every class name, so they're never scanned. */
+@source not "../.django_tailwind_cli/daisyui{,*}.mjs";
+@plugin "../.django_tailwind_cli/daisyui.mjs" {
+  themes: false;
+}
+
+/* The editor's dark theme (Axcenity Engine, crates/editor-kit/src/theme.rs). */
+@plugin "../.django_tailwind_cli/daisyui-theme.mjs" {
+  name: "axcenity";
+  default: true;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: #1E1E1E;
+  --color-base-200: #171717;
+  --color-base-300: #2A2A2A;
+  --color-base-content: #E8E8EA;
+  --color-primary: #19A0FF;
+  --color-primary-content: #171717;
+  --color-secondary: #2A2A2A;
+  --color-secondary-content: #E8E8EA;
+  --color-accent: #19A0FF;
+  --color-accent-content: #171717;
+  --color-neutral: #2A2A2A;
+  --color-neutral-content: #E8E8EA;
+  --color-info: #A1A1AA;
+  --color-info-content: #171717;
+  --color-success: #4CC38A;
+  --color-success-content: #171717;
+  --color-warning: #E5B454;
+  --color-warning-content: #171717;
+  --color-error: #F07178;
+  --color-error-content: #171717;
+
+  --radius-selector: 0.25rem;
+  --radius-field: 0.375rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@theme {
+  /* Drop Tailwind's default palette; only these colours exist. */
+  --color-*: initial;
+  --color-white: #FFFFFF;
+  --color-black: #000000;
+
+  /* Contrast tokens that flip with the colour scheme (see "Light mode" below).
+     ink: the strongest contrast to the chrome, used for hover inversion, the
+     focus ring and current-page marks. on-ink: what sits on ink. shade: what
+     goes behind things to darken them (shadows, backdrops). */
+  --color-ink: #FFFFFF;
+  --color-on-ink: #000000;
+  --color-shade: #000000;
+
+  /* Editor palette. */
+  --color-app: #171717;
+  --color-panel: #1E1E1E;
+  --color-surface: #242424;
+  --color-elevated: #292929;
+  --color-inset: #191919;
+  --color-control: #2A2A2A;
+  --color-control-hover: #323232;
+  --color-control-active: #3A3A3A;
+  --color-line: #303030;
+  --color-line-strong: #424242;
+  --color-fg: #E8E8EA;
+  --color-fg-strong: #FAFAFA;
+  --color-fg-secondary: #A1A1AA;
+  --color-fg-weak: #8E8E96;
+  --color-fg-muted: #63636B;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: "Plus Jakarta Sans", "Inter", ui-sans-serif, sans-serif;
+
+  /* The one easing for every UI snap and reveal (expo-out). */
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Fonts are served from static/fonts (paths are relative to static/css). */
+/* Mono labels and display headlines block (stay invisible for the few ms until
+   their font arrives) rather than swap, so they never paint in a fallback font
+   and then jump. base.html preloads them. Body text (Inter) still swaps. */
+@font-face { font-family: "Inter"; src: url("../fonts/Inter-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("../fonts/Inter-Medium.ttf") format("truetype"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("../fonts/Inter-SemiBold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("../fonts/Inter-Bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("../fonts/JetBrainsMono-Regular.ttf") format("truetype"); font-weight: 400; font-display: block; }
+@font-face { font-family: "JetBrains Mono"; src: url("../fonts/JetBrainsMono-Bold.ttf") format("truetype"); font-weight: 700; font-display: block; }
+@font-face { font-family: "Plus Jakarta Sans"; src: url("../fonts/PlusJakartaSans-Variable.ttf") format("truetype"); font-weight: 200 800; font-display: block; }
+
+@layer base {
+  html, body { font-family: var(--font-sans); }
+  html { -webkit-font-smoothing: antialiased; }
+  /* Nothing may push the page sideways (clip, unlike hidden, keeps sticky working). */
+  body { overflow-x: clip; }
+  :root { --grid-dot: color-mix(in srgb, var(--color-ink) 4%, transparent); }
+  /* One focus ring everywhere: 2 px of ink, 2 px off the element (3:1 or better
+     on every background, tested). */
+  :focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+}
+
+@layer components {
+  .display { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.035em; line-height: 0.98; }
+  .headline { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; text-wrap: balance; }
+  .micro { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; }
+
+  /* Logo primitives: CSS masks, so the logo takes the text colour. The image
+     URLs come from {% static %} on <html> in base.html. */
+  .mark, .word { display: inline-block; background: currentColor;
+    -webkit-mask: var(--mark-url) center / contain no-repeat; mask: var(--mark-url) center / contain no-repeat; }
+  .mark { aspect-ratio: 1; }
+  .word { -webkit-mask-image: var(--word-url); mask-image: var(--word-url); aspect-ratio: 3.2215; }
+  /* The wordmark as an image: white on dark, inverted on light. */
+  .logo-img { filter: var(--logo-filter, none); }
+
+  /* 1px panels: the editor's panel language. */
+  .panel { background: var(--color-panel); box-shadow: inset 0 0 0 1px var(--color-line); }
+  .grid-bg { background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px); background-size: 24px 24px; }
+
+  /* The version badge and its accent dot. */
+  .badge-pill { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.625rem;
+    border-radius: 0.25rem; box-shadow: inset 0 0 0 1px var(--color-line-strong); color: var(--color-fg-secondary); }
+  .badge-dot { width: 0.5rem; height: 0.5rem; border-radius: 9999px; background: var(--color-accent); }
+
+  /* A link to a page that doesn't exist yet: a label, never a dead link. */
+  .soon { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--color-fg-weak); cursor: default; }
+  .soon-tag { padding: 0.1rem 0.3rem; border-radius: 0.2rem; box-shadow: inset 0 0 0 1px var(--color-line-strong); color: var(--color-fg-weak); }
+}
+
+/* ---------- Marketing nav ----------
+   Fixed over the page, transparent over the hero and solid once the page
+   scrolls (shell.js sets <html data-scrolled> past 40 px) or the phone menu is
+   open. A page's first section clears it with .under-nav. */
+#site-nav { position: fixed; inset: 0 0 auto; z-index: 40; border-bottom: 1px solid transparent; background: transparent;
+  transition: background-color 0.5s var(--ease-expo), border-color 0.5s var(--ease-expo), backdrop-filter 0.5s var(--ease-expo); }
+html[data-scrolled] #site-nav, #site-nav:has(.nav-menu[open]) {
+  background: color-mix(in srgb, var(--color-app) 86%, transparent); border-color: var(--color-line);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.under-nav { padding-top: 4rem; }
+.nav-link { display: inline-flex; align-items: center; height: 2.25rem; padding-inline: 0.25rem; color: var(--color-fg-secondary);
+  font-size: 0.875rem; transition: color 0.3s var(--ease-expo), box-shadow 0.3s var(--ease-expo); }
+html[data-pointer] .nav-link:hover { color: var(--color-fg-strong); }
+.nav-link[aria-current="page"] { color: var(--color-fg-strong); box-shadow: inset 0 -2px 0 var(--color-ink); }
+.nav-icon { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 0.375rem; color: var(--color-fg-secondary);
+  transition: color 0.3s var(--ease-expo), background-color 0.3s var(--ease-expo); }
+html[data-pointer] .nav-icon:hover { color: var(--color-on-ink); background: var(--color-ink); }
+/* The phone menu: a <details>, so it opens without JavaScript. */
+.nav-menu > summary { list-style: none; }
+.nav-menu > summary::-webkit-details-marker { display: none; }
+.nav-menu-panel { position: absolute; inset: 100% 0 auto; padding: 0.5rem 1rem 1rem; border-bottom: 1px solid var(--color-line);
+  background: var(--color-app); }
+.nav-menu[open] .when-closed, .nav-menu:not([open]) .when-open { display: none; }
+
+/* The theme switch shows the current choice's icon. */
+.scheme-icon { display: none; }
+html:not([data-scheme-choice="light"]):not([data-scheme-choice="dark"]) [data-scheme-icon="system"],
+html[data-scheme-choice="light"] [data-scheme-icon="light"],
+html[data-scheme-choice="dark"] [data-scheme-icon="dark"] { display: grid; }
+
+/* ---------- Footer ---------- */
+.footer-link { color: var(--color-fg-secondary); transition: color 0.3s var(--ease-expo); }
+html[data-pointer] .footer-link:hover { color: var(--color-fg-strong); }
+
+/* ---------- Buttons: a full inversion on hover ----------
+   Unlayered, so it wins over DaisyUI's own (layered) hover tint. Quiet buttons
+   turn ink with on-ink text; the accent primary turns on-ink with ink text,
+   keeping an ink edge so it stays visible. Hover waits for the hover gate;
+   keyboard focus doesn't. */
+.btn { transition: background-color 0.4s var(--ease-expo), color 0.4s var(--ease-expo), border-color 0.4s var(--ease-expo); }
+.btn:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+.btn-quiet { background-color: transparent; color: var(--color-fg-strong); border-color: var(--color-line-strong); box-shadow: none; }
+html[data-pointer] .btn:hover, .btn:focus-visible { background-color: var(--color-ink); color: var(--color-on-ink); border-color: var(--color-ink); }
+html[data-pointer] .btn-primary:hover, .btn-primary:focus-visible { background-color: var(--color-on-ink); color: var(--color-ink); border-color: var(--color-ink); }
+
+/* ---------- Motion primitives ----------
+   Ported from the Toolbox as reusable classes. Mouse effects wait for the
+   hover gate (html[data-pointer], set by shell.js once the pointer really
+   moves). Everything stops under reduced motion (below). */
+
+/* Spotlight: a soft pool of ink light that follows the mouse over a .spotlight
+   element. shell.js marks the element under the pointer (data-spot) and sets
+   --spot-x and --spot-y. It ignores the pointer, so clicks still land. */
+.spotlight { position: relative; }
+.spotlight::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0;
+  transition: opacity 0.3s ease;
+  background: radial-gradient(16rem circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    color-mix(in srgb, var(--color-ink) var(--spot-alpha, 9%), transparent), transparent 70%); }
+html[data-pointer] .spotlight[data-spot]::before { opacity: 1; }
+
+/* Lift: up 4 px onto a soft shade drop. A 4 px strip under it (::after) keeps
+   the hover once it has risen off the pointer, so it never jitters. */
+html { --lift-shadow: 0 1.1rem 2.25rem -1.1rem color-mix(in srgb, var(--color-shade) 80%, transparent); }
+.lift { position: relative; transition: box-shadow 0.25s, transform 0.25s var(--ease-expo); }
+html[data-pointer] .lift:hover { z-index: 2; transform: translateY(-4px); box-shadow: inset 0 0 0 1px var(--color-ink), var(--lift-shadow); }
+html[data-pointer] .lift:hover::after { content: ""; position: absolute; inset: 100% 0 auto; height: 4px; }
+
+/* Blur up: rise out of a 10 px blur into place, --stagger × 40 ms late. The fill
+   is backwards only, so once in, the element holds no filter or transform. */
+.blur-up { animation: blur-up 0.5s var(--ease-expo) backwards; animation-delay: calc(var(--stagger, 0) * 40ms); }
+@keyframes blur-up { from { opacity: 0; filter: blur(10px); transform: translateY(10px) scale(0.985); } }
+
+/* ---------- Reduced motion ----------
+   Nothing moves. Every entry animation runs from a "from" state to the
+   element's own style, so with no animation the content simply shows at rest. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .spotlight::before { display: none; }
+  html[data-pointer] .lift:hover { transform: none; }
+}
+
+/* ---------- Light mode ----------
+   <html data-scheme="light"> (base.html sets it before first paint) turns the
+   site light: the visitor's choice (System, Light or Dark, in the ax-theme
+   cookie), where System follows the computer's own setting. The same tokens,
+   flipped, so every utility and component follows. Unlayered, so it beats
+   Tailwind's @theme layer and DaisyUI's theme. */
+html[data-scheme="light"] {
+  &, & [data-theme="axcenity"] {
+    color-scheme: light;
+    /* The Toolbox's light storm grey: cool mid-grey surfaces, darker text and
+       lines to keep their contrast (tested pair by pair). */
+    --color-app: #BEC0C2;
+    --color-panel: #CACCCE;
+    --color-surface: #D3D5D7;
+    --color-elevated: #DCDEE0;
+    --color-inset: #C4C6C8;
+    --color-control: #BABCBE;
+    --color-control-hover: #B2B4B6;
+    --color-control-active: #A9ABAD;
+    --color-line: #B5B7B9;
+    --color-line-strong: #9FA1A3;
+    --color-fg: #1F2022;
+    --color-fg-strong: #111214;
+    --color-fg-secondary: #3D3F43;
+    --color-fg-weak: #45474B;
+    --color-fg-muted: #6E7075;
+    /* Contrast tokens: hover inverts to near-black with white content. Shade is
+       a deep storm grey, so shadows darken rather than glow white. */
+    --color-ink: #18181B;
+    --color-on-ink: #FFFFFF;
+    --color-shade: #2B2D31;
+    --grid-dot: color-mix(in srgb, var(--color-ink) 7%, transparent);
+    --logo-filter: invert(1);
+    --spot-alpha: 6%;
+    --lift-shadow: 0 1.1rem 2.25rem -1.1rem color-mix(in srgb, var(--color-shade) 40%, transparent);
+    /* DaisyUI roles: the accent darkens so white text keeps its contrast. */
+    --color-base-100: #CACCCE;
+    --color-base-200: #BEC0C2;
+    --color-base-300: #B5B7B9;
+    --color-base-content: #1F2022;
+    --color-primary: #0B67B8;
+    --color-primary-content: #FFFFFF;
+    --color-secondary: #BABCBE;
+    --color-secondary-content: #1F2022;
+    --color-accent: #0B67B8;
+    --color-accent-content: #FFFFFF;
+    --color-neutral: #BABCBE;
+    --color-neutral-content: #1F2022;
+    --color-info: #3D3F43;
+    --color-info-content: #FFFFFF;
+    --color-success: #145A36;
+    --color-success-content: #FFFFFF;
+    --color-warning: #6B4800;
+    --color-warning-content: #FFFFFF;
+    --color-error: #931F1F;
+    --color-error-content: #FFFFFF;
+  }
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--color-control-active); border: 3px solid var(--color-panel); border-radius: 8px; }

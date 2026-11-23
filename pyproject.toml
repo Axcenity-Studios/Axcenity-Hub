@@ -1,0 +1,41 @@
+[project]
+name = "axcenity-hub"
+version = "0.1.0"
+description = "Axcenity Hub: the web home for Axcenity Engine users (CIDM final project)"
+requires-python = ">=3.13"
+dependencies = [
+    "django>=6.1",
+    "django-tailwind-cli>=4.10.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "pytest-django>=4.14.0",
+    "ruff>=0.17.6",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+# The live server binds a loopback IP literal, so the network guard can allow that
+# one address for browser tests without trusting a hostname (see docs/TESTING.md).
+addopts = "-ra --strict-markers --liveserver=127.0.0.1"
+markers = [
+    "browser: browser smoke tests against the live server (run with -m browser)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+# Markdown is excluded so docs keep their hand-wrapped code samples.
+extend-exclude = ["prototypes", "*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "DJ"]
+# The formatter owns line length.
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"*/migrations/*" = ["E", "W", "I", "UP"]

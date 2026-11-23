@@ -1,0 +1,65 @@
+# Frontend
+
+Read this before changing templates, styles, the theme or motion. **This
+page is an index:** the rules below apply to every template; open a topic
+file only for the area you're changing. The visual reference is
+`prototypes/home-direction.html`, variant A (throwaway: take its look, not
+its code).
+
+## Topic files
+
+| Open… | Before you touch… |
+|---|---|
+| [frontend/theme.md](frontend/theme.md) | colours, the accent, light and dark, contrast, fonts, the logo, buttons, focus, the hover gate, motion primitives, reduced motion |
+
+Later phases add `frontend/reel.md` (Phase 3) and topic files for each
+area they build.
+
+## Tailwind + DaisyUI (no Node)
+
+- django-tailwind-cli downloads the standalone Tailwind CLI and DaisyUI's
+  plugin bundles (`daisyui.mjs`, `daisyui-theme.mjs`) into
+  `.django_tailwind_cli/` (git-ignored). `source.css` loads them by
+  relative path and excludes them from class scanning (`@source not`).
+- The source is `styles/source.css`, outside `STATICFILES_DIRS`. The build
+  writes `static/css/tailwind.css` (git-ignored). `tailwind runserver` runs
+  Django and the watcher; `tailwind build` makes a one-off build.
+- Tailwind finds classes by scanning files. **Write class names out in
+  full**; a class built from pieces at runtime won't be found.
+- Any JavaScript library is a vendored static file. `static/js/shell.js`
+  is the only script so far.
+
+## Shells
+
+- `templates/base.html`: the document every shell shares: `<html
+  data-theme="axcenity">` with the validated scheme choice, the pre-paint
+  scheme script, font preloads, the versioned stylesheet and `shell.js`.
+- `templates/marketing/shell.html` (this phase): a skip link, the fixed
+  nav (`partials/site_nav.html`), `<main id="content">` and the four-column
+  footer (`partials/site_footer.html`). An editor-style app shell for
+  signed-in pages arrives in Phase 8 and extends `base.html` too.
+- **Nav:** wordmark (home), Engine, Toolbox, Docs, Community; then the
+  theme switch, Sign in, and Download (the only primary button). It's
+  transparent over the hero and solid once the page scrolls past 40 px
+  (`html[data-scrolled]`) or the phone menu is open. Below `md` the links
+  fold into a `<details class="nav-menu">`, which works without
+  JavaScript. A page's first section clears the nav with `.under-nav`.
+- **Footer:** the brand column (wordmark, tagline, signature), then
+  Engine, Learn and Community, from `content.FOOTER_COLUMNS`.
+- **Links to pages that don't exist yet** are `soon` in `content.py`:
+  `partials/nav_link.html` renders them as a label with a "Soon" tag,
+  never as an `<a>`. Sign in stays `soon` until Phase 8; "Features" joins
+  the nav in Phase 2.
+
+## Rules for every template
+
+- Colour comes only from the axcenity tokens; the chrome is monochrome and
+  the accent has fixed uses ([theme.md](frontend/theme.md)).
+- Text uses `fg`, `fg-strong`, `fg-secondary` or `fg-weak` only. `fg-muted`
+  is under 4.5:1 and is never text (tested).
+- Copy and links live in `marketing/content.py`, not in templates.
+- Every `:hover` style sits behind the hover gate
+  (`html[data-pointer] …`); keyboard focus never waits for it.
+- Drawn or stylised visuals are captioned as illustrative, never as
+  engine captures. The engine is alpha; scripting is **Luau**.
+- Nothing may scroll sideways at 360 px (`body { overflow-x: clip; }`).

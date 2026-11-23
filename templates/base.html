@@ -1,0 +1,45 @@
+{% load static shell_tags %}<!doctype html>
+{# The document every shell shares: the theme, fonts, stylesheet and shell.js.                   #}
+{# data-scheme-choice is always one of system/light/dark (config/theme.py validates the cookie). #}
+<html lang="en" data-theme="axcenity" data-scheme-choice="{{ theme_choice }}"{% if theme_choice != "system" %} data-scheme="{{ theme_choice }}"{% endif %}
+      style="--mark-url: url('{% static 'brand/mark-white.png' %}'); --word-url: url('{% static 'brand/wordmark-white.png' %}');">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Axcenity Engine{% endblock %} · Axcenity</title>
+  <meta name="description" content="{% block description %}Axcenity Engine: a free, open-source 3D game engine and editor written in Rust, in alpha.{% endblock %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'brand/favicon-32.png' %}">
+  {# Fetch the display and mono fonts with the stylesheet, so text never paints #}
+  {# in a fallback font and then jumps when the real one arrives.              #}
+  <link rel="preload" href="{% static 'fonts/JetBrainsMono-Regular.ttf' %}" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="{% static 'fonts/Inter-Regular.ttf' %}" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="{% static 'fonts/Inter-SemiBold.ttf' %}" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="{% static 'fonts/PlusJakartaSans-Variable.ttf' %}" as="font" type="font/ttf" crossorigin>
+  <script>
+    // The colour scheme, before first paint so it never flashes: the visitor's
+    // choice (data-scheme-choice, rendered from the validated ax-theme cookie),
+    // or for "system" the system's own setting, followed live. CSS reads
+    // <html data-scheme="light">; anything else is dark. shell.js's switch calls
+    // axScheme.apply() after a change.
+    (function () {
+      var root = document.documentElement, query = matchMedia("(prefers-color-scheme: light)");
+      var CHOICES = { system: 1, light: 1, dark: 1 };
+      function apply() {
+        var choice = root.dataset.schemeChoice;
+        if (!CHOICES[choice]) choice = root.dataset.schemeChoice = "system";
+        root.dataset.scheme = choice === "system" ? (query.matches ? "light" : "dark") : choice;
+      }
+      apply();
+      if (query.addEventListener) query.addEventListener("change", apply);
+      window.axScheme = { apply: apply };
+    })();
+  </script>
+  {# Versioned URLs (?v=<last change>), so a browser never keeps running an old copy. #}
+  <link rel="stylesheet" href="{% versioned_static 'css/tailwind.css' %}">
+  <script src="{% versioned_static 'js/shell.js' %}" defer></script>
+  {% block head %}{% endblock %}
+</head>
+<body class="bg-app text-fg">
+{% block body %}{% endblock %}
+</body>
+</html>
