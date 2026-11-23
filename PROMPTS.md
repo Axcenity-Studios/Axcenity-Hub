@@ -28,6 +28,69 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-23 — Plan a dedicated documentation site (Phases 6B–6C)
+
+### Prompts
+
+1. "Ok I noticed that the documentation page takes the users to my GitHub
+   repo this is fine but my site should not rely on my GitHub page as the
+   source of information as it is not styled for efficiency or use. Please
+   add onto the plan to include a dedicated documentation page featuring
+   all core engine features from the official repository guide and API
+   references. These have all been documented in my engine for better or
+   worse. Keep the stling similar to the rest of the site making it look
+   cohesive, also append this conversation to PROMPTS.md according to
+   source formatting."
+
+### Summary
+
+- **Outcome:** Planning only; no app code. Two phases were added to
+  `plans/axcenity-hub.md` after the Toolbox page, so the first slice is now
+  Phases 1–6C:
+  - **Phase 6B, Documentation site:** a `documentation` app at `/docs/`
+    in the marketing shell. It serves a committed snapshot of the engine's
+    `documentation/` folder (the GitBook source: `SUMMARY.md`, 20 Learn
+    chapters, the reference pages, seven diagrams) copied by a
+    `sync_engine_docs` command that records the engine commit. It has a
+    `SUMMARY.md` sidebar, an "On this page" rail, previous/next, Luau
+    highlighting in the editor's colours, copy buttons, status badges,
+    the Alpha notice and a "View source on GitHub" link per page. The nav,
+    Home CTA and footer Docs links move to `/docs/`. TDD: link rewriting,
+    the `SUMMARY.md` nav tree, and the sync command.
+  - **Phase 6C, API reference:** the ~140 classes and ~45 data types and
+    services, plus enums, libraries and globals, as a filterable API home,
+    member tables, linked signatures and inherited members, and a
+    `/docs/search/` over titles, headings and member names. TDD: API page
+    parsing and search ranking.
+- **Changes:** `plans/axcenity-hub.md` (the two phases; the
+  `documentation` app, the `/docs/` URLs and a "documentation source"
+  rule in the architectural decisions; the first slice is now 1–6C).
+  `prd/axcenity-hub.md` (stories 74–79 under a new Documentation heading,
+  a Documentation implementation-decisions section; Docs now points at
+  `/docs/`, and the "until a docs area is planned" note was replaced).
+- **Decisions:**
+  - The engine repo stays the only source of truth: the Hub copies a
+    snapshot and never edits or fetches pages at request time, keeping the
+    reference-repos-are-read-only rule and the no-network test rule.
+  - The docs got letter-suffixed phases (6B, 6C) instead of renumbering
+    7–17, because commits, PROMPTS.md and the docs already cite those
+    numbers. They come before Download because they are public, need no
+    external API, and remove the site's main reliance on GitHub.
+  - The guide and the API reference are separate phases: the guide ships
+    first through a generic pipeline, then the ~190 generated API pages
+    get their own layout and search.
+  - The engine's seven diagrams (1200 px) are labelled "Diagram"
+    (illustrative) per the honesty rule, shown no wider than their source.
+  - The PRD was extended (stories 74–79) so the new phases have stories
+    to cite; the request named only the plan.
+- **Deviations:** None. No questions were asked; the placement and the
+  6B/6C split were chosen by the agent and are open to change.
+- **Sideways:** Nothing went wrong. The checks done while planning: the
+  engine docs are plain Markdown with no GitBook `{% %}` blocks, raw HTML
+  or nested lists (the engine's own checks refuse them), so a standard
+  renderer is enough. Story 58 already asked for documentation search, and
+  Phase 6C now covers that part.
+
 ## 2026-11-23 — Axcenity Hub: Phase 2/17, Home content
 
 ### Prompts

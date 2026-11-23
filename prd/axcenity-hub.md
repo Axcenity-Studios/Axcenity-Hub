@@ -143,6 +143,15 @@ slice builds its key business rules test-first.
 72. As the maintainer, I want the reel's scenes structured so they can be ported to Remotion for MP4 export, so that I can produce a video later.
 73. As the maintainer, I want feature media slots that swap from stand-ins to real captures without code changes, so that I can drop in new footage.
 
+### Documentation
+
+74. As a visitor, I want the engine's guide (getting started, building worlds, bringing it to life, code, assets and shipping, and the reference pages) on the Hub itself, styled like the rest of the site, so that I can learn without leaving for GitHub.
+75. As a developer, I want every class, data type, enum, library and global in the API reference, with its members, signatures and examples, so that I can script in Luau without guessing.
+76. As a reader, I want a sidebar of every section, an "On this page" list, heading links and previous/next links, so that I always know where I am and can share a link to a section.
+77. As a reader, I want Luau examples highlighted like the editor and easy to copy, so that I can paste them into a script.
+78. As a developer, I want to search the documentation by page, heading or API member name, so that I can jump straight to `Touched` or `TweenService`.
+79. As the maintainer, I want the docs copied from the engine repository with their source commit recorded and every link checked, so that the Hub's docs match the engine and never break silently.
+
 ## Implementation Decisions
 
 ### Platform and stack
@@ -166,7 +175,7 @@ slice builds its key business rules test-first.
 - Home sections in order: hero (full-bleed reel behind; version badge; headline "Axcenity Engine." plus the rotating line; one-line pitch; Download and Docs CTAs; reel controls bottom right); sticky-scroll feature pillars (text scrolls on the left, one large media stage on the right swaps per pillar; on phones each pillar's media sits inline); workflow strip with oversized outlined numerals; stat band (Free, Rust, 3 OS, Alpha); Toolbox banner; coming-soon community row (Forums, Showcases, Projects); giant final CTA; four-column footer.
 - The rotating headline lives in a box sized to its longest phrase at each breakpoint, so changing between one-line and two-line phrases never moves content below.
 - All Home copy, links and media references live in a Python content module that the template loops over.
-- Download links to the engine repository's Releases list (not "latest": every release is a prerelease, so latest doesn't resolve). Docs links to the engine's documentation.
+- Download links to the engine repository's Releases list (not "latest": every release is a prerelease, so latest doesn't resolve). Docs links to the Hub's documentation site (`/docs/`); until that ships, it links to the engine repository's documentation folder.
 - Feature media slots are picture/video slots with captions. Editor and Blocks + Luau slots are animated recreations built from the editor's real UI code (palette, panel names and layout, node styling, Luau highlighting), captioned illustrative. The Renderer slot uses the real 2560×1440 ray-traced capture from the purpose-built engine showcase scene (with its same-camera graybox capture as the before frame for the reel's Scene 2 wipe). The Terrain slot shows a crisp drawn stand-in: the existing terrain capture is deliberately excluded because its stylised trees and flat-colour ground don't represent the terrain toolkit, and it's replaced only once a capture shows decent trees and textures. The engine's 480×270 test references are never upscaled into the page.
 - Copy is honest: the engine is alpha, scripting is Luau, and drawn visuals are never presented as engine captures.
 
@@ -185,6 +194,13 @@ slice builds its key business rules test-first.
 
 ### Download page (next slice after the first)
 - Server-side fetch of the engine repository's release list through the GitHub REST API (no token needed for public data), choosing the newest non-draft release (prereleases included, clearly marked alpha), with ETag conditional requests and roughly hourly caching. Assets are grouped by OS, the visitor's platform is highlighted, and size, date and the per-asset SHA-256 digest GitHub provides are shown. On failure it falls back to cached data, then to a plain link to GitHub Releases.
+
+### Documentation
+- A documentation app serves the engine's guide and API reference at `/docs/` in the marketing shell, so the Hub doesn't depend on GitHub's rendering of the engine's Markdown.
+- The engine repository's `documentation/` folder is the source of truth. A management command copies it (Markdown and diagrams) into a committed snapshot and records the engine commit; pages render from the snapshot only, and text fixes are made in the engine and re-synced.
+- Markdown is rendered server-side (markdown-it-py, raw HTML off) with Luau highlighted by Pygments in the editor's syntax colours. Relative links are rewritten to Hub URLs, and a test checks every link and image.
+- Layout: a sidebar from the docs' table of contents, the article at a readable measure, an "On this page" rail, previous/next, a "View source on GitHub" link per page, status badges and the site's Alpha notice. API pages get member tables and a filterable index; search covers titles, headings and API members.
+- The engine's diagrams are labelled as diagrams (illustrative), never as captures.
 
 ### Accounts, GitHub and later slices
 - django-allauth for registration, login, logout and password recovery, plus its GitHub provider. Start with an OAuth App and no scopes (public data only); move to a GitHub App if private-repository access is confirmed as needed.
@@ -214,4 +230,4 @@ For the first slice specifically: accounts, GitHub sign-in, projects, forums, sh
 - Prototype fixes to carry into the build: a longer, truly seamless loop; no grainy or upscaled images; an animated, engine-faithful workspace recreation in place of the static docs diagram; a fixed-height rotating headline.
 - The canonical engine repository is the Axcenity Studios organisation's; the engine README's Releases link names an older account but redirects there.
 - Open questions from the research, to settle before the slices they affect: whether GitHub is a sign-in method or only an account link; whether private repos are needed; whether the download page shows the newest prerelease (assumed yes, with an alpha banner); the production hosting target; when the domain gets bought; whether any write form is truly anonymous; and whether MySQL is a course requirement.
-- The proposal's workflow "Browse Documentation Information" (public, no authentication) is covered by the first slice's public pages; documentation itself links to the engine's docs until a docs area is planned.
+- The proposal's workflow "Browse Documentation Information" (public, no authentication) is covered by the documentation site (`/docs/`, plan Phases 6B–6C).

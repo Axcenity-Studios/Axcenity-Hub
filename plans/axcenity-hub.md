@@ -3,7 +3,7 @@
 > Source PRD: [prd/axcenity-hub.md](../prd/axcenity-hub.md). Story numbers below refer to its User Stories.
 > Supporting notes: [prototypes/home-direction.md](../prototypes/home-direction.md) (chosen Home direction and fixes),
 > [docs/research/external-services.md](../docs/research/external-services.md) (external services).
-> Ticked boxes are done. Phases 1–6 are the first slice (public marketing site). Each phase lists its
+> Ticked boxes are done. Phases 1–6C are the first slice (public marketing site and documentation). Each phase lists its
 > TDD behaviors (at most three, built test-first with the `tdd` skill); everything else in a phase is built and
 > tested normally, with tests written alongside the code.
 
@@ -14,18 +14,23 @@ Durable decisions that apply across all phases:
 - **Tooling:** uv only (no pip, Node or npm). Tailwind + DaisyUI via django-tailwind-cli. pytest + pytest-django;
   browser smoke tests use pytest-playwright behind a `browser` marker. Ruff for lint and format.
 - **Apps:** `config` (settings, root URLs). `marketing`: public signed-out pages (Home, Toolbox overview, Download).
-  `accounts`: Profile, auth glue, GitHub linking. `projects`: Project, ProjectMembership, repository link, webhooks.
+  `documentation`: the engine docs and API reference (Phases 6B–6C). `accounts`: Profile, auth glue, GitHub linking. `projects`: Project, ProjectMembership, repository link, webhooks.
   `forums`: ForumPost, Comment, Rating. `showcases`: Showcase, Tag. `reports`: BugReport, Report.
   `moderation`: ModerationAction, warnings and restrictions. `api`: the DRF surface. Ported Toolbox apps keep their
   own names (`catalog`, `packs`, `providers`) in Phase 17.
 - **URLs** (all named and app-namespaced): `/` `marketing:home`, `/toolbox/` `marketing:toolbox`, `/download/`
-  `marketing:download`, `/accounts/…` (allauth), `/projects/<slug>/…`, `/forums/…`, `/showcases/…`, `/reports/…`,
+  `marketing:download`, `/docs/` `documentation:index`, `/docs/<path>/` `documentation:page` (the snapshot's file
+  path, lower-cased, without `.md`: `/docs/learn/scripting/`, `/docs/api/classes/part/`), `/docs/search/`
+  `documentation:search`, `/accounts/…` (allauth), `/projects/<slug>/…`, `/forums/…`, `/showcases/…`, `/reports/…`,
   `/moderation/…`, `/api/v1/…`. Projects and showcases use slugs; forum posts and reports use pks.
 - **Models and relationships:** User (Django's) 1–1 Profile. User 1–N Project (owner). User N–N Project through
   ProjectMembership (role: Owner, Maintainer, Viewer). Showcase N–N Tag. ForumPost 1–N Comment; Rating per
   user per post (unique together). BugReport with a status field and an allowed-transition table. Report
   (feedback or abuse) generic over its target. ModerationAction records actor, target, action and reason, and is
   append-only.
+- **Documentation source:** the engine repository's `documentation/` folder is the single source of truth. The Hub
+  serves a committed snapshot of it (copied by `sync_engine_docs`, provenance in `SOURCE.json`), never edits the
+  pages, and never fetches them at request time. Fixes to the docs' text are made in the engine and re-synced.
 - **Auth:** django-allauth (accounts, GitHub social login, MFA). Members-only views use `LoginRequiredMixin`;
   anything the caller can't see returns **404, never 403**. Every write is CSRF protected, HTMX included.
 - **Limits:** creation and posting limits are enforced as database count checks in model and service logic.
@@ -215,6 +220,114 @@ None: a content page that reuses Phase 5's media checks.
 - [ ] The screenshots are real captures of the running Toolbox with manifest entries; they meet every Phase 5 media criterion
 - [ ] The run-locally commands match the Toolbox README; the GitHub link resolves
 - [ ] Tests: 200, links resolve, media manifest checks pass
+
+---
+
+## Phase 6B: Documentation site
+
+**User stories**: 6, 74–77, 79
+
+### What to build
+
+A `documentation` app serving the engine's guide at `/docs/` in the marketing shell, so the Hub no longer sends
+readers to GitHub to learn the engine. Content comes from the engine repository's `documentation/` folder (its
+GitBook source: `SUMMARY.md`, the Learn chapters, the reference pages, and seven diagrams). The engine repo is
+read-only, so a `sync_engine_docs` management command copies that folder into a committed snapshot under
+`documentation/content/` and records the engine commit and date in `documentation/content/SOURCE.json`. Pages are
+rendered from the snapshot only: no request reads the engine repo or GitHub.
+
+- **Rendering:** markdown-it-py (CommonMark plus tables, raw HTML off) with front-matter parsing for
+  `description`, `icon`, `status` and `samples`. Fenced `luau` and `lua` blocks are highlighted server-side with
+  Pygments in the editor's Luau syntax colours (the tokens Phase 4 adds for the reel, scoped to code blocks and
+  covered by the theme tests). Every code block gets a copy button (small vanilla JS; the code reads fine without it).
+- **Links:** relative `.md` links (with `../` and `#anchor`) are rewritten to Hub URLs, images to static paths,
+  and external links are left as they are. A link to a page that isn't in the snapshot fails the build check.
+- **Layout:** three columns on wide screens: a left sidebar built from `SUMMARY.md` (its sections as collapsible
+  groups, the current page marked), the article at a readable measure (about 70ch), and an "On this page" rail
+  from the h2 and h3 headings, each with a permalink anchor. Breadcrumbs above the title; previous and next links
+  in `SUMMARY.md` order below it. Below 1024 px the sidebar becomes a disclosure at the top and the rail is
+  hidden. Tables and code scroll inside their own box, never the page.
+- **Page header:** the title, the front-matter description as the lede, a "Partly built" or "Experimental" badge
+  from `status`, an "Alpha" notice consistent with the rest of the site, and a "View source on GitHub" link to the
+  file at the snapshot's commit. `samples` show as "Try it in the editor" with each sample's name.
+- **Landing (`/docs/`):** the engine docs' README as an intro, then one panel per `SUMMARY.md` section (Before
+  you start, the four Learn groups, Architecture, Scripting, Systems, Assets and projects, Tools, API reference)
+  listing its pages with their descriptions, styled like Home's panels.
+- **Diagrams:** the seven engine diagrams (1200 px wide) are copied to static, entered in the media manifest as
+  `illustrative` with the engine file as provenance, captioned from their alt text with a "Diagram" label, and
+  shown no wider than their source size.
+- **Site links:** the nav's Docs link, Home's "Read the docs" CTA, the footer's Docs and Getting started links
+  point at `/docs/` pages. GitHub stays reachable from each page's "View source" link and the footer.
+
+The API reference pages render through the same pipeline in this phase as plain pages; Phase 6C gives them
+their dedicated layout and search.
+
+### TDD behaviors
+
+Built test-first with the `tdd` skill; the rest of the phase is built and tested normally.
+
+1. Link rewriting: a relative `.md` link (sibling, `../` parent, with or without `#anchor`) becomes the right Hub
+   URL; an image link becomes its static path; a link to a missing page is reported, not silently kept.
+2. The navigation tree from `SUMMARY.md`: sections, nesting and order, with previous and next following that
+   order; a page that `SUMMARY.md` doesn't list is reported as an orphan.
+3. `sync_engine_docs` against a fake engine tree in `tmp_path`: it copies Markdown and images, writes
+   `SOURCE.json` with the commit, never writes to the source tree, and a second run with no engine changes
+   changes nothing.
+
+### Acceptance criteria
+
+- [ ] Every page `SUMMARY.md` lists returns 200 at its `/docs/…` URL, with `<title>` "Page · Axcenity Docs" and the front-matter description as its meta description
+- [ ] Every internal link and image in the snapshot resolves (a test walks them all); no request reads the engine repo or the network
+- [ ] Sidebar, breadcrumbs, "On this page", heading anchors and previous/next work, and the docs layout needs no JavaScript (the copy button and the mobile disclosure are progressive)
+- [ ] Luau code is highlighted in the editor's syntax colours; the new colours pass the theme tests' contrast checks in dark and light
+- [ ] Status badges, the Alpha notice and the "View source on GitHub" link (at the snapshot commit) appear on every page; provenance (engine commit and date) is shown in the docs footer
+- [ ] The seven diagrams are in the media manifest as `illustrative`, captioned "Diagram", never upscaled
+- [ ] The nav, Home CTA and footer docs links point at `/docs/`; the shell's link tests still pass
+- [ ] One browser smoke test: a long API page at 375 px has no horizontal page scroll, and the copy button copies
+- [ ] `docs/frontend/documentation.md` explains the layout and how to re-sync; ARCHITECTURE lists the app, its URLs and the snapshot rule
+
+---
+
+## Phase 6C: API reference
+
+**User stories**: 58 (documentation), 75, 78
+
+### What to build
+
+The generated API reference (`documentation/api/`: about 140 classes, 45 data types and services, the enums,
+libraries and globals) as a browsable reference rather than long plain pages.
+
+- **API home (`/docs/api/`):** Classes, Data types, Enums, Libraries and Globals as tabs or panels, each a
+  server-rendered list of names with their one-line descriptions, plus a filter box that narrows the list as you
+  type (vanilla JS; without JavaScript the full list shows).
+- **Class and type pages:** the page parsed into its members: the constructor signature, then a summary table of
+  Properties, Events and Methods (name, type or signature, first sentence) linking to each member's anchor.
+  "Inherits from Instance" links to Instance, with the inherited members in a collapsed group. Signatures render
+  as code with type names linked to their own pages. The right rail lists members by kind.
+- **Enums:** one anchor per enum, its items as a compact chip list; `Enum.Material` links straight to its anchor.
+- **Search (`/docs/search/?q=`):** a GET form in the docs header searching page titles, descriptions, headings
+  and API member names over an in-memory index built from the snapshot. Exact name matches rank first ("Part"
+  finds Part before MeshPart), then titles, headings, members and descriptions. Results show the page, the
+  matched member or heading and a snippet, 20 per page with Django's paginator. Empty, too-long or
+  whitespace-only queries show the search page with a message, never an error.
+
+### TDD behaviors
+
+Built test-first with the `tdd` skill; the rest of the phase is built and tested normally.
+
+1. Parsing an API page into a class with its signature and its members grouped by kind (property, event, method),
+   each with its anchor, and the inheritance link.
+2. Search ranking and query handling: exact name, then title, heading, member, description; the query is trimmed and
+   length-limited, and an empty query returns no results without error.
+
+### Acceptance criteria
+
+- [ ] Every class, type, enum, library and global listed in `SUMMARY.md` has a page with its member table, and every member anchor resolves
+- [ ] Type names in signatures link to their pages wherever such a page exists
+- [ ] The API home lists every entry with JavaScript off; the filter narrows it with JavaScript on
+- [ ] Search returns the expected first result for a fixed set of queries (`Part`, `Touched`, `TweenService`, `Enum.Material`, `task.wait`), paginates, and handles empty and over-long queries
+- [ ] No horizontal page scroll at 375 px on the longest class page (covered by Phase 6B's smoke test pointed at it)
+- [ ] `docs/frontend/documentation.md` covers the API layout and search
 
 ---
 
