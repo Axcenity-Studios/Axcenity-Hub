@@ -1,0 +1,16 @@
+{# The workflow strip: four steps with oversized outlined numerals. #}
+<section id="workflow" class="border-b border-line">
+  <div class="mx-auto max-w-[1400px] px-4 md:px-8">
+    <p class="micro text-fg-weak" data-reveal>{{ workflow.eyebrow }}</p>
+    <h2 class="headline mt-4 text-4xl text-fg-strong md:text-6xl" data-reveal>{{ workflow.title }}</h2>
+  </div>
+  <ol class="flow mx-auto mt-12 max-w-[1400px]">
+    {% for step in workflow.steps %}
+      <li class="flow-step" data-reveal style="--stagger: {{ forloop.counter0 }}">
+        <span class="flow-num" aria-hidden="true">{{ step.number }}</span>
+        <h3 class="mt-5 text-xl font-semibold text-fg-strong">{{ step.title }}</h3>
+        <p class="mt-2 text-fg-secondary">{{ step.body }}</p>
+      </li>
+    {% endfor %}
+  </ol>
+</section>

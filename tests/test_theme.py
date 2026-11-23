@@ -217,6 +217,15 @@ TEXT_PAIRS = [
     ("status: success", "success", "app"),
     ("status: warning", "warning", "app"),
     ("status: error", "error", "app"),
+    ("media caption chip", "fg-secondary", "app"),
+    ("Toolbox feature title", "fg-strong", "panel"),
+    ("Luau sample text", "fg", "inset"),
+    ("Luau keyword", "fg-strong", "inset"),
+    ("Luau string", "fg-secondary", "inset"),
+    ("Luau comment", "fg-weak", "inset"),
+    ("drawn editor: panel text", "fg", "panel"),
+    ("drawn editor: active tab", "fg-strong", "surface"),
+    ("drawn editor: selected row", "fg-strong", "control-active"),
 ]
 NON_TEXT_PAIRS = [
     ("focus ring on the page", "ink", "app"),
@@ -226,6 +235,8 @@ NON_TEXT_PAIRS = [
     ("primary button edge", "primary", "app"),
     ("current-page underline", "ink", "app"),
     ("theme switch and menu icons", "fg-secondary", "app"),
+    ("workflow numeral outline", "fg-weak", "app"),
+    ("drawn terrain lines", "fg-weak", "inset"),
 ]
 PAIRS = [(*pair, 4.5) for pair in TEXT_PAIRS] + [(*pair, 3.0) for pair in NON_TEXT_PAIRS]
 
@@ -251,6 +262,15 @@ RULES = {
     ".btn-quiet {": "color: var(--color-fg-strong);",
     ".btn:focus-visible {": "outline: 2px solid var(--color-ink);",
     ":focus-visible {": "outline: 2px solid var(--color-ink);",
+    ".media-cap {": "color: var(--color-fg-secondary); background: var(--color-app);",
+    ".flow-num {": "-webkit-text-stroke: 1px var(--color-fg-weak);",
+    ".drawn-code {": "color: var(--color-fg); background: var(--color-inset);",
+    ".tok-k {": "color: var(--color-fg-strong);",
+    ".tok-s {": "color: var(--color-fg-secondary);",
+    ".tok-c {": "color: var(--color-fg-weak);",
+    ".drawn-grid {": "stroke: var(--color-fg-weak);",
+    ".ed-tab[data-on] {": "background: var(--color-surface); color: var(--color-fg-strong);",
+    ".ed-tree li[data-on] {": "background: var(--color-control-active); color: var(--color-fg-strong);",
 }
 
 

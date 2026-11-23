@@ -15,7 +15,8 @@ is on, so an unregistered marker fails.
 | File | Covers |
 |---|---|
 | `test_theme.py` | The palette, the accent, light mode, and the contrast of every real colour pair (ported from the Toolbox) |
-| `test_shell.py` | The marketing shell: nav, phone menu, footer, links, branding, fonts, hover gate, motion, versioned static |
+| `test_shell.py` | The marketing shell: nav, phone menu, footer, links (internal ones resolve, fragments exist), branding, fonts, hover gate, motion, versioned static |
+| `test_home.py` | The Home: section order, copy as data (visible prose only), the rotating headline, reveal and reduced-motion fallbacks, pillars, the media manifest, the Luau sample, drawings, honesty |
 | `test_theme_switch.py` | The theme cookie (validation, attributes), pre-paint script, switch markup, `ThemeView` and CSRF |
 | `test_network_guard.py` | The network guard and its single browser-test opening |
 | `test_browser_server.py` | `browser`: the live server is reachable at its own address and nowhere else |

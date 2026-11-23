@@ -93,12 +93,12 @@ None: copy and data; the link and media checks are tests in their own right, wit
 
 ### Acceptance criteria
 
-- [ ] Every section renders from the content module; no copy is hard-coded in the template
-- [ ] The rotating headline never moves content below it at any breakpoint (switching between one-line and two-line phrases)
-- [ ] Sticky media swaps per pillar on desktop; inline media on phones; no horizontal scroll at 360 px
-- [ ] Reduced motion (OS setting) shows the final states with no reveal or rotation animation
-- [ ] Tests: `/` returns 200; every link in the content module resolves (internal URLs reverse; external URLs are well-formed); every referenced media file exists
-- [ ] Copy says alpha, Luau, free and open source, and Windows, macOS and Linux; nothing claims a feature the engine lacks
+- [x] Every section renders from the content module; no copy is hard-coded in the template
+- [x] The rotating headline never moves content below it at any breakpoint (switching between one-line and two-line phrases)
+- [x] Sticky media swaps per pillar on desktop; inline media on phones; no horizontal scroll at 360 px
+- [x] Reduced motion (OS setting) shows the final states with no reveal or rotation animation
+- [x] Tests: `/` returns 200; every link in the content module resolves (internal URLs reverse; external URLs are well-formed); every referenced media file exists
+- [x] Copy says alpha, Luau, free and open source, and Windows, macOS and Linux; nothing claims a feature the engine lacks
 
 ---
 
@@ -145,9 +145,10 @@ None: the behaviors are visible only through the planned Playwright smoke tests,
 
 Scene 2 (4–8 s): a shader wipe inside the viewport from wireframe/graybox to lit PBR, using the real renderer capture
 and its same-camera graybox capture as the end frames, with a scan line in the accent colour. Scene 3 (8–12 s): a
-terrain grid displacing into hills, then staggered expo-out foliage scale-in. Scene 4 (12–16 s): OnTriggerEnter →
-SpawnDecal nodes linked by glowing Bezier wires, with Luau typing out beside them in the editor's real syntax
-colours. 16–18 s: panels collapse into the Axcenity logo lockup. The loop's final frame flows into its first with no
+terrain grid displacing into hills, then staggered expo-out foliage scale-in. Scene 4 (12–16 s): When touched →
+Spawn decal blocks (the engine's real block names) linked by glowing Bezier wires, with their real Luau translation
+(`part.Touched:Connect(function(otherPart) … workspace:SpawnDecal(…))`) typing out beside them in the editor's real
+syntax colours. 16–18 s: panels collapse into the Axcenity logo lockup. The loop's final frame flows into its first with no
 visible reset. Each scene has a compact layout.
 
 ### TDD behaviors

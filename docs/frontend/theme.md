@@ -41,10 +41,12 @@ stylesheet and checks each real foreground/background pair:
 
 - **Text, 4.5:1:** body and headline text, nav and footer links, pitch
   and badge text, the Soon label, footer headings, primary and quiet
-  buttons at rest and hovered or focused, and status colours.
+  buttons at rest and hovered or focused, status colours, and the Home's
+  media captions, Luau sample and drawn editor.
 - **Non-text, 3:1:** the focus ring on app, panel and surface, the badge
-  dot, the primary button's edge, the current-page underline, and the
-  theme and menu icons.
+  dot, the primary button's edge, the current-page underline, the
+  theme and menu icons, the workflow numerals' outline and the drawn
+  terrain's lines.
 
 Further tests tie each pair to its CSS rule, and check that a page's text
 colour classes are all from the tested set. **Adding a new colour pairing

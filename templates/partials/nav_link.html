@@ -1,3 +1,3 @@
 {# One content.Link: an <a>, or for a page that doesn't exist yet a "Soon" label (never a dead link). #}
 {# Usage: {% include "partials/nav_link.html" with link=link class="nav-link" %}                      #}
-{% if link.soon %}<span class="soon {{ class }}">{{ link.label }}<span class="soon-tag micro">Soon</span></span>{% else %}<a href="{{ link.href }}" class="{{ class }}"{% if link.is_external %} rel="noopener"{% endif %}{% if link.url_name and link.url_name == request.resolver_match.view_name %} aria-current="page"{% endif %}>{{ link.label }}</a>{% endif %}
+{% if link.soon %}<span class="soon {{ class }}">{{ link.label }}<span class="soon-tag micro">Soon</span></span>{% else %}<a href="{{ link.href }}" class="{{ class }}"{% if link.is_external %} rel="noopener"{% endif %}{% if link.url_name and not link.fragment and link.url_name == request.resolver_match.view_name %} aria-current="page"{% endif %}>{{ link.label }}</a>{% endif %}

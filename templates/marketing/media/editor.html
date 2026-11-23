@@ -1,0 +1,32 @@
+{# Illustrative: the editor's docking layout, with Properties floated onto a second monitor. #}
+{# Every word comes from the manifest's labels (content.MEDIA["editor"]).                   #}
+{% with l=media.labels %}
+<div class="drawn-editor" role="img" aria-label="{{ media.alt }}">
+  <div class="ed-window ed-main">
+    <div class="ed-bar"><span class="ed-dots"><i></i><i></i><i></i></span><span>{{ l.window }}</span></div>
+    <div class="ed-dock">
+      <div class="ed-panel">
+        <div class="ed-tabs"><span class="ed-tab" data-on>{{ l.scene }}</span></div>
+        <div class="ed-viewport grid-bg">
+          <svg class="ed-model" viewBox="0 0 200 110"><path d="M50 66 L100 46 L152 58 L102 80 Z"/><path d="M50 66 L50 73 L102 88 L102 80 M102 88 L152 65 L152 58"/><path d="M102 63 L102 30 M102 63 L128 70 M102 63 L80 70" class="ed-gizmo"/></svg>
+        </div>
+      </div>
+      <div class="ed-panel">
+        <div class="ed-tabs"><span class="ed-tab" data-on>{{ l.explorer }}</span></div>
+        <ul class="ed-tree">{% for name, depth in l.tree %}<li style="--depth: {{ depth }}"{% if name == l.selected %} data-on{% endif %}>{{ name }}</li>{% endfor %}</ul>
+      </div>
+      <div class="ed-panel ed-console">
+        <div class="ed-tabs"><span class="ed-tab" data-on>{{ l.console }}</span><span class="ed-tab">{{ l.assets }}</span></div>
+        <p class="ed-line">{{ l.console_line }}</p>
+      </div>
+    </div>
+  </div>
+  <div class="ed-window ed-float">
+    <div class="ed-bar"><span>{{ l.floating }}</span></div>
+    <div class="ed-panel">
+      <div class="ed-tabs"><span class="ed-tab" data-on>{{ l.properties }}</span></div>
+      <dl class="ed-rows">{% for name, value in l.rows %}<dt>{{ name }}</dt><dd>{{ value }}</dd>{% endfor %}</dl>
+    </div>
+  </div>
+</div>
+{% endwith %}

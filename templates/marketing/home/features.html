@@ -1,0 +1,27 @@
+{# Feature pillars. Desktop (lg): text scrolls on the left while one sticky stage on the right #}
+{# shows the current pillar's media (home.js). Below lg each pillar shows its media inline.   #}
+<section id="features" class="mx-auto max-w-[1400px] px-4 py-24 md:px-8 md:py-32">
+  <p class="micro text-fg-weak" data-reveal>{{ features.eyebrow }}</p>
+  <h2 class="headline mt-4 max-w-3xl text-4xl text-fg-strong md:text-6xl" data-reveal>{{ features.title }}</h2>
+  <div class="pillars mt-12 md:mt-20" data-pillars>
+    <div>
+      {% for pillar in features.pillars %}
+        <article id="feature-{{ pillar.label|slugify }}" class="pillar" data-pillar="{{ forloop.counter0 }}"{% if forloop.first %} data-on{% endif %}>
+          <p class="micro flex gap-3 text-fg-weak"><span>{{ pillar.number }}</span><span>{{ pillar.label }}</span></p>
+          <h3 class="headline mt-4 text-3xl text-fg-strong md:text-5xl">{{ pillar.title }}</h3>
+          <p class="mt-4 max-w-md text-fg-secondary">{{ pillar.body }}</p>
+          {% include "marketing/media/frame.html" with media=pillar.media class="pillar-media mt-8" %}
+        </article>
+      {% endfor %}
+    </div>
+    <div class="stage-col">
+      <div class="stage">
+        {% for pillar in features.pillars %}
+          <div class="stage-item" data-stage-item="{{ forloop.counter0 }}"{% if forloop.first %} data-on{% endif %}>
+            {% include "marketing/media/frame.html" with media=pillar.media %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>

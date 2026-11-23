@@ -28,6 +28,100 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-23 — Axcenity Hub: Phase 2/17, Home content
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub.md phase 2`.
+2. (Approval of the brief, with changes) "Looks good I would just change a
+   few things: Replace OnTriggerEnter and SpawnDecal with When touched and
+   Spawn decal and use the actual Luau translation:
+   part.Touched:Connect(function(otherPart) … workspace:SpawnDecal(…))
+   This should be consistent throughout the home page, reel and future
+   docs. I like the idea of copies in content.py, but make sure that the
+   test does not accidentaly reject legitimate accesibiliy labels. Test
+   the acutal user facing prose and labels rather than making every test
+   node orignate from the content module. Other than that move to
+   development"
+
+### Summary
+
+- **Outcome:** The full Cinematic Home, rendered from `marketing/content.py`:
+  - the hero: version badge, rotating headline, pitch and both CTAs, over
+    the real ray-traced capture
+  - four sticky-scroll feature pillars, the workflow strip, the stat band,
+    the Toolbox banner, the coming-soon community row and the final CTA
+  - expo-out reveals, and a media manifest with honest captions
+  253 tests pass (251 fast, 2 `browser`). Ruff check and format are clean.
+  All six Phase 2 criteria are ticked.
+- **Changes:**
+  - `marketing/content.py` — all Home copy (`HOME_*`), `ENGINE_VERSION`,
+    `LUAU_SAMPLE`, the `Media` manifest (kind, caption, alt, provenance,
+    file and pixel size or drawing template; refuses mislabelled items),
+    and `Link.fragment` for the nav's new Features link (`/#features`).
+  - `marketing/drawings.py`, `marketing/templatetags/home_tags.py` — the
+    terrain wireframe geometry and the Luau tokenizer for the drawn media.
+  - `marketing/views.py` — `HomeView` passes each section's content.
+  - `templates/marketing/home.html`, `templates/marketing/home/*.html` —
+    one partial per section.
+  - `templates/marketing/media/` — the media frame and the drawn
+    stand-ins (terrain SVG, monochrome Luau sample, editor docking layout).
+  - `templates/partials/nav_link.html` — a fragment link is never marked
+    as the current page.
+  - `static/js/home.js` — rotation, reveals (gated so nothing hides
+    without JavaScript), the pillars' sticky stage.
+  - `static/marketing/media/renderer-2560x1440.png` — copied from the
+    Showcase captures.
+  - `styles/source.css` — the Home styles; the reduced-motion block forces
+    reveals to their final state.
+  - `tests/test_home.py` (new), `tests/test_shell.py` (Features in the
+    nav; internal hrefs must resolve and fragments must exist),
+    `tests/test_theme.py` (eleven new contrast pairs and their rules).
+  - `docs/frontend/home.md` (new); FRONTEND, ARCHITECTURE, TESTING and
+    theme.md updated.
+  - `prd/axcenity-hub.md`, `plans/axcenity-hub.md`, `CLAUDE.md` — When
+    touched → Spawn decal and its real Luau translation everywhere
+    OnTriggerEnter → SpawnDecal was named (story 22, the reel storyboard,
+    Phase 4); CLAUDE.md's Honesty rule now says so.
+- **TDD:** Skipped, as the plan says: copy, data and layout. The link,
+  media and honesty checks are ordinary tests.
+- **Decisions:**
+  - Checking the engine showed there is no OnTriggerEnter block; the real
+    blocks are When touched and Spawn decal (the user then made this the
+    rule everywhere).
+  - Media until Phase 5: the real renderer capture, and drawn stand-ins
+    captioned "Illustrative" for World, Logic and Editor. The Luau sample
+    is monochrome because the editor's syntax colours aren't in the palette.
+  - The renderer capture sits behind the hero until Phase 3's reel.
+  - The Toolbox banner's CTA is "Soon" until Phase 6. Its repo is on a
+    personal account, so it isn't linked yet.
+  - The rotating headline stacks every phrase in one grid cell, so its
+    height is the longest phrase's at every width with no measuring.
+  - Each pillar got an id (`#feature-world`) for deep links.
+- **Deviations:** The user changed the copy test: it checks the visible
+  prose and labels a visitor reads, and lets screen-reader-only labels and
+  attributes (aria-label, alt) be written in templates. It was
+  mutation-checked: a hard-coded sentence fails it, and an sr-only label
+  doesn't.
+- **Sideways:**
+  - Headless Firefox screenshots don't scroll to anchors, so sections were
+    shot through iframes on a scratch server with framing allowed (the
+    project's settings were untouched).
+  - With `--noreload`, Django's cached template loader kept serving old
+    templates; the server was restarted with auto-reload.
+  - The stage didn't swap in screenshots, because the IntersectionObserver
+    hadn't reported yet; `home.js` now picks the current pillar
+    synchronously at start, which also fixes `#feature-…` links.
+  - The terrain drawing was too flat at first; the relief and tree size
+    were raised.
+  - The test that every content string renders caught that the Luau
+    sample's alt text never reached the page; it's now a screen-reader
+    summary before the code.
+  - Phone captions wrapped, so they were shortened.
+  - Not watched live: the rotation itself. It's guaranteed by the shared
+    grid cell (tested) and was checked as static layouts at 360 and
+    1440 px.
+
 ## 2026-11-23 — Axcenity Hub: Phase 1/17, Skeleton, theme and marketing shell
 
 ### Prompts

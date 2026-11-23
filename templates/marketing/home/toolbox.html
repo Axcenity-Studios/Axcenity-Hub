@@ -1,0 +1,19 @@
+{# The Toolbox banner. Its page arrives in Phase 6; until then the call to action is "Soon". #}
+<section id="toolbox" class="mx-auto max-w-[1400px] px-4 md:px-8">
+  <div class="panel grid md:grid-cols-[1.2fr_1fr]" data-reveal>
+    <div class="p-7 md:p-12">
+      <p class="micro text-fg-weak">{{ toolbox.eyebrow }}</p>
+      <h2 class="display mt-4 text-4xl text-fg-strong md:text-5xl">{{ toolbox.title }}</h2>
+      <p class="mt-4 max-w-lg text-fg-secondary">{{ toolbox.body }}</p>
+      <p class="mt-6">{% include "partials/nav_link.html" with link=toolbox.cta class="text-sm" %}</p>
+    </div>
+    <ul class="toolbox-features">
+      {% for feature in toolbox.features %}
+        <li>
+          <p class="micro text-fg-strong">{{ feature.title }}</p>
+          <p class="mt-2 text-fg-secondary">{{ feature.body }}</p>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>

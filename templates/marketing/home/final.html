@@ -1,0 +1,9 @@
+{# The final call to action. #}
+<section id="start" class="mx-auto max-w-[1400px] px-4 pt-8 pb-28 md:px-8 md:pt-16 md:pb-36">
+  <h2 class="display text-6xl text-fg-strong sm:text-7xl md:text-[10rem]" data-reveal>{{ final.title }}</h2>
+  <p class="mt-6 max-w-xl text-lg text-fg-secondary" data-reveal>{{ final.body }}</p>
+  <div class="mt-8 flex flex-wrap gap-3">
+    <a href="{{ final.primary.href }}" rel="noopener" class="btn btn-primary">{{ final.primary.label }}</a>
+    <a href="{{ final.secondary.href }}" rel="noopener" class="btn btn-quiet">{{ final.secondary.label }}</a>
+  </div>
+</section>

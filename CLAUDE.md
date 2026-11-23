@@ -30,6 +30,9 @@ uv run ruff check . && uv run ruff format .
 - **Honesty:** drawn or stylised visuals are captioned as illustrative,
   never as engine captures. The engine is alpha; copy says so. Scripting
   is **Luau**.
+  Logic examples use the engine's real blocks, **When touched → Spawn
+  decal**, and their real Luau translation (`part.Touched:Connect(function(otherPart)
+  … workspace:SpawnDecal(…))`). There is no OnTriggerEnter block.
 - **Reference repos are read-only:** the engine
   (`~/Documents/VSCode Projects/Axcenity-Engine`) and the Toolbox
   (`~/Documents/VSCode Projects/project-two-building-with-apis`). Copy

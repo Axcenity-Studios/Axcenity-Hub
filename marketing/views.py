@@ -34,7 +34,15 @@ class HomeView(MarketingPageMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["hero"] = content.HOME_HERO
+        context.update(
+            hero=content.HOME_HERO,
+            features=content.HOME_FEATURES,
+            workflow=content.HOME_WORKFLOW,
+            facts=content.HOME_FACTS,
+            toolbox=content.HOME_TOOLBOX,
+            community=content.HOME_COMMUNITY,
+            final=content.HOME_FINAL,
+        )
         return context
 
 

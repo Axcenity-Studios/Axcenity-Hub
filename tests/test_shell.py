@@ -7,7 +7,7 @@ from urllib.parse import urlsplit
 import pytest
 from django.conf import settings
 from django.contrib.staticfiles import finders
-from django.urls import reverse
+from django.urls import resolve, reverse
 
 from marketing import content
 
@@ -52,7 +52,7 @@ def test_a_skip_link_leads_to_the_content(home):
 
 def test_home_says_alpha_luau_and_the_three_desktops(home):
     hero = _part(home, 'id="hero"', "</section>")
-    for phrase in ("Alpha", "open source", "Luau", "Windows, macOS and Linux"):
+    for phrase in ("alpha", "open-source", "Luau", "Windows, macOS and Linux"):
         assert phrase in hero, phrase
 
 
@@ -62,21 +62,21 @@ def test_home_says_alpha_luau_and_the_three_desktops(home):
 def test_nav_links_in_order(home):
     desktop = _part(_nav(home), '<nav aria-label="Main"', "</nav>")
     labels = re.findall(r'class="(?:soon )?nav-link"[^>]*>([^<]+)<', desktop)
-    assert labels == ["Engine", "Toolbox", "Docs", "Community"]
+    assert labels == ["Engine", "Features", "Toolbox", "Docs", "Community"]
 
 
 def test_the_phone_menu_holds_the_same_links_and_sign_in(home):
     menu = _part(_nav(home), '<details class="nav-menu md:hidden">', "</details>")
     assert "<summary" in menu and '<span class="sr-only">Menu</span>' in menu
     labels = re.findall(r'class="(?:soon )?nav-link h-11 self-start"[^>]*>([^<]+)<', menu)
-    assert labels == ["Engine", "Toolbox", "Docs", "Community", "Sign in"]
+    assert labels == ["Engine", "Features", "Toolbox", "Docs", "Community", "Sign in"]
     # The desktop links hide below md, the menu above it.
     assert '<nav aria-label="Main" class="hidden md:flex' in _nav(home)
 
 
 def test_the_current_page_is_marked(home):
     marked = re.findall(r'<a [^>]*aria-current="page"[^>]*>([^<]+)<', _nav(home))
-    assert set(marked) == {"Engine"}
+    assert set(marked) == {"Engine"}  # Features links into the page, so it's never current
 
 
 def test_sign_in_is_coming_soon_and_never_a_link(home):
@@ -145,6 +145,14 @@ def test_every_content_link_resolves_or_is_well_formed(link):
         assert " " not in link.href
 
 
+def test_a_fragment_belongs_to_an_internal_link():
+    assert content.Link("Features", url_name="marketing:home", fragment="features").href == (
+        "/#features"
+    )
+    with pytest.raises(ValueError):
+        content.Link("Out", external=content.DOCS_URL, fragment="top")
+
+
 def test_a_link_must_have_exactly_one_target():
     with pytest.raises(ValueError):
         content.Link("Nowhere")
@@ -155,10 +163,18 @@ def test_a_link_must_have_exactly_one_target():
 
 
 def test_every_href_on_the_page_goes_somewhere_real(home):
+    ids = set(re.findall(r' id="([^"]+)"', home))
     for href in re.findall(r'href="([^"]+)"', home):
-        if href.startswith(("#", "/static/")):
+        if href.startswith("/static/"):
             continue
-        assert href == "/" or href.startswith("https://github.com/Axcenity-Studios/"), href
+        if href.startswith("https://"):
+            assert href.startswith("https://github.com/Axcenity-Studios/"), href
+            continue
+        parts = urlsplit(href)
+        if parts.path:
+            resolve(parts.path)  # raises Resolver404 for a dead internal link
+        if parts.fragment:
+            assert parts.fragment in ids, f"{href}: no element has that id"
 
 
 # ---------- Branding and fonts ----------

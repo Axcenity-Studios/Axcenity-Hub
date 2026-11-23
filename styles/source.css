@@ -222,6 +222,121 @@ html[data-pointer] .lift:hover::after { content: ""; position: absolute; inset: 
 .blur-up { animation: blur-up 0.5s var(--ease-expo) backwards; animation-delay: calc(var(--stagger, 0) * 40ms); }
 @keyframes blur-up { from { opacity: 0; filter: blur(10px); transform: translateY(10px) scale(0.985); } }
 
+/* ---------- Home ----------
+   The Cinematic Home (templates/marketing/home.html and home/). Copy comes from
+   marketing/content.py; static/js/home.js runs the rotation, reveals and the
+   pillars' stage. Everything shows at rest without JavaScript. See
+   docs/frontend/home.md. */
+
+/* Anchored sections and pillars stop below the fixed nav. */
+#content [id] { scroll-margin-top: 4rem; }
+
+/* Hero: the renderer capture behind the copy (until Phase 3's reel), fading to
+   the page colour where the text sits. */
+.hero-backdrop { position: absolute; inset: 0; margin: 0; }
+.hero-backdrop img { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; }
+.hero-backdrop::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-app) 60%, transparent), transparent 30%,
+      color-mix(in srgb, var(--color-app) 95%, transparent) 80%),
+    linear-gradient(90deg, color-mix(in srgb, var(--color-app) 85%, transparent), transparent 70%); }
+.hero-backdrop .media-cap { top: 5rem; right: 1rem; bottom: auto; left: auto; }
+
+/* The rotating line: every phrase in one grid cell, so the box is as tall as the
+   longest phrase at every width and nothing below it moves. */
+.rotator { display: grid; }
+.rotator > span { grid-area: 1 / 1; transition: opacity 0.7s var(--ease-expo), transform 0.7s var(--ease-expo), filter 0.7s var(--ease-expo); }
+.rotator > span:not([data-on]) { opacity: 0; transform: translateY(0.3em); filter: blur(6px); }
+.rotator > span[data-out] { transform: translateY(-0.3em); }
+
+/* Scroll reveals: rise out of a blur, --stagger × 80 ms late. Hidden only once
+   home.js has set html[data-reveals] (after marking what's already in view), so
+   without JavaScript everything simply shows. Never used above the fold. */
+html[data-reveals] [data-reveal] { transition: opacity 0.9s var(--ease-expo), transform 0.9s var(--ease-expo), filter 0.9s var(--ease-expo);
+  transition-delay: calc(var(--stagger, 0) * 80ms); }
+html[data-reveals] [data-reveal]:not([data-in]) { opacity: 0; transform: translateY(1.75rem); filter: blur(8px); }
+
+/* A media frame (marketing/media/frame.html): 16:10, a 1px edge, and a caption
+   on a solid chip so it reads over any picture. */
+.media { position: relative; margin: 0; overflow: hidden; aspect-ratio: 16 / 10; background: var(--color-inset); container-type: inline-size; }
+.media::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 0 1px var(--color-line); }
+.media > img, .media > svg { display: block; width: 100%; height: 100%; object-fit: cover; }
+.media-cap { color: var(--color-fg-secondary); background: var(--color-app); box-shadow: inset 0 0 0 1px var(--color-line);
+  position: absolute; bottom: 0.5rem; left: 0.5rem; z-index: 1; padding: 0.25rem 0.45rem; border-radius: 0.2rem; }
+
+/* Feature pillars: inline media below lg; from lg the text scrolls past one sticky stage. */
+.pillar { padding-block: 2.5rem; border-top: 1px solid var(--color-line); }
+.pillar-media:has(.drawn-code) { aspect-ratio: auto; }
+.stage-col { display: none; }
+@media (min-width: 64rem) {
+  .pillars { display: grid; grid-template-columns: 1fr 1.25fr; gap: 4rem; }
+  .pillar { display: flex; min-height: 75vh; flex-direction: column; justify-content: center; transition: opacity 0.6s var(--ease-expo); }
+  .pillars[data-live] .pillar:not([data-on]) { opacity: 0.35; }
+  .pillar-media { display: none; }
+  .stage-col { display: block; }
+  .stage { position: sticky; top: max(5.5rem, calc(50vh - 14rem)); aspect-ratio: 16 / 10; }
+  .stage-item { position: absolute; inset: 0; visibility: hidden; opacity: 0; transform: scale(0.97);
+    transition: opacity 0.8s var(--ease-expo), transform 0.8s var(--ease-expo), visibility 0s linear 0.8s; }
+  .stage-item[data-on] { visibility: visible; opacity: 1; transform: none; transition-delay: 0s; }
+  .stage-item > .media { height: 100%; }
+}
+
+/* Workflow: oversized outlined numerals (decorative; the step title is the text). */
+.flow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.flow-step { padding: 2.5rem 1rem; border-top: 1px solid var(--color-line); }
+.flow-step:nth-child(even) { border-left: 1px solid var(--color-line); }
+@media (min-width: 48rem) {
+  .flow { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .flow-step { padding: 2.5rem 1.75rem; border-left: 1px solid var(--color-line); }
+  .flow-step:first-child { border-left: 0; }
+}
+.flow-num { color: transparent; -webkit-text-stroke: 1px var(--color-fg-weak);
+  display: block; font-family: var(--font-display); font-size: clamp(4rem, 9vw, 8.75rem); font-weight: 800; line-height: 0.9; letter-spacing: -0.05em; }
+
+/* Toolbox banner and the community row. */
+.toolbox-features { border-top: 1px solid var(--color-line); }
+.toolbox-features > li { padding: 1.5rem 1.75rem; border-bottom: 1px solid var(--color-line); }
+.toolbox-features > li:last-child { border-bottom: 0; }
+@media (min-width: 48rem) { .toolbox-features { border-top: 0; border-left: 1px solid var(--color-line); } }
+.community { gap: 1px; background: var(--color-line); box-shadow: 0 0 0 1px var(--color-line); }
+.community > li { display: flex; min-height: 13rem; flex-direction: column; gap: 0.75rem; padding: 2rem; background: var(--color-app); }
+
+/* Drawn media: coloured only by the tokens, so they follow light and dark. */
+.drawn-terrain { background: var(--color-inset); }
+.drawn-grid { stroke: var(--color-fg-weak); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.drawn-trees { fill: var(--color-fg-secondary); }
+
+.drawn-code { color: var(--color-fg); background: var(--color-inset); height: 100%; margin: 0; overflow: auto; padding: 1.25rem 1.25rem 3rem;
+  font-family: var(--font-mono); font-size: 0.8125rem; line-height: 1.7; white-space: pre; }
+.tok-k { color: var(--color-fg-strong); font-weight: 700; }
+.tok-c { color: var(--color-fg-weak); }
+.tok-s { color: var(--color-fg-secondary); }
+
+.drawn-editor { position: relative; height: 100%; font-size: clamp(6px, 1.8cqi, 12px); line-height: 1.4; color: var(--color-fg-secondary); }
+.ed-window { position: absolute; display: flex; flex-direction: column; overflow: hidden; border-radius: 0.4em; background: var(--color-app);
+  box-shadow: inset 0 0 0 1px var(--color-line-strong), var(--lift-shadow); }
+.ed-main { top: 7%; left: 4%; width: 72%; height: 82%; }
+.ed-float { top: 24%; right: 4%; width: 30%; height: 56%; }
+.ed-bar { display: flex; flex: none; align-items: center; gap: 0.8em; height: 2.4em; padding-inline: 0.9em; border-bottom: 1px solid var(--color-line);
+  color: var(--color-fg-weak); white-space: nowrap; }
+.ed-dots { display: flex; gap: 0.35em; }
+.ed-dots i { width: 0.55em; height: 0.55em; border-radius: 9999px; background: var(--color-control-active); }
+.ed-dock { display: grid; flex: 1; min-height: 0; grid-template-columns: 1fr 34%; grid-template-rows: 1fr 30%; gap: 1px; background: var(--color-line); }
+.ed-panel { display: flex; flex: 1; min-height: 0; flex-direction: column; overflow: hidden; background: var(--color-panel); }
+.ed-console { grid-column: 1 / -1; }
+.ed-tabs { display: flex; flex: none; height: 2.2em; border-bottom: 1px solid var(--color-line); }
+.ed-tab { display: flex; align-items: center; padding-inline: 0.9em; color: var(--color-fg-weak); }
+.ed-tab[data-on] { background: var(--color-surface); color: var(--color-fg-strong); }
+.ed-viewport { display: grid; flex: 1; place-items: center; background-color: var(--color-inset); }
+.ed-model { width: 62%; fill: none; stroke: var(--color-fg-weak); stroke-width: 1.5; }
+.ed-gizmo { stroke: var(--color-fg-strong); }
+.ed-tree { margin: 0; padding: 0.5em 0; list-style: none; }
+.ed-tree li { padding: 0.2em 0.9em 0.2em calc(0.9em + var(--depth, 0) * 1.1em); white-space: nowrap; }
+.ed-tree li[data-on] { background: var(--color-control-active); color: var(--color-fg-strong); }
+.ed-line { margin: 0; padding: 0.6em 0.9em; color: var(--color-fg-weak); font-family: var(--font-mono); }
+.ed-rows { display: grid; grid-template-columns: auto 1fr; gap: 0.5em 1em; margin: 0; padding: 0.8em 0.9em; }
+.ed-rows dt { color: var(--color-fg-weak); }
+.ed-rows dd { margin: 0; color: var(--color-fg); }
+
 /* ---------- Reduced motion ----------
    Nothing moves. Every entry animation runs from a "from" state to the
    element's own style, so with no animation the content simply shows at rest. */
@@ -229,6 +344,8 @@ html[data-pointer] .lift:hover::after { content: ""; position: absolute; inset: 
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   .spotlight::before { display: none; }
   html[data-pointer] .lift:hover { transform: none; }
+  /* Home: reveals show at rest. */
+  html[data-reveals] [data-reveal]:not([data-in]) { opacity: 1; transform: none; filter: none; }
 }
 
 /* ---------- Light mode ----------

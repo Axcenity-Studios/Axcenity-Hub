@@ -1,0 +1,8 @@
+{% load static %}
+{# One item from content.MEDIA in a 16:10 frame with its caption ("Engine capture" or "Illustrative"). #}
+{# Usage: {% include "marketing/media/frame.html" with media=pillar.media class="…" %}                #}
+<figure class="media {{ class }}">
+  {% if media.src %}<img src="{% static media.src %}" alt="{{ media.alt }}" width="{{ media.source_size.0 }}" height="{{ media.source_size.1 }}" loading="lazy" decoding="async">
+  {% else %}{% include media.drawn with media=media %}{% endif %}
+  <figcaption class="media-cap micro">{{ media.caption }}</figcaption>
+</figure>

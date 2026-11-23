@@ -1,0 +1,14 @@
+{# The coming-soon community row: Forums, Showcases, Projects. #}
+<section id="community" class="mx-auto max-w-[1400px] px-4 py-24 md:px-8 md:py-32">
+  <p class="micro text-fg-weak" data-reveal>{{ community.eyebrow }}</p>
+  <h2 class="headline mt-4 max-w-3xl text-4xl text-fg-strong md:text-6xl" data-reveal>{{ community.title }}</h2>
+  <ul class="community mt-12 grid md:grid-cols-3" data-reveal>
+    {% for card in community.cards %}
+      <li>
+        <span class="soon-tag micro self-start">{{ community.tag }}</span>
+        <h3 class="text-2xl font-semibold text-fg-strong">{{ card.title }}</h3>
+        <p class="text-fg-secondary">{{ card.body }}</p>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
