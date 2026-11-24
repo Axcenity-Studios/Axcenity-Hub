@@ -25,7 +25,7 @@
     </h1>
     <p class="mt-6 max-w-xl text-lg text-fg-secondary">{{ hero.pitch }}</p>
     <div class="mt-8 flex flex-wrap gap-3">
-      <a href="{{ hero.primary.href }}" rel="noopener" class="btn btn-primary">{{ hero.primary.label }}</a>
+      <a href="{{ hero.primary.href }}"{% if hero.primary.is_external %} rel="noopener"{% endif %} class="btn btn-primary">{{ hero.primary.label }}</a>
       <a href="{{ hero.secondary.href }}"{% if hero.secondary.is_external %} rel="noopener"{% endif %} class="btn btn-quiet">{{ hero.secondary.label }}</a>
     </div>
   </div>

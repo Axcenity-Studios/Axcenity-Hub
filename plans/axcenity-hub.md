@@ -360,10 +360,10 @@ Built test-first with the `tdd` skill; the rest of the phase is built and tested
 
 ### Acceptance criteria
 
-- [ ] Tests use `responses` fixtures trimmed from a real release payload: OS grouping, newest non-draft selection, alpha marking, digest display
-- [ ] A 304 response reuses the cache; a 5xx, timeout, or 403/429 rate limit serves cached data or the GitHub link, never an error page
-- [ ] OS detection highlights the right build and every build stays reachable
-- [ ] No test reaches the network
+- [x] Tests use `responses` fixtures trimmed from a real release payload: OS grouping, newest non-draft selection, alpha marking, digest display
+- [x] A 304 response reuses the cache; a 5xx, timeout, or 403/429 rate limit serves cached data or the GitHub link, never an error page
+- [x] OS detection highlights the right build and every build stays reachable
+- [x] No test reaches the network
 
 ---
 

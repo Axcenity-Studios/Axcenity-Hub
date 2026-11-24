@@ -9,7 +9,7 @@ index:** the rules below apply everywhere; topic files under
 | Path | Holds |
 |---|---|
 | `config/` | Settings, root URLs, WSGI/ASGI, site-wide context processors, `theme.py` (the colour-scheme cookie) |
-| `marketing/` | Public signed-out pages: Home, Toolbox, and Download (Phase 7). `content.py` holds their copy, links and media manifest as data; `drawings.py` computes the drawn media; `media.py` cuts captures into derivatives (`manage.py make_media`) |
+| `marketing/` | Public signed-out pages: Home, Toolbox and Download. `content.py` holds their copy, links and media manifest as data; `drawings.py` computes the drawn media; `media.py` cuts captures into derivatives (`manage.py make_media`); `github.py` is the one GitHub request (the engine's release list) and `releases.py` chooses the release, groups its builds and caches it ([frontend/download.md](frontend/download.md)) |
 | `documentation/` | The engine docs at `/docs/`: `sync.py` (`sync_engine_docs`), `navigation.py`, `links.py`, `rendering.py`, `highlight.py`, `library.py` (the snapshot as served, and its build check), `api.py` (API pages as structure), `search.py` (the index and ranking), `diagrams.py`, `strings.py`. See [frontend/documentation.md](frontend/documentation.md) |
 | `documentation/content/` | The committed snapshot of the engine's `documentation/` folder, with `SOURCE.json` (commit and tree). Only `sync_engine_docs` writes it |
 | `marketing/media_sources/` | Captures as copied in (never served, never edited): the sources `make_media` reads, and `toolbox-capture.json`, the Toolbox screenshots' capture record |
@@ -40,6 +40,7 @@ Later phases add `accounts`, `projects`, `forums`, `showcases`, `reports`,
 |---|---|---|
 | `/` | `marketing:home` | `HomeView` |
 | `/toolbox/` | `marketing:toolbox` | `ToolboxView`: the Toolbox overview ([frontend/toolbox.md](frontend/toolbox.md)) |
+| `/download/` | `marketing:download` | `DownloadView`: the engine's newest release from GitHub, its builds by system ([frontend/download.md](frontend/download.md)); varies on `User-Agent` and `Sec-CH-UA-Platform` |
 | `/docs/` | `documentation:index` | `DocsIndexView`: the docs' README and a panel per section |
 | `/docs/search/` | `documentation:search` | `DocsSearchView`: `?q=` search over the snapshot's index, `&page=` (20 a page) |
 | `/docs/<path>/` | `documentation:page` | `DocsPageView`: a snapshot page by its lower-cased path without `.md` (`/docs/api/classes/part/`); a README is its folder; API pages get their own templates; unknown paths 404 |
@@ -65,9 +66,10 @@ Later phases add `accounts`, `projects`, `forums`, `showcases`, `reports`,
   [frontend/media.md](frontend/media.md).
 - `marketing/media.py` (`widths_for`, `derivatives`, `build`) is the media
   pipeline; `manage.py make_media [--force]` runs it for every capture.
-- Engine links point at `github.com/Axcenity-Studios/Axcenity-Engine`:
-  Download at `/releases` (never `/releases/latest`: every release is a
-  prerelease, so it 404s). Docs links go to `/docs/` (`documentation:index`,
+- Download links go to `/download/` (`marketing:download`). Engine links
+  point at `github.com/Axcenity-Studios/Axcenity-Engine` (`github.ENGINE_REPO_URL`);
+  the releases list is `/releases` (never `/releases/latest`: every release
+  is a prerelease, so it 404s). Docs links go to `/docs/` (`documentation:index`,
   and `content.GETTING_STARTED`).
 - `content.Link` takes `args` for a URL with arguments, and a `section`
   (a URL namespace) that marks it current anywhere in that section.
@@ -84,6 +86,18 @@ Later phases add `accounts`, `projects`, `forums`, `showcases`, `reports`,
 - Markdown rendering is a security boundary: raw HTML is off, and every
   link and image passes `links.resolve`'s allow-list. See
   [frontend/documentation.md](frontend/documentation.md).
+
+## External APIs
+
+- **GitHub** (Phase 7): `marketing/github.py` makes the Hub's one GitHub
+  request so far, the engine's release list, unauthenticated, with a fixed
+  `User-Agent`, a pinned API version, a timeout and `If-None-Match`. It
+  never raises for an HTTP or network failure. `marketing/releases.py`
+  caches the result in Django's cache (fresh for an hour, kept seven days
+  as the fallback) and backs off after a failure. GitHub's data is
+  untrusted input: every field is checked before use.
+- The cache is local memory in development. Production needs a shared
+  cache so every process shares one list and one backoff (Phase 8).
 
 ## Settings
 

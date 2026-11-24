@@ -56,7 +56,9 @@ than trusting the numbers in the stylesheet.
 The editor's selection blue: `#19A0FF` on dark, `#0B67B8` on light. It is
 DaisyUI's `primary` and `accent` role and has exactly these uses:
 
-- the primary button (`btn btn-primary`): Download, Download alpha
+- the primary button (`btn btn-primary`): Download, Download alpha, and
+  `/download/`'s one button (Download for <system>, Choose your build, or
+  Open GitHub Releases)
 - the version badge's dot (`.badge-dot`, the only `var(--color-accent)`)
 - the renderer wipe's scan line (`colors.accent`, drawn only by
   `drawing/renderer.js`)

@@ -98,10 +98,11 @@ def test_coming_soon_items_are_never_links(home):
 def test_download_is_the_only_primary_button_in_the_nav(home):
     nav = _nav(home)
     primaries = re.findall(r'<a href="([^"]+)"[^>]*class="btn btn-primary[^"]*">([^<]+)<', nav)
-    assert primaries == [(content.RELEASES_URL, "Download")]
+    assert primaries == [(reverse("marketing:download"), "Download")]
 
 
-def test_download_links_the_releases_list_not_latest():
+def test_download_links_the_download_page_and_github_links_the_releases_list_not_latest():
+    assert content.DOWNLOAD.href == "/download/"
     assert content.RELEASES_URL.endswith("/Axcenity-Engine/releases")
     assert all("releases/latest" not in link.href for link in content.all_links())
 

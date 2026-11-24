@@ -41,9 +41,9 @@ Ticked boxes in [plans/axcenity-hub.md](plans/axcenity-hub.md) are the source of
 | **5** | Feature media: captures, derivatives and the media manifest | Done |
 | **6** | `/toolbox/`: the Toolbox overview page | Done |
 | **6B** | `/docs/`: the engine documentation site, from a committed snapshot | Done |
-| **6C** | The API reference's layout and docs search | Next |
-| **7** | `/download/`: releases from the GitHub API | Planned |
-| **8–9** | Accounts, two-factor sign-in, GitHub linking | Planned |
+| **6C** | The API reference's layout and docs search | Done |
+| **7** | `/download/`: releases from the GitHub API | Done |
+| **8–9** | Accounts, two-factor sign-in, GitHub linking | Next |
 | **10–11** | Projects, repository integration and teams | Planned |
 | **12–15** | Forums, showcases, bug reports, moderation | Planned |
 | **16–17** | REST API, and porting the Toolbox into the Hub | Planned |
@@ -64,6 +64,7 @@ Ticked boxes in [plans/axcenity-hub.md](plans/axcenity-hub.md) are the source of
 | **Interactivity** | Vanilla JavaScript (ES modules), Canvas 2D | The reel and animated loops in [`static/reel/`](static/reel/); any library is a vendored file. HTMX joins with the members' pages |
 | **Images** | Pillow | `make_media` cuts captures into AVIF, WebP and JPEG derivatives |
 | **Docs** | markdown-it-py, Pygments, PyYAML | The engine docs rendered server-side (raw HTML off), Luau highlighted as the editor does; `sync_engine_docs` copies them in |
+| **GitHub API** | requests, responses (tests) | `/download/` reads the engine's release list with ETags and an hourly cache; tests mock GitHub with `responses` |
 | **Database** | SQLite (development and tests) | PostgreSQL planned for production |
 | **Tests** | pytest, pytest-django, pytest-playwright (Chromium) | Fast suite plus browser tests behind a `browser` marker |
 | **Lint and format** | Ruff | Rules: `E F W I B UP DJ`, line length 100 |

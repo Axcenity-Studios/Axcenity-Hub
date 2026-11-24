@@ -13,13 +13,14 @@ from dataclasses import dataclass, field
 from django.templatetags.static import static
 from django.urls import reverse
 
-from marketing import drawings, media
+from marketing import drawings, github, media, releases
 
 # The engine's canonical repository (the README's older account redirects here).
-ENGINE_REPO_URL = "https://github.com/Axcenity-Studios/Axcenity-Engine"
+ENGINE_REPO_URL = github.ENGINE_REPO_URL
 # Every release is a prerelease, so link the list, never /releases/latest (it 404s).
 RELEASES_URL = f"{ENGINE_REPO_URL}/releases"
-# The engine's newest release tag (Cargo.toml's workspace version). Phase 7 reads it from GitHub.
+# The engine's newest release tag (Cargo.toml's workspace version), for Home's badge. Only
+# /download/ reads releases from GitHub (marketing/releases.py).
 ENGINE_VERSION = "v0.3.0-alpha.1"
 
 # The Axcenity Toolbox: its own repository for now (it moves into the Hub in a later phase).
@@ -826,14 +827,14 @@ SIGN_IN = Link("Sign in", soon=True)
 GETTING_STARTED = Link(
     "Getting started", url_name="documentation:page", args=("learn/getting-started",)
 )
-DOWNLOAD = Link("Download", external=RELEASES_URL)
+DOWNLOAD = Link("Download", url_name="marketing:download")
 
 FOOTER_TAGLINE = "Free and open source. Alpha software: expect breaking changes."
 FOOTER_SIGNATURE = "Axcenity Studios · 2026"
 FOOTER_COLUMNS = [
     FooterColumn(
         "Engine",
-        [Link("Download", external=RELEASES_URL), Link("GitHub", external=ENGINE_REPO_URL)],
+        [Link("Download", url_name="marketing:download"), Link("GitHub", external=ENGINE_REPO_URL)],
     ),
     FooterColumn(
         "Learn",
@@ -891,7 +892,7 @@ HOME_HERO = {
         "A free, open-source 3D game engine and editor written in Rust, now in alpha. "
         "Build worlds, script in Luau, test with F5 and export for Windows, macOS and Linux."
     ),
-    "primary": Link("Download alpha", external=RELEASES_URL),
+    "primary": Link("Download alpha", url_name="marketing:download"),
     "secondary": Link("Read the docs", url_name="documentation:index"),
     # The film filling the hero (docs/frontend/media.md has its cut list), and its button's
     # screen-reader names.
@@ -1012,7 +1013,7 @@ HOME_COMMUNITY = {
 HOME_FINAL = {
     "title": "Start building.",
     "body": "Download the alpha for Windows, macOS or Linux, then follow the getting-started guide.",
-    "primary": Link("Download alpha", external=RELEASES_URL),
+    "primary": Link("Download alpha", url_name="marketing:download"),
     "secondary": GETTING_STARTED,
     # The getting-started guide's first steps (documentation/learn/getting-started.md).
     "steps": [
@@ -1169,9 +1170,145 @@ TOOLBOX_PAGE = {
 }
 
 
+# ---------- Download page (/download/) ----------
+# The release itself comes from GitHub (marketing/releases.py); this is the page's frame.
+# The labels, hints and commands are the engine's own release notes
+# (packaging/release-notes.md.tpl in the engine repository).
+
+DOWNLOAD_BUILDS = [
+    releases.BuildKind(
+        "windows",
+        "Setup wizard",
+        "Run the setup wizard. If SmartScreen appears, choose More info, then Run anyway.",
+        tail="-windows-x86_64.exe",
+        primary=True,
+    ),
+    releases.BuildKind(
+        "macos",
+        "Disk image",
+        "Agree to the license and drag Axcenity Editor onto Applications. It's unsigned, "
+        "so Control-click the app and choose Open the first time.",
+        tail="-macos-universal.dmg",
+        primary=True,
+    ),
+    releases.BuildKind(
+        "linux",
+        "Any Linux, no install (AppImage)",
+        "Make it executable, then run it.",
+        command="chmod +x {file}",
+        tail="-linux-x86_64.AppImage",
+        primary=True,
+    ),
+    releases.BuildKind(
+        "linux", "Debian / Ubuntu", command="sudo apt install ./{file}", tail="-linux-x86_64.deb"
+    ),
+    releases.BuildKind(
+        "linux",
+        "Fedora / RHEL / openSUSE",
+        command="sudo dnf install ./{file}",
+        tail="-linux-x86_64.rpm",
+    ),
+    releases.BuildKind(
+        "linux", "Arch Linux", command="sudo pacman -U {file}", tail="-linux-x86_64.pkg.tar.zst"
+    ),
+    releases.BuildKind(
+        "linux",
+        "Any Linux, portable (tar.gz)",
+        "Extract it and run ./axcenity-editor.",
+        tail="-linux-x86_64.tar.gz",
+    ),
+    releases.BuildKind(
+        "other",
+        "Updater archive",
+        "What the editor's own updater installs. You don't need it.",
+        tail="-windows-x86_64-update.zip",
+    ),
+    releases.BuildKind(
+        "other", "Checksums", "Every file's SHA-256, one per line.", name="SHA256SUMS.txt"
+    ),
+    releases.BuildKind(
+        "other",
+        "Signed release manifest",
+        "Lists every file's SHA-256 and is signed with minisign.",
+        name="axcenity-release.json",
+    ),
+    releases.BuildKind(
+        "other",
+        "Manifest signature",
+        "Check the manifest with the engine's public key, axcenity-release.pub:",
+        command="minisign -Vm axcenity-release.json -p axcenity-release.pub",
+        name="axcenity-release.json.minisig",
+    ),
+    releases.BuildKind(
+        "other",
+        "Release history",
+        "The history the editor's Version Explorer reads.",
+        name="axcenity-history.json",
+    ),
+]
+
+DOWNLOAD_PAGE = {
+    "title": "Download",
+    "description": (
+        "Download Axcenity Engine, the free and open-source 3D game engine, for Windows, "
+        "macOS or Linux: the newest alpha with its file sizes and SHA-256 checksums."
+    ),
+    "eyebrow": "Download",
+    "headline": "Download Axcenity Engine.",
+    "lede": (
+        "Free and open source, for Windows, macOS and Linux. Each editor build includes "
+        "players for all three, so File > Build Game can target any of them."
+    ),
+    "systems": {"windows": "Windows", "macos": "macOS", "linux": "Linux", "other": "Other files"},
+    "alpha": "Alpha",
+    "alpha_note": ("Alpha software: file formats and some APIs can still change between releases."),
+    "download_for": "Download for",
+    "other_systems": Link("Other systems", url_name="marketing:download", fragment="builds"),
+    "choose": Link("Choose your build", url_name="marketing:download", fragment="builds"),
+    "unknown_system": "We couldn't tell your system. Pick its build below.",
+    "released": "Released",
+    "notes": "Release notes on GitHub",
+    "all_releases": Link("All releases on GitHub", external=RELEASES_URL),
+    "stale": "GitHub didn't answer just now, so this is the release list as of",
+    "unavailable": {
+        "title": "The builds are on GitHub.",
+        "body": (
+            "We couldn't reach GitHub to list the newest release just now. Every build, "
+            "with its checksums, is on the engine's Releases page."
+        ),
+        "link": Link("Open GitHub Releases", external=RELEASES_URL),
+    },
+    "builds_title": "Every build",
+    "detected": "Your system",
+    "download": "Download",
+    "sha256": "SHA-256",
+    "no_digest": "GitHub didn't publish one for this file. See SHA256SUMS.txt.",
+    "verify": {
+        "eyebrow": "Checking the download",
+        "title": "Compare the checksum.",
+        "body": (
+            "GitHub computes each file's SHA-256 when it's uploaded. Hash your copy and "
+            "compare it with the one listed beside the file."
+        ),
+        "commands": [
+            ("Windows", "certutil -hashfile <file> SHA256"),
+            ("macOS", "shasum -a 256 <file>"),
+            ("Linux", "sha256sum <file>"),
+        ],
+    },
+    "data_note": "Release data from the GitHub API, refreshed about once an hour.",
+}
+
+
 def all_links() -> list[Link]:
     """Every link in this module, for the link checks in the tests."""
     links = [*NAV_LINKS, SIGN_IN, DOWNLOAD, HOME_TOOLBOX["cta"]]
+    links += [
+        DOWNLOAD_PAGE["other_systems"],
+        DOWNLOAD_PAGE["choose"],
+        DOWNLOAD_PAGE["all_releases"],
+        DOWNLOAD_PAGE["unavailable"]["link"],
+    ]
     links += [TOOLBOX_PAGE["primary"], TOOLBOX_PAGE["secondary"], TOOLBOX_PAGE["run"]["readme"]]
     for block in (HOME_HERO, HOME_FINAL):
         links += [block["primary"], block["secondary"]]

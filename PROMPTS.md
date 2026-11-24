@@ -28,6 +28,97 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-24 — Axcenity Hub: Phase 7/17, Download page
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub.md phase 7`.
+2. "Looks good move to TDD only stopping on red"
+3. (TDD 1, release selection, RED) "Looks good move to next"
+4. (TDD 2, failure fallbacks, RED) "Looks good move to next"
+5. (TDD 3, the 304 and ETag, RED) "Move to next red phase only stop at red"
+
+### Summary
+
+- **Outcome:** `/download/` serves the engine's newest release from
+  GitHub's release list. It shows the version, an Alpha badge, the date
+  and title, and every file grouped by system with its size, SHA-256 and
+  install hint. The visitor's system gets a "Download for <system>"
+  button.
+  - ETag requests; data is fresh for an hour and kept seven days as the
+    fallback, with a backoff after failures.
+  - When GitHub fails, the page serves the cached list with its date,
+    then a plain GitHub Releases link. It never shows an error page.
+  - The nav, Home's two CTAs and the footer now link to `/download/`.
+  - 912 tests pass (844 fast, 92 of them in `test_download.py`); Ruff is
+    clean. All four acceptance criteria are ticked.
+- **Changes:**
+  - `marketing/github.py` (new): the one GitHub request: User-Agent,
+    pinned API version, `If-None-Match`, a timeout. Every failure comes
+    back as a `Fetched` result instead of an exception.
+  - `marketing/releases.py` (new):
+    - choosing the release, with validation of every GitHub field
+      (digests, download URLs, names, sizes, dates)
+    - `group_builds`, `detect_system`
+    - `current_release`: cache, ETag, fallbacks and backoff
+  - `marketing/content.py`:
+    - `DOWNLOAD_PAGE` and `DOWNLOAD_BUILDS`, taken from the engine's
+      release-notes template
+    - Download links switched to `marketing:download`
+    - `ENGINE_REPO_URL` now comes from `github.py`; the `ENGINE_VERSION`
+      comment corrected
+  - `marketing/views.py`, `urls.py`: `DownloadView` at `/download/`,
+    varying on `User-Agent` and `Sec-CH-UA-Platform`.
+  - `templates/marketing/download.html`, `download/build.html` (new); the
+    `.dl-*` classes in `styles/source.css`.
+  - `templates/partials/site_nav.html`, `home/hero.html`,
+    `home/final.html`: `rel="noopener"` only on external links; the nav's
+    Download is marked current on `/download/`.
+  - `tests/test_download.py`, `tests/fixtures/github/releases.json` (new):
+    the real release list, trimmed. `test_shell.py` and `test_home.py`
+    expect `/download/`.
+  - `pyproject.toml`, `uv.lock`: `requests`, and `responses` (dev).
+  - Docs: `docs/frontend/download.md` (new); ARCHITECTURE (layout, URL,
+    External APIs); the FRONTEND table; TESTING (file row, Mocking);
+    `theme.md` (the primary button's uses); `home.md`; README status and
+    stack.
+- **TDD:** each test was written first and failed on an assertion:
+  1. Selection: the newest non-draft wins, prereleases are marked alpha,
+     and a newer stable release counts.
+  2. Fallbacks: a 500, 503, timeout, 403 rate limit or 429 serves the
+     cached release with its date, then "unavailable", never raising.
+  3. A 304 to the stored ETag reuses the cached release and resets the
+     hour.
+- **Decisions:**
+  - "Newest" means the latest `published_at`.
+  - Data is fresh for 1 h and kept 7 days; the backoff follows
+    `Retry-After` or the rate-limit reset, else 5 min, bounded to 1 min–1 h.
+  - Any non-200/304 status or non-JSON body counts as a failure.
+  - The main builds are the `.exe`, the `.dmg` and the AppImage.
+  - Update zips, checksums, the manifest, its signature and the history
+    file go under "Other files", so every file stays reachable.
+  - System detection uses the client hint first, then the User-Agent;
+    phones, tablets and ChromeOS count as unknown.
+  - No GitHub token, and Home's badge stays the fixed `ENGINE_VERSION`.
+- **Deviations:** none; the user approved the plan and each red test as
+  written.
+- **Sideways:**
+  - The third TDD test first failed with a `KeyError`, not an assertion.
+    Reading the header with `.get()` fixed it; what it checks didn't
+    change.
+  - An ordinary test caught a real bug: a fresh cached list with no
+    release was reported "live". It's now "unavailable".
+  - `NOT_COPY` in the Home tests skips a key named `source`, so the
+    page's data note was renamed `data_note` to keep it in the copy check.
+  - Screenshots of the page at 375 and 1440 px against the live GitHub
+    list showed three problems: the title bars hid the panels' outlines,
+    the shorter panels stretched, and unlayered `margin: 0` rules beat
+    Tailwind's `mt-*`. All three were fixed. A first re-check looked
+    unchanged because the `--noreload` dev server still served the cached
+    old template.
+  - One live GitHub request was made outside the tests to capture the
+    fixture.
+
 ## 2026-11-24 — Axcenity Hub: Phase 6C/17, API reference
 
 ### Prompts

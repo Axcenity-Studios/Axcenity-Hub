@@ -24,7 +24,7 @@ link is never marked as the current page). Every `[id]` in `<main>` has
 `scroll-margin-top: 4rem`, so anchors stop below the fixed nav.
 
 - **Hero:** the version badge (`ENGINE_VERSION`), "Axcenity Engine.",
-  the rotating line, the pitch, Download alpha and Read the docs, over
+  the rotating line, the pitch, Download alpha (`/download/`) and Read the docs, over
   the full-bleed Desert Homestead film ([media.md](media.md)) with its
   caption and pause button bottom right. The badge sits on the page
   colour so it reads over any frame. Nothing in the hero uses a reveal.

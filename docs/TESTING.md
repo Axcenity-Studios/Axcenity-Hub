@@ -26,6 +26,7 @@ is on, so an unregistered marker fails.
 | `test_home_browser.py` | `browser`: the workflow and stat motifs play in view, reset once fully off screen and play again on return; rest drawn under reduced motion; sit beside their numerals and titles with no overflow from 360 to 1280 px |
 | `test_media_browser.py` | `browser`: the Toolbox page's screenshots at the same widths, schemes and ratios (the scheme's own twin, 16:10, drawn whole, sharp, the other twin never fetched, no sideways scroll) and a live switch to light; every pillar's and section's media at 360, 768, 1280, 1440 and 2560 px, dark and light, 1× and 2× (16:10, a file or canvas sharp for the pixel ratio, no sideways scroll), saved to `screenshots/media/` for review by eye; loops play only on screen and pause with their button; reduced motion shows the still; each loop is a pure function of time and wraps seamlessly; the wipe's capture is never upscaled |
 | `test_toolbox.py` | The Toolbox page: its URL, sections and links (nav, footer, the Home banner, the GitHub repo), copy as data, the commands (uv only; equal to the Toolbox README when its checkout is on this machine, skipped otherwise), the demo credentials' labels, the screenshots (Toolbox captions, derivatives, a `<picture>` per scheme, light twins that match their capture) and their capture record (SHA-256 of each committed file, the source commit, the demo accounts' lack of privileges) |
+| `test_download.py` | The download page: choosing the release (drafts, prereleases marked alpha, stable), GitHub's failures falling back to the cache then the plain link, the 304 and ETag, freshness and backoff, the request's headers, untrusted fields (digests, download URLs, names, sizes, malformed lists), builds by system for every real release, system detection, and the page (the highlighted build, every file reachable, sizes and SHA-256s, commands, stale and unavailable states, `Vary`, escaping, copy as data) |
 | `test_documentation.py` | The docs: link rewriting and its refusals, SUMMARY.md's tree, `sync` against a fake engine repository in `tmp_path` (atomicity, refusals, idempotence, determinism) and `tree_hash` against git on sha1 and sha256 repos, Luau highlighting on the editor's own test cases, rendering as a security boundary, heading ids, front matter, the committed snapshot (build check, tree hash, its commit in the engine when checked out, diagrams), every page's title and description, a walk of every link, anchor and image, the layout's markup, badges, provenance, routing, the site's docs links and the command |
 | `test_documentation_api.py` | The API reference: parsing each page shape and its refusals, type names and linked signatures, every API page's member table and anchors, type links on every page, the class layout (lead, tables, inherited group, rail), the API home without JavaScript, search ranking and query handling, the fixed queries' first results, pagination, messages, escaping, the form, the index |
 | `test_documentation_browser.py` | `browser`: the longest class page at 375 px has no sideways scroll (its summary tables and inherited group included), its sidebar is a closed disclosure, and the copy button copies a block's exact text; the API home's filter narrows its lists |
@@ -90,9 +91,19 @@ date, no signing). That's local only, so the network guard is unaffected.
 
 ## Mocking
 
-External HTTP (GitHub, from Phase 7) is mocked with `responses`, added
-when the first external call is. Never call a live API: the guard fails
-the test.
+External HTTP is mocked with `responses` (`@responses.activate`). Never
+call a live API: the guard fails the test, and its error is a
+`RuntimeError`, so the clients' failure handling (which catches
+`requests` exceptions) can't swallow it
+(`test_an_unmocked_request_fails_the_test_instead_of_being_swallowed`).
+
+- GitHub replies are built from real payloads trimmed to the fields the
+  Hub reads, in `tests/fixtures/github/` (`releases.json`: the engine's
+  release list, with the ETag GitHub sent noted in `test_download.py`).
+- Pass `now=` to `releases.current_release` to step through freshness and
+  backoff instead of sleeping; the autouse cache clear resets both.
+- Simulate failures with `responses`' `status=`, `headers=` (`Retry-After`,
+  `X-RateLimit-*`) and `body=requests.Timeout(…)`.
 
 ## Access and CSRF tests
 

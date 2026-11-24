@@ -458,6 +458,33 @@ html[data-motifs] .motif[data-on] .m-bubble + .m-bubble { animation-delay: calc(
   box-shadow: inset 0 0 0 1px var(--color-line); overflow-wrap: anywhere; }
 .tb-demo { padding: 1.25rem 1.25rem 1.375rem; background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--color-line-strong); }
 
+/* ---------- The download page (/download/) ----------
+   A panel per system in the Toolbox's title-bar language; the visitor's own system is
+   outlined in ink (never the accent). File names, hashes and commands wrap or scroll
+   inside their own box, never the page. */
+.dl-tag { padding: 0.2rem 0.4rem; border-radius: 0.2rem; box-shadow: inset 0 0 0 1px var(--color-line-strong); color: var(--color-fg-strong); }
+/* 1px of padding keeps the title bar's background off the panel's outline. */
+.dl-system { min-width: 0; padding: 1px; }
+.dl-system[data-detected] { box-shadow: inset 0 0 0 1px var(--color-ink); }
+.dl-builds { display: grid; margin: 0; padding: 0; list-style: none; }
+.dl-build { min-width: 0; padding: 1.25rem 1.25rem 1.5rem; }
+.dl-build + .dl-build { border-top: 1px solid var(--color-line); }
+@media (min-width: 1024px) {
+  .dl-builds-wide { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dl-builds-wide > .dl-build { border-top: 0; border-left: 1px solid var(--color-line); }
+  .dl-builds-wide > .dl-build:nth-child(3n + 1) { border-left: 0; }
+  .dl-builds-wide > .dl-build:nth-child(n + 4) { border-top: 1px solid var(--color-line); } }
+.dl-file { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--color-fg-secondary); overflow-wrap: anywhere; }
+.dl-command { display: block; padding: 0.5rem 0.75rem; overflow-x: auto; font-family: var(--font-mono); font-size: 0.8125rem;
+  color: var(--color-fg-strong); background: var(--color-inset); box-shadow: inset 0 0 0 1px var(--color-line); white-space: pre; }
+.dl-digest { display: grid; gap: 0.25rem; }
+.dl-digest dd { margin: 0; }
+.dl-hash { font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.5; color: var(--color-fg-secondary); overflow-wrap: anywhere; word-break: break-all; }
+.dl-notice { max-width: 42rem; padding: 0.875rem 1rem; color: var(--color-fg); background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--color-line-strong); }
+.dl-verify { display: grid; gap: 1px; padding: 1px; background: var(--color-line); }
+.dl-verify > div { display: grid; gap: 0.5rem; padding: 1rem 1.25rem; background: var(--color-panel); }
+.dl-verify dd { margin: 0; min-width: 0; }
+
 /* Drawn media: coloured only by the tokens, so they follow light and dark. */
 .drawn-terrain { background: var(--color-inset); }
 .drawn-grid { stroke: var(--color-fg-weak); stroke-width: 1; vector-effect: non-scaling-stroke; }

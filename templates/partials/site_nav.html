@@ -23,7 +23,7 @@
         </button>
       </form>
       <span class="hidden md:inline-flex px-1 text-sm">{% include "partials/nav_link.html" with link=nav_sign_in class="nav-sign-in" %}</span>
-      <a href="{{ nav_download.href }}" rel="noopener" class="btn btn-primary btn-sm">{{ nav_download.label }}</a>
+      <a href="{{ nav_download.href }}"{% if nav_download.is_external %} rel="noopener"{% endif %} class="btn btn-primary btn-sm"{% if nav_download.url_name and nav_download.url_name == request.resolver_match.view_name %} aria-current="page"{% endif %}>{{ nav_download.label }}</a>
       <details class="nav-menu md:hidden">
         <summary class="nav-icon cursor-pointer">
           <span class="when-closed">{% include "partials/icon.html" with name="menu" size=20 %}</span>

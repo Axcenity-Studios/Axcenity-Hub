@@ -2,13 +2,15 @@
 
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect
+from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
+from django.views.decorators.vary import vary_on_headers
 from django.views.generic import TemplateView
 
 from config.theme import is_valid_theme, set_theme_cookie
 
-from . import content
+from . import content, releases
 
 
 class MarketingPageMixin:
@@ -54,6 +56,43 @@ class ToolboxView(MarketingPageMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["toolbox"] = content.TOOLBOX_PAGE
+        return context
+
+
+@method_decorator(vary_on_headers("User-Agent", "Sec-CH-UA-Platform"), name="dispatch")
+class DownloadView(MarketingPageMixin, TemplateView):
+    """The engine's newest release at /download/, its builds grouped by system.
+
+    The release comes from GitHub through marketing/releases.py's cache, which falls back
+    to the last list GitHub gave and then to a plain link to GitHub Releases, so this page
+    never fails because GitHub did. The visitor's system (from its headers) is highlighted.
+    """
+
+    template_name = "marketing/download.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        offer = releases.current_release()
+        system = releases.detect_system(
+            self.request.headers.get("User-Agent", ""),
+            self.request.headers.get("Sec-CH-UA-Platform", ""),
+        )
+        groups = (
+            releases.group_builds(offer.release, content.DOWNLOAD_BUILDS, system)
+            if offer.release
+            else []
+        )
+        names = content.DOWNLOAD_PAGE["systems"]
+        mine = next((group for group in groups if group.detected and group.primary), None)
+        context.update(
+            page=content.DOWNLOAD_PAGE,
+            offer=offer,
+            # (group, its name): the systems' panels, then "other" (every other file).
+            systems=[(group, names[group.system]) for group in groups if group.system != "other"],
+            others=next((group for group in groups if group.system == "other"), None),
+            mine=mine,
+            mine_name=names[mine.system] if mine else "",
+        )
         return context
 
 

@@ -1,0 +1,90 @@
+{% extends "marketing/shell.html" %}
+{# /download/: the engine's newest release from GitHub, its builds by system (docs/frontend/download.md). #}
+{# Every word comes from content.DOWNLOAD_PAGE and content.DOWNLOAD_BUILDS, or from the release itself.  #}
+{% block title %}{{ page.title }}{% endblock %}
+{% block description %}{{ page.description }}{% endblock %}
+{% block content %}
+<section id="overview" class="under-nav">
+  <div class="mx-auto max-w-[1400px] px-4 pt-10 pb-12 md:px-8 md:pt-16 md:pb-16">
+    <p class="micro text-fg-weak">{{ page.eyebrow }}</p>
+    <h1 class="display mt-4 text-5xl text-fg-strong sm:text-6xl md:text-8xl">{{ page.headline }}</h1>
+    <p class="mt-6 max-w-2xl text-lg text-fg-secondary md:text-xl">{{ page.lede }}</p>
+    {% if offer.release %}
+      {% with release=offer.release %}
+        <div class="mt-8 flex flex-wrap items-center gap-3">
+          <span class="badge-pill micro text-fg-strong"><span class="badge-dot" aria-hidden="true"></span>{{ release.tag }}</span>
+          {% if release.is_alpha %}<span class="dl-tag micro">{{ page.alpha }}</span>{% endif %}
+          <span class="micro text-fg-weak">{{ page.released }} <time datetime="{{ release.published_at|date:'c' }}">{{ release.published_at|date:"j F Y" }}</time></span>
+        </div>
+        <p class="mt-4 max-w-3xl font-semibold text-fg-strong">{{ release.title }}</p>
+        {% if release.is_alpha %}<p class="mt-2 max-w-2xl text-fg-secondary">{{ page.alpha_note }}</p>{% endif %}
+        <div class="mt-8 flex flex-wrap gap-3">
+          {% if mine %}
+            <a href="{{ mine.primary.asset.url }}" class="btn btn-primary">{{ page.download_for }} {{ mine_name }}</a>
+            <a href="{{ page.other_systems.href }}" class="btn btn-quiet">{{ page.other_systems.label }}</a>
+          {% else %}
+            <a href="{{ page.choose.href }}" class="btn btn-primary">{{ page.choose.label }}</a>
+          {% endif %}
+        </div>
+        {% if mine %}
+          <p class="dl-file mt-3">{{ mine.primary.asset.name }} · {{ mine.primary.asset.size|filesizeformat }}</p>
+        {% else %}
+          <p class="mt-3 text-sm text-fg-secondary">{{ page.unknown_system }}</p>
+        {% endif %}
+        {% if offer.state == "stale" %}
+          <p class="dl-notice mt-8" role="status">{{ page.stale }} <time datetime="{{ offer.fetched_at|date:'c' }}">{{ offer.fetched_at|date:"j F Y, H:i" }} UTC</time>.</p>
+        {% endif %}
+      {% endwith %}
+    {% else %}
+      <div class="panel dl-unavailable mt-10 max-w-2xl p-7 md:p-10" role="status">
+        <h2 class="headline text-2xl text-fg-strong md:text-3xl">{{ page.unavailable.title }}</h2>
+        <p class="mt-3 text-fg-secondary">{{ page.unavailable.body }}</p>
+        <p class="mt-6"><a href="{{ page.unavailable.link.href }}" rel="noopener" class="btn btn-primary">{{ page.unavailable.link.label }}</a></p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{% if offer.release %}
+<section id="builds" class="mx-auto max-w-[1400px] px-4 pb-16 md:px-8" aria-labelledby="builds-title">
+  <h2 id="builds-title" class="headline text-3xl text-fg-strong md:text-4xl">{{ page.builds_title }}</h2>
+  <div class="mt-8 grid items-start gap-6 lg:grid-cols-3">
+    {% for group, name in systems %}
+      <section class="panel dl-system" aria-labelledby="system-{{ group.system }}"{% if group.detected %} data-detected{% endif %}>
+        <div class="tb-bar justify-between pr-3">
+          <h3 id="system-{{ group.system }}" class="tb-chip tb-chip-current">{{ name }}</h3>
+          {% if group.detected %}<span class="dl-tag micro">{{ page.detected }}</span>{% endif %}
+        </div>
+        <ul class="dl-builds">
+          {% for build in group.builds %}{% include "marketing/download/build.html" %}{% endfor %}
+        </ul>
+      </section>
+    {% endfor %}
+  </div>
+  {% if others %}
+    <section class="panel dl-system mt-6" aria-labelledby="system-other">
+      <div class="tb-bar"><h3 id="system-other" class="tb-chip tb-chip-current">{{ page.systems.other }}</h3></div>
+      <ul class="dl-builds dl-builds-wide">
+        {% for build in others.builds %}{% include "marketing/download/build.html" %}{% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+  <p class="mt-8 flex flex-wrap gap-3">
+    {% if offer.release.page_url %}<a href="{{ offer.release.page_url }}" rel="noopener" class="btn btn-quiet">{{ page.notes }}</a>{% endif %}
+    <a href="{{ page.all_releases.href }}" rel="noopener" class="btn btn-quiet">{{ page.all_releases.label }}</a>
+  </p>
+</section>
+
+<section id="verify" class="mx-auto max-w-[1400px] px-4 pt-8 pb-28 md:px-8 md:pb-36">
+  <p class="micro text-fg-weak">{{ page.verify.eyebrow }}</p>
+  <h2 class="headline mt-4 text-3xl text-fg-strong md:text-4xl">{{ page.verify.title }}</h2>
+  <p class="mt-4 max-w-2xl text-fg-secondary">{{ page.verify.body }}</p>
+  <dl class="panel dl-verify mt-8 max-w-3xl">
+    {% for system, command in page.verify.commands %}
+      <div><dt class="micro text-fg-weak">{{ system }}</dt><dd><code class="dl-command">{{ command }}</code></dd></div>
+    {% endfor %}
+  </dl>
+  <p class="mt-8 text-sm text-fg-secondary">{{ page.data_note }}</p>
+</section>
+{% endif %}
+{% endblock %}
