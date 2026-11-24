@@ -28,6 +28,177 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-24 — Axcenity Hub: Phase 6B/17, Documentation site
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub.md phase 6B`.
+2. "Looks good just incorporate some of these safeguards: Snapshot sync must
+   be atomic - Build and valiudate the replacement snapshot in the temp
+   director and replace the commited snapshot after success a failed sync
+   should never leave documentation/content partially update. Validate
+   source control - Refuse dirty documentation changes is good, verify that
+   the recorded commit exists and that snapshots coorespond to that commit.
+   Keep sync deterministic and indepotent. Treat markdown rendering as a
+   security boundary, keep raw HTML disabled sanitize or reject unsafe URL
+   schemes and ensure rewritten iage and page paths cannot esape the
+   snapshot. Make the heading ID deterministic and collision safe Other than
+   that move to development"
+3. (TDD 1, link rewriting, RED) "Looks good just one small addition include
+   additional tests for https:// and mailto: with query strings and
+   fragments making sure they do not change. Make sure that encoded or
+   unsafe schemes or distorted scheme forms cannot bypass validation Query
+   strings on valid relative markdown links ensure they are preserved
+   appropriately. Otherwise make this test pass and move to the next red
+   phase"
+4. (TDD 2, navigation, RED) "Looks good just include one small change an
+   empty section or sections containing only nested entries should not
+   cause parsing or ordering errors if the real engine SUMMARY.md does not
+   contain either case this can be ordinary robustness. Other than that
+   make this test pass and move to the next red phase"
+5. (TDD 3, sync, RED) "Looks good go ahead and continue to development make
+   sure that tree_hash(dest) reproduces gits actual tree hash including file
+   modes and github object semantics"
+
+### Summary
+
+- **Outcome:** `/docs/` serves the engine's documentation in the marketing
+  shell from a committed snapshot of the engine's `documentation/` folder
+  (236 pages, 7 diagrams, engine commit `cae2e6c`, tree `b5fc734`).
+  - Rendering and layout: markdown-it-py with raw HTML off, Luau
+    highlighted as the editor does, a three-column layout with a
+    SUMMARY.md sidebar, breadcrumbs, "On this page", heading permalinks,
+    previous/next, status badges, the Alpha notice, View source at the
+    snapshot commit, and a provenance footer.
+  - Landing page: the docs' README, then one panel per section.
+  - Site links: the nav's Docs, Home's "Read the docs", and the footer's
+    Docs and Getting started now point at `/docs/`.
+  - Tests: 700 fast tests pass (133 of them new in
+    `test_documentation.py`), and one new browser smoke test passes.
+    The full browser suite passes (67). Ruff is clean.
+- **Changes:**
+  - `documentation/` (new app):
+    - `sync.py` and `management/commands/sync_engine_docs.py`: an atomic,
+      commit-verified copy and git's tree hash.
+    - `navigation.py`: SUMMARY.md's tree, reading order, previous/next,
+      trail and orphans.
+    - `links.py`: the link gate.
+    - `highlight.py`: a Pygments lexer copying `lua_syntax.rs`.
+    - `rendering.py`: front matter, Markdown, heading ids, code, tables
+      and figures.
+    - `library.py`: the snapshot as served, plus the build check.
+    - `diagrams.py`: manifest entries for the 7 diagrams.
+    - `strings.py`: the frame's copy.
+    - `views.py` and `urls.py`.
+    - `content/`: the snapshot and `SOURCE.json`.
+  - `templates/documentation/`: the layout, page and landing templates,
+    and partials for the sidebar (recursive), header, outline, pager and
+    provenance.
+  - `static/js/docs.js`: the copy buttons, the sidebar disclosure, and
+    scrolling the current page into view.
+  - `styles/source.css`: the docs styles. Tailwind no longer scans the
+    snapshot.
+  - `config/settings.py`: the app; `DOCS_SNAPSHOT_DIR`;
+    `AXCENITY_ENGINE_DIR`; the snapshot's images served at
+    `/static/docs/images/`.
+  - `config/urls.py`: `/docs/`.
+  - `.gitattributes`: the snapshot is `-text`, so its bytes, and so its
+    tree hash, survive any checkout.
+  - `pyproject.toml` and `uv.lock`: markdown-it-py, Pygments, PyYAML.
+  - `templates/base.html`: a `full_title` block, so the docs can set
+    "Page · Axcenity Docs".
+  - `templates/partials/nav_link.html`: `section` marks Docs current
+    across `/docs/`.
+  - `marketing/content.py`: `Link` takes `args` and `section`;
+    `GETTING_STARTED`; the docs links. The GitHub docs URLs are removed.
+  - `templates/marketing/home/hero.html` and `final.html`: `rel=noopener`
+    only on external secondary links.
+  - Tests:
+    - `tests/test_documentation.py` and
+      `tests/test_documentation_browser.py` (new).
+    - `test_home.py` and `test_shell.py`: the docs link and `Link`'s
+      args.
+    - `test_theme.py`: docs pages in the text-colour check, plus contrast
+      rows for the docs.
+  - Docs:
+    - `docs/frontend/documentation.md` (new).
+    - ARCHITECTURE: the app, URLs, the snapshot rule and settings.
+    - FRONTEND, TESTING, `media.md`, `theme.md`.
+    - `README.md`: status, stack, layout.
+  - `plans/axcenity-hub.md`: all nine Phase 6B criteria ticked.
+- **TDD:**
+  1. **Link rewriting:** 48 cases, covering relative pages and images,
+     README folders, queries, anchors, external links kept byte for byte,
+     missing targets, snapshot escapes and disguised schemes.
+  2. **The navigation tree:** sections, nesting, reading order,
+     previous/next across sections and nesting, and orphans.
+  3. **sync against a fake git engine:** an exact copy, `SOURCE.json`
+     with commit, tree and date, the engine untouched including `.git`,
+     and a second run changing nothing.
+
+  Each test was approved at RED and passed without changing what it
+  asserts. TDD 3 needed one mechanical repair: git 2.56 prints a UTC date
+  as `Z`, so the test compares the parsed time.
+- **Decisions:**
+  - URLs: a README maps to its folder (`/docs/`, `/docs/api/`).
+  - Highlighting: a Pygments lexer porting the editor's own rules, not
+    Pygments' stock Luau lexer (it marks different builtins). It reuses
+    `marketing/drawings.py`'s sets and the existing `.luau-*` colours.
+  - Diagrams:
+    - They're served as their 1200 px PNGs at no more than 600 CSS px, so
+      they're never upscaled.
+    - They have their own manifest entries in `documentation/diagrams.py`.
+    - The caption is a "Diagram" label plus each page's alt text.
+    - The images are served from the snapshot through a static prefix,
+      not copied a second time.
+  - Layout:
+    - The sidebar appears from 1024 px and the rail from 1280 px.
+    - Below 1024 px, one `<details>` element is the disclosure, closed by
+      an inline script; without JavaScript it stays open.
+    - The landing page's API panel lists only its top two levels.
+  - Front matter: `icon` is parsed but not shown. `status: partial` shows
+    as "Partly built".
+  - Front matter is read one `key: value` per line, quoted values and
+    lists as YAML, because the engine's descriptions contain unquoted
+    `: `.
+  - Sync is accepted only for regular `.md` and raster images (no SVG,
+    symlinks or executables). The snapshot and the engine must not
+    overlap.
+  - Plain `http:` links are allowed (the plan keeps external links as
+    written); everything else off the https/http/mailto list is refused.
+  - A relative path whose decoded form contains a space is refused.
+- **Deviations:** The user approved the plan, adding the four safeguards
+  in prompt 2:
+  - Atomic sync built in a temporary folder.
+  - Reading from the commit's objects, with the tree hash recorded,
+    verified on sync and rechecked by a test.
+  - The rendering gate.
+  - Reserved, collision-safe heading ids.
+
+  At TDD 1 the user added cases (external links with queries and
+  fragments, disguised schemes, queries on relative links). At TDD 2,
+  robustness for empty or nested-only sections, as ordinary tests. At
+  TDD 3, `tree_hash` checked against real git, including modes; it's now
+  tested on sha1 and sha256 repos with executables, symlinks, empty
+  folders and git's `name/` sort order.
+- **Sideways:**
+  - The first real sync refused the engine's front matter: three
+    descriptions hold an unquoted `: `. The atomic design worked as
+    intended, since nothing was written, and the parser became
+    line-based.
+  - The wide-screen rule hiding "Browse the docs" sat before its base
+    rule, so the toggle showed at 1440 px. Screenshots caught it.
+  - The breadcrumbs repeated "API reference". Screenshots caught it.
+  - The smoke test first picked `api/classes.md`, the longest file but an
+    index with no code. It now takes the longest class or type page.
+  - Two tests asserted the wrong thing (an error message's wording, and
+    the text of a refused autolink); the code was right.
+  - A `sizes` attribute without a `srcset` was dropped.
+  - Heading-id reservations missed the landing page's panel ids. A new
+    test now checks that every id outside the article is reserved.
+  - `pkill -f` matched its own shell while restarting the dev server, so
+    the server ran as a background task instead.
+
 ## 2026-11-24 — Internal README styled after the engine's
 
 ### Prompts

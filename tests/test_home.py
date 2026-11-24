@@ -184,7 +184,7 @@ def test_the_hero_shows_the_version_badge_and_both_calls_to_action(home):
     hero = _section(home, "hero")
     assert content.ENGINE_VERSION in hero and 'class="badge-dot"' in hero
     assert f'href="{content.RELEASES_URL}"' in hero and "btn btn-primary" in hero
-    assert f'href="{content.DOCS_URL}"' in hero
+    assert 'href="/docs/"' in hero
 
 
 def test_the_rotating_headline_shares_one_grid_cell(home):

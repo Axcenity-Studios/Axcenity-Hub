@@ -151,7 +151,15 @@ def test_a_fragment_belongs_to_an_internal_link():
         "/#features"
     )
     with pytest.raises(ValueError):
-        content.Link("Out", external=content.DOCS_URL, fragment="top")
+        content.Link("Out", external=content.RELEASES_URL, fragment="top")
+    with pytest.raises(ValueError):
+        content.Link("Out", external=content.RELEASES_URL, args=("learn",))
+    with pytest.raises(ValueError):
+        content.Link("Out", external=content.RELEASES_URL, section="documentation")
+
+
+def test_an_internal_link_takes_url_args():
+    assert content.GETTING_STARTED.href == "/docs/learn/getting-started/"
 
 
 def test_a_link_must_have_exactly_one_target():

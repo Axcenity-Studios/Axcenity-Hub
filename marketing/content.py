@@ -19,9 +19,6 @@ from marketing import drawings, media
 ENGINE_REPO_URL = "https://github.com/Axcenity-Studios/Axcenity-Engine"
 # Every release is a prerelease, so link the list, never /releases/latest (it 404s).
 RELEASES_URL = f"{ENGINE_REPO_URL}/releases"
-# The engine's documentation, as published in its repository.
-DOCS_URL = f"{ENGINE_REPO_URL}/tree/main/documentation"
-GETTING_STARTED_URL = f"{ENGINE_REPO_URL}/blob/main/documentation/learn/getting-started.md"
 # The engine's newest release tag (Cargo.toml's workspace version). Phase 7 reads it from GitHub.
 ENGINE_VERSION = "v0.3.0-alpha.1"
 
@@ -35,14 +32,17 @@ TOOLBOX_CAPTURE_RECORD = "marketing/media_sources/toolbox-capture.json"
 
 @dataclass(frozen=True)
 class Link:
-    """One link: internal (a URL name, optionally with a #fragment), external (an https URL)
-    or coming soon."""
+    """One link: internal (a URL name with its args, optionally a #fragment), external (an
+    https URL) or coming soon. An internal link's `section` (a URL namespace) marks it as
+    the current page anywhere in that section, as Docs is on every /docs/ page."""
 
     label: str
     url_name: str = ""
     external: str = ""
     soon: bool = False
     fragment: str = ""
+    args: tuple[str, ...] = ()
+    section: str = ""
 
     def __post_init__(self) -> None:
         targets = bool(self.url_name) + bool(self.external)
@@ -50,14 +50,16 @@ class Link:
             raise ValueError(f"{self.label}: a coming-soon link has no target")
         if not self.soon and targets != 1:
             raise ValueError(f"{self.label}: give exactly one of url_name or external")
-        if self.fragment and not self.url_name:
-            raise ValueError(f"{self.label}: only an internal link takes a fragment")
+        if (self.fragment or self.args or self.section) and not self.url_name:
+            raise ValueError(
+                f"{self.label}: only an internal link takes a fragment, args or section"
+            )
 
     @property
     def href(self) -> str:
         """The URL to link to, or "" for a coming-soon item."""
         if self.url_name:
-            url = reverse(self.url_name)
+            url = reverse(self.url_name, args=self.args)
             return f"{url}#{self.fragment}" if self.fragment else url
         return self.external
 
@@ -816,10 +818,14 @@ NAV_LINKS = [
     Link("Engine", url_name="marketing:home"),
     Link("Features", url_name="marketing:home", fragment="features"),
     Link("Toolbox", url_name="marketing:toolbox"),
-    Link("Docs", external=DOCS_URL),
+    Link("Docs", url_name="documentation:index", section="documentation"),
     Link("Community", soon=True),
 ]
 SIGN_IN = Link("Sign in", soon=True)
+# The engine docs, served by the documentation app from its snapshot (/docs/).
+GETTING_STARTED = Link(
+    "Getting started", url_name="documentation:page", args=("learn/getting-started",)
+)
 DOWNLOAD = Link("Download", external=RELEASES_URL)
 
 FOOTER_TAGLINE = "Free and open source. Alpha software: expect breaking changes."
@@ -832,8 +838,8 @@ FOOTER_COLUMNS = [
     FooterColumn(
         "Learn",
         [
-            Link("Docs", external=DOCS_URL),
-            Link("Getting started", external=GETTING_STARTED_URL),
+            Link("Docs", url_name="documentation:index"),
+            GETTING_STARTED,
             Link("Toolbox", url_name="marketing:toolbox"),
         ],
     ),
@@ -886,7 +892,7 @@ HOME_HERO = {
         "Build worlds, script in Luau, test with F5 and export for Windows, macOS and Linux."
     ),
     "primary": Link("Download alpha", external=RELEASES_URL),
-    "secondary": Link("Read the docs", external=DOCS_URL),
+    "secondary": Link("Read the docs", url_name="documentation:index"),
     # The film filling the hero (docs/frontend/media.md has its cut list), and its button's
     # screen-reader names.
     "backdrop": BackdropVideo(
@@ -1007,7 +1013,7 @@ HOME_FINAL = {
     "title": "Start building.",
     "body": "Download the alpha for Windows, macOS or Linux, then follow the getting-started guide.",
     "primary": Link("Download alpha", external=RELEASES_URL),
-    "secondary": Link("Getting started", external=GETTING_STARTED_URL),
+    "secondary": GETTING_STARTED,
     # The getting-started guide's first steps (documentation/learn/getting-started.md).
     "steps": [
         Item("Install", "A Windows setup wizard, a macOS disk image or a Linux package.", "01"),

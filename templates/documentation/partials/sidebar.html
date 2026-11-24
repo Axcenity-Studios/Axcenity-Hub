@@ -1,0 +1,25 @@
+{# The sidebar: SUMMARY.md's sections as collapsible groups, the current page marked and its group open. #}
+{# Wide screens show it open beside the article (its toggle hidden). Below 1024 px it's a disclosure    #}
+{# at the top: the script after it closes it there; without JavaScript it simply stays open.           #}
+<div class="docs-sidebar">
+  <details id="docs-nav" class="docs-nav" open>
+    <summary class="docs-nav-toggle">{{ docs.nav_toggle }}</summary>
+    <nav aria-label="{{ docs.nav_label }}" class="docs-nav-body">
+      <ul class="docs-sections">
+        {% for section in sidebar %}
+          {% if section.title %}
+            <li>
+              <details class="docs-group"{% if section.open %} open{% endif %}>
+                <summary class="docs-group-title micro">{{ section.title }}</summary>
+                {% include "documentation/partials/nav_items.html" with items=section.items %}
+              </details>
+            </li>
+          {% else %}
+            {% for item in section.items %}<li><a href="{{ item.url }}" class="docs-link docs-overview"{% if item.current %} aria-current="page"{% endif %}>{{ docs.overview }}</a></li>{% endfor %}
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </nav>
+  </details>
+  <script>if (!matchMedia("(min-width: 1024px)").matches) document.getElementById("docs-nav").open = false;</script>
+</div>

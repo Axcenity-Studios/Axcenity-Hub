@@ -26,6 +26,8 @@ is on, so an unregistered marker fails.
 | `test_home_browser.py` | `browser`: the workflow and stat motifs play in view, reset once fully off screen and play again on return; rest drawn under reduced motion; sit beside their numerals and titles with no overflow from 360 to 1280 px |
 | `test_media_browser.py` | `browser`: the Toolbox page's screenshots at the same widths, schemes and ratios (the scheme's own twin, 16:10, drawn whole, sharp, the other twin never fetched, no sideways scroll) and a live switch to light; every pillar's and section's media at 360, 768, 1280, 1440 and 2560 px, dark and light, 1× and 2× (16:10, a file or canvas sharp for the pixel ratio, no sideways scroll), saved to `screenshots/media/` for review by eye; loops play only on screen and pause with their button; reduced motion shows the still; each loop is a pure function of time and wraps seamlessly; the wipe's capture is never upscaled |
 | `test_toolbox.py` | The Toolbox page: its URL, sections and links (nav, footer, the Home banner, the GitHub repo), copy as data, the commands (uv only; equal to the Toolbox README when its checkout is on this machine, skipped otherwise), the demo credentials' labels, the screenshots (Toolbox captions, derivatives, a `<picture>` per scheme, light twins that match their capture) and their capture record (SHA-256 of each committed file, the source commit, the demo accounts' lack of privileges) |
+| `test_documentation.py` | The docs: link rewriting and its refusals, SUMMARY.md's tree, `sync` against a fake engine repository in `tmp_path` (atomicity, refusals, idempotence, determinism) and `tree_hash` against git on sha1 and sha256 repos, Luau highlighting on the editor's own test cases, rendering as a security boundary, heading ids, front matter, the committed snapshot (build check, tree hash, its commit in the engine when checked out, diagrams), every page's title and description, a walk of every link, anchor and image, the layout's markup, badges, provenance, routing, the site's docs links and the command |
+| `test_documentation_browser.py` | `browser`: the longest class or type page at 375 px has no sideways scroll, its sidebar is a closed disclosure, and the copy button copies a block's exact text |
 | `test_hero_browser.py` | `browser` (Playwright): the film plays its AV1 source with no console errors; the button pauses and plays it; reduced motion shows the poster, followed live; off-screen and hidden-tab pausing; it covers the hero at 360 to 2560 px with its caption above its button |
 
 Add a row when you create a file.
@@ -77,6 +79,13 @@ instead of `live_server`:
   `change`). Wait on the figure's `data-state`, `data-motion`, `data-size`
   and `data-ready` rather than sleeping. Two `emulate_media` switches
   within one frame cancel out: wait for each to land.
+
+## Git in tests
+
+`test_documentation.py` builds throwaway engine repositories in
+`tmp_path` with `git` itself, isolated from the machine's config
+(`GIT_CONFIG_GLOBAL=/dev/null`, no system config, a fixed identity and
+date, no signing). That's local only, so the network guard is unaffected.
 
 ## Mocking
 

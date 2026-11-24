@@ -22,7 +22,7 @@
 
 Axcenity Hub is the central website for the Axcenity Engine: public marketing pages first (Home, the Toolbox overview, Download and Docs), then accounts, projects and teams, forums, showcases, bug reports, moderation and a REST API. It's built in vertical slices, one plan phase at a time, as the CIDM final project.
 
-> **Status:** Internal and in development. Phases 1–6 of [the plan](plans/axcenity-hub.md) are done (the public Home and Toolbox pages); Phase 6B, the documentation site, is next. Nothing is deployed yet, and the settings are development defaults. The engine itself is alpha (`v0.3.0-alpha.1`), and the site's copy says so.
+> **Status:** Internal and in development. Phases 1–6B of [the plan](plans/axcenity-hub.md) are done (the public Home and Toolbox pages, and the documentation site at `/docs/`); Phase 6C, the API reference, is next. Nothing is deployed yet, and the settings are development defaults. The engine itself is alpha (`v0.3.0-alpha.1`), and the site's copy says so.
 
 <p align="center">
   <img alt="The Axcenity Hub Home page in dark mode: the navigation bar, the headline 'Axcenity Engine. Build worlds.', Download alpha and Read the docs buttons, over the hero film of a desert homestead." src="docs/images/readme-home.webp" width="900"><br>
@@ -40,7 +40,8 @@ Ticked boxes in [plans/axcenity-hub.md](plans/axcenity-hub.md) are the source of
 | **3–4** | The animated showcase reel and its scenes | Done (Phase 3's DPR and 60 fps check is still open) |
 | **5** | Feature media: captures, derivatives and the media manifest | Done |
 | **6** | `/toolbox/`: the Toolbox overview page | Done |
-| **6B–6C** | `/docs/`: the engine documentation site and API reference | Next |
+| **6B** | `/docs/`: the engine documentation site, from a committed snapshot | Done |
+| **6C** | The API reference's layout and docs search | Next |
 | **7** | `/download/`: releases from the GitHub API | Planned |
 | **8–9** | Accounts, two-factor sign-in, GitHub linking | Planned |
 | **10–11** | Projects, repository integration and teams | Planned |
@@ -62,6 +63,7 @@ Ticked boxes in [plans/axcenity-hub.md](plans/axcenity-hub.md) are the source of
 | **Styling** | Tailwind CSS 4 + DaisyUI via [django-tailwind-cli](https://github.com/django-commons/django-tailwind-cli) | Uses the standalone Tailwind binary (downloaded once into `.django_tailwind_cli/`), so there's no Node toolchain. Source: [`styles/source.css`](styles/source.css) |
 | **Interactivity** | Vanilla JavaScript (ES modules), Canvas 2D | The reel and animated loops in [`static/reel/`](static/reel/); any library is a vendored file. HTMX joins with the members' pages |
 | **Images** | Pillow | `make_media` cuts captures into AVIF, WebP and JPEG derivatives |
+| **Docs** | markdown-it-py, Pygments, PyYAML | The engine docs rendered server-side (raw HTML off), Luau highlighted as the editor does; `sync_engine_docs` copies them in |
 | **Database** | SQLite (development and tests) | PostgreSQL planned for production |
 | **Tests** | pytest, pytest-django, pytest-playwright (Chromium) | Fast suite plus browser tests behind a `browser` marker |
 | **Lint and format** | Ruff | Rules: `E F W I B UP DJ`, line length 100 |
@@ -146,6 +148,7 @@ See [docs/TESTING.md](docs/TESTING.md) for what each file covers and how to add 
 |---|---|
 | [`config/`](config/) | Settings, root URLs, WSGI/ASGI, context processors, the theme cookie |
 | [`marketing/`](marketing/) | The public pages. `content.py` holds the copy, links and media manifest as data |
+| [`documentation/`](documentation/) | The engine docs at `/docs/`, and their committed snapshot in `content/` |
 | [`templates/`](templates/) | `base.html`, the marketing shell and pages, partials |
 | [`styles/`](styles/) | The Tailwind source and theme tokens |
 | [`static/`](static/) | JavaScript, the reel's canvas kit, fonts, brand images and media derivatives |

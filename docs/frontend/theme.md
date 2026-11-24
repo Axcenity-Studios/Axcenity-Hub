@@ -24,7 +24,8 @@ colours and page glows are not part of the Hub.
 ## Content colours: code and node graphs only
 
 Colour that belongs to what's shown, never to the chrome. They're used
-only by the `.luau-*` rules (the Luau fallback) and on the canvas by
+only by the `.luau-*` rules (the Luau fallback, and the docs' code blocks
+on `inset`) and on the canvas by
 `static/reel/drawing/code.js` and `blocks.js` (tested).
 
 - **`luau-keyword`, `-literal`, `-builtin`, `-number`, `-string`,

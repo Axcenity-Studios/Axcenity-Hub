@@ -6,7 +6,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Axcenity Engine{% endblock %} · Axcenity</title>
+  <title>{% block full_title %}{% block title %}Axcenity Engine{% endblock %} · Axcenity{% endblock %}</title>
   <meta name="description" content="{% block description %}Axcenity Engine: a free, open-source 3D game engine and editor written in Rust, in alpha.{% endblock %}">
   <link rel="icon" type="image/png" sizes="32x32" href="{% static 'brand/favicon-32.png' %}">
   {# Fetch the display and mono fonts with the stylesheet, so text never paints #}

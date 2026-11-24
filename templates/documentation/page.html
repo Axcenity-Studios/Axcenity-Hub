@@ -1,0 +1,8 @@
+{% extends "documentation/layout.html" %}
+{# One engine docs page at /docs/<path>/: header, the rendered page, previous and next. #}
+{% block article %}
+  {% include "documentation/partials/header.html" %}
+  <div class="doc-prose">{{ page.rendered.html|safe }}</div>
+  {% include "documentation/partials/pager.html" %}
+{% endblock %}
+{% block rail %}{% include "documentation/partials/outline.html" %}{% endblock %}

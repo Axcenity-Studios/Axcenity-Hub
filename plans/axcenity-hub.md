@@ -283,15 +283,15 @@ Built test-first with the `tdd` skill; the rest of the phase is built and tested
 
 ### Acceptance criteria
 
-- [ ] Every page `SUMMARY.md` lists returns 200 at its `/docs/…` URL, with `<title>` "Page · Axcenity Docs" and the front-matter description as its meta description
-- [ ] Every internal link and image in the snapshot resolves (a test walks them all); no request reads the engine repo or the network
-- [ ] Sidebar, breadcrumbs, "On this page", heading anchors and previous/next work, and the docs layout needs no JavaScript (the copy button and the mobile disclosure are progressive)
-- [ ] Luau code is highlighted in the editor's syntax colours; the new colours pass the theme tests' contrast checks in dark and light
-- [ ] Status badges, the Alpha notice and the "View source on GitHub" link (at the snapshot commit) appear on every page; provenance (engine commit and date) is shown in the docs footer
-- [ ] The seven diagrams are in the media manifest as `illustrative`, captioned "Diagram", never upscaled
-- [ ] The nav, Home CTA and footer docs links point at `/docs/`; the shell's link tests still pass
-- [ ] One browser smoke test: a long API page at 375 px has no horizontal page scroll, and the copy button copies
-- [ ] `docs/frontend/documentation.md` explains the layout and how to re-sync; ARCHITECTURE lists the app, its URLs and the snapshot rule
+- [x] Every page `SUMMARY.md` lists returns 200 at its `/docs/…` URL, with `<title>` "Page · Axcenity Docs" and the front-matter description as its meta description
+- [x] Every internal link and image in the snapshot resolves (a test walks them all); no request reads the engine repo or the network
+- [x] Sidebar, breadcrumbs, "On this page", heading anchors and previous/next work, and the docs layout needs no JavaScript (the copy button and the mobile disclosure are progressive)
+- [x] Luau code is highlighted in the editor's syntax colours; the new colours pass the theme tests' contrast checks in dark and light
+- [x] Status badges, the Alpha notice and the "View source on GitHub" link (at the snapshot commit) appear on every page; provenance (engine commit and date) is shown in the docs footer
+- [x] The seven diagrams are in the media manifest as `illustrative`, captioned "Diagram", never upscaled
+- [x] The nav, Home CTA and footer docs links point at `/docs/`; the shell's link tests still pass
+- [x] One browser smoke test: a long API page at 375 px has no horizontal page scroll, and the copy button copies
+- [x] `docs/frontend/documentation.md` explains the layout and how to re-sync; ARCHITECTURE lists the app, its URLs and the snapshot rule
 
 ---
 

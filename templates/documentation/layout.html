@@ -1,0 +1,21 @@
+{% extends "marketing/shell.html" %}
+{% load shell_tags %}
+{# Every docs page: the sidebar from SUMMARY.md, the article, and (on wide screens) "On this page". #}
+{# The words come from documentation/strings.py (`docs`); the article from the snapshot.            #}
+{# docs/frontend/documentation.md explains the layout.                                              #}
+{% block full_title %}{{ full_title }}{% endblock %}
+{% block description %}{{ page.description }}{% endblock %}
+{% block head %}<script src="{% versioned_static 'js/docs.js' %}" defer></script>{% endblock %}
+{% block content %}
+<div class="docs under-nav" data-copy="{{ docs.copy }}" data-copy-label="{{ docs.copy_label }}" data-copied="{{ docs.copied }}" data-copy-failed="{{ docs.copy_failed }}">
+  <div class="docs-grid mx-auto max-w-[1400px] px-4 md:px-8">
+    {% include "documentation/partials/sidebar.html" %}
+    <article id="docs-article" class="docs-article" aria-labelledby="docs-title">
+      {% block article %}{% endblock %}
+      {% include "documentation/partials/provenance.html" %}
+    </article>
+    {% block rail %}{% endblock %}
+  </div>
+  {% block after %}{% endblock %}
+</div>
+{% endblock %}

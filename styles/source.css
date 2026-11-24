@@ -18,6 +18,8 @@
 /* DaisyUI's official plugin bundles (django-tailwind-cli downloads them into
    .django_tailwind_cli/). The bundles hold every class name, so they're never scanned. */
 @source not "../.django_tailwind_cli/daisyui{,*}.mjs";
+/* The engine docs' snapshot is prose, not markup: its words aren't class names. */
+@source not "../documentation/content";
 @plugin "../.django_tailwind_cli/daisyui.mjs" {
   themes: false;
 }
@@ -518,6 +520,112 @@ html[data-motifs] .motif[data-on] .m-bubble + .m-bubble { animation-delay: calc(
 .an-sheet dt { color: var(--color-fg-weak); }
 .an-sheet dd { justify-content: space-around; }
 .an-sheet i { width: 0.7em; height: 0.7em; transform: rotate(45deg); background: var(--color-fg-secondary); }
+
+/* ---------- Docs (/docs/, docs/frontend/documentation.md) ----------
+   Three columns on wide screens: the SUMMARY.md sidebar (from 1024 px), the article at a
+   readable measure, and "On this page" (from 1280 px). Below 1024 px the sidebar is a
+   disclosure at the top. Tables and code scroll inside their own box, never the page. */
+.docs-grid { display: grid; gap: 1.5rem; padding-block: 1.5rem 5rem; }
+@media (min-width: 64rem) { .docs-grid { grid-template-columns: 15rem minmax(0, 1fr); gap: 3rem; padding-top: 2.5rem; } }
+@media (min-width: 80rem) { .docs-grid { grid-template-columns: 15rem minmax(0, 1fr) 13rem; } }
+.docs-article { min-width: 0; max-width: 46rem; }
+.docs-sidebar { min-width: 0; }
+.docs-nav-toggle { display: flex; align-items: center; justify-content: space-between; height: 2.75rem; padding-inline: 1rem;
+  cursor: pointer; list-style: none; border-radius: 0.375rem; color: var(--color-fg-strong); background: var(--color-panel);
+  box-shadow: inset 0 0 0 1px var(--color-line); font-weight: 600; font-size: 0.875rem; }
+@media (min-width: 64rem) {
+  .docs-sidebar { position: sticky; top: 5rem; align-self: start; max-height: calc(100vh - 6rem); overflow-y: auto; overscroll-behavior: contain; padding-right: 0.25rem; }
+  .docs-nav-toggle { display: none; } }
+.docs-nav-toggle::-webkit-details-marker, .docs-group-title::-webkit-details-marker, .docs-subgroup > summary::-webkit-details-marker { display: none; }
+.docs-nav-toggle::after, .docs-group-title::after { content: "+"; font-family: var(--font-mono); color: var(--color-fg-secondary); }
+.docs-nav[open] > .docs-nav-toggle::after, .docs-group[open] > .docs-group-title::after { content: "−"; }
+@media (max-width: 63.999rem) { .docs-nav-body { margin-top: 0.5rem; padding: 0.75rem 1rem; border-radius: 0.375rem; background: var(--color-panel); box-shadow: inset 0 0 0 1px var(--color-line); } }
+.docs-sections { display: grid; gap: 0.25rem; }
+.docs-group-title { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.25rem 0.4rem; cursor: pointer; list-style: none; color: var(--color-fg-weak); }
+html[data-pointer] .docs-group-title:hover, .docs-group[open] > .docs-group-title { color: var(--color-fg-strong); }
+.docs-list { display: grid; padding-bottom: 0.25rem; }
+.docs-list .docs-list { margin-left: 0.75rem; }
+.docs-subgroup > summary { list-style: none; cursor: pointer; }
+.docs-subgroup > summary > .docs-link::after { content: " +"; font-family: var(--font-mono); color: var(--color-fg-weak); }
+.docs-subgroup[open] > summary > .docs-link::after { content: " −"; }
+.docs-link { display: block; padding: 0.3rem 0.75rem; font-size: 0.875rem; line-height: 1.35; color: var(--color-fg-secondary);
+  border-left: 1px solid var(--color-line); transition: color 0.2s var(--ease-expo); }
+.docs-overview { margin-bottom: 0.25rem; }
+html[data-pointer] .docs-link:hover { color: var(--color-fg-strong); border-left-color: var(--color-line-strong); }
+.docs-link[aria-current="page"] { color: var(--color-fg-strong); font-weight: 600; border-left: 2px solid var(--color-ink); padding-left: calc(0.75rem - 1px); }
+
+.docs-outline { display: none; }
+@media (min-width: 80rem) { .docs-outline { display: block; position: sticky; top: 5rem; align-self: start; max-height: calc(100vh - 6rem); overflow-y: auto; } }
+.docs-outline a { display: block; padding: 0.25rem 0; font-size: 0.8125rem; line-height: 1.35; color: var(--color-fg-secondary); }
+.docs-outline-sub a { padding-left: 0.75rem; }
+html[data-pointer] .docs-outline a:hover { color: var(--color-fg-strong); }
+
+.docs-crumbs ol { display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; font-size: 0.8125rem; color: var(--color-fg-secondary); }
+.docs-crumbs li + li::before { content: "/"; margin-right: 0.5rem; color: var(--color-fg-weak); }
+.docs-crumbs a { color: var(--color-fg-secondary); }
+html[data-pointer] .docs-crumbs a:hover { color: var(--color-fg-strong); }
+.docs-crumbs [aria-current] { color: var(--color-fg-strong); }
+.docs-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.docs-status { display: inline-flex; align-items: center; padding: 0.375rem 0.625rem; border-radius: 0.25rem; color: var(--color-fg-strong);
+  background: var(--color-app); box-shadow: inset 0 0 0 1px var(--color-ink); }
+.docs-source { color: var(--color-fg-secondary); text-decoration: underline; text-decoration-color: var(--color-line-strong); text-underline-offset: 3px; }
+html[data-pointer] .docs-source:hover { color: var(--color-fg-strong); text-decoration-color: var(--color-ink); }
+.docs-samples { padding: 1rem 1.25rem; border-radius: 0.375rem; }
+.docs-sample-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.docs-sample-list code, .doc-prose :not(pre) > code { font-family: var(--font-mono); font-size: 0.85em; padding: 0.1em 0.35em; border-radius: 0.25rem;
+  color: var(--color-fg); background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--color-line); overflow-wrap: anywhere; }
+
+/* The article: the engine's Markdown, rendered by documentation/rendering.py. */
+.doc-prose { margin-top: 2.5rem; color: var(--color-fg); line-height: 1.7; overflow-wrap: break-word; }
+.doc-prose > * + * { margin-top: 1rem; }
+.doc-prose :is(h2, h3, h4) { color: var(--color-fg-strong); scroll-margin-top: 5rem; line-height: 1.25; }
+.doc-prose h2 { margin-top: 3rem; font-family: var(--font-display); font-weight: 700; font-size: 1.625rem; letter-spacing: -0.02em; }
+.doc-prose h3 { margin-top: 2.25rem; font-weight: 600; font-size: 1.25rem; }
+.doc-prose h4 { margin-top: 1.75rem; font-family: var(--font-mono); font-weight: 700; font-size: 1rem; }
+.doc-anchor { margin-left: 0.4rem; color: var(--color-fg-weak); font-weight: 400; text-decoration: none; }
+html[data-pointer] .doc-anchor:hover { color: var(--color-fg-strong); }
+.doc-prose a:not(.doc-anchor) { color: var(--color-fg-strong); text-decoration: underline; text-decoration-color: var(--color-line-strong); text-underline-offset: 3px; }
+html[data-pointer] .doc-prose a:not(.doc-anchor):hover { text-decoration-color: var(--color-ink); }
+.doc-prose strong { color: var(--color-fg-strong); }
+.doc-prose ul { list-style: disc; padding-left: 1.25rem; }
+.doc-prose ol { list-style: decimal; padding-left: 1.5rem; }
+.doc-prose li + li, .doc-prose li > ul, .doc-prose li > ol { margin-top: 0.35rem; }
+.doc-prose blockquote { padding-left: 1rem; border-left: 2px solid var(--color-line-strong); color: var(--color-fg-secondary); }
+.doc-prose hr { border: 0; border-top: 1px solid var(--color-line); margin-block: 2rem; }
+.doc-code { position: relative; }
+.doc-code pre { overflow-x: auto; padding: 1rem 1.25rem; border-radius: 0.375rem; font-family: var(--font-mono); font-size: 0.8125rem; line-height: 1.6;
+  color: var(--color-fg); background: var(--color-inset); box-shadow: inset 0 0 0 1px var(--color-line); tab-size: 4; }
+.doc-code:has(.doc-copy) pre { padding-right: 5rem; }
+.doc-copy { position: absolute; top: 0.5rem; right: 0.5rem; padding: 0.3rem 0.55rem; border-radius: 0.25rem; cursor: pointer;
+  color: var(--color-fg-secondary); background: var(--color-app); box-shadow: inset 0 0 0 1px var(--color-line); }
+html[data-pointer] .doc-copy:hover, .doc-copy:focus-visible { color: var(--color-on-ink); background: var(--color-ink); }
+.doc-table { overflow-x: auto; border-radius: 0.375rem; box-shadow: inset 0 0 0 1px var(--color-line); }
+.doc-table table { width: 100%; border-collapse: collapse; font-size: 0.875rem; line-height: 1.5; }
+.doc-table :is(th, td) { min-width: 8rem; padding: 0.6rem 0.85rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--color-line); }
+.doc-table th { color: var(--color-fg-strong); background: var(--color-panel); font-weight: 600; }
+.doc-table tr:last-child td { border-bottom: 0; }
+.doc-figure { margin-block: 2rem; }
+.doc-figure img { display: block; width: 100%; max-width: 600px; height: auto; border-radius: 0.375rem; background: var(--color-inset); box-shadow: 0 0 0 1px var(--color-line); }
+.doc-caption { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; max-width: 600px; margin-top: 0.75rem; font-size: 0.8125rem; line-height: 1.5; color: var(--color-fg-secondary); }
+.doc-caption-label { flex: none; padding: 0.2rem 0.45rem; border-radius: 0.25rem; color: var(--color-fg-secondary); background: var(--color-app); box-shadow: inset 0 0 0 1px var(--color-line); }
+
+.docs-pager { display: grid; gap: 1rem; margin-top: 4rem; }
+@media (min-width: 40rem) { .docs-pager { grid-template-columns: 1fr 1fr; } .docs-pager-next { grid-column: 2; text-align: right; } }
+.docs-pager-link { display: block; padding: 1rem 1.25rem; border-radius: 0.375rem; background: var(--color-panel); box-shadow: inset 0 0 0 1px var(--color-line);
+  transition: box-shadow 0.2s var(--ease-expo); }
+html[data-pointer] .docs-pager-link:hover { box-shadow: inset 0 0 0 1px var(--color-ink); }
+.docs-provenance { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--color-line); }
+.docs-provenance a { color: var(--color-fg-secondary); text-decoration: underline; text-underline-offset: 3px; }
+
+/* The landing page's section panels. */
+.docs-panels { display: grid; gap: 1rem; }
+@media (min-width: 48rem) { .docs-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 80rem) { .docs-panels { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.docs-panel { padding: 1.5rem 1.75rem; border-radius: 0.375rem; }
+.docs-panel-list { display: grid; gap: 1rem; margin-top: 1rem; }
+.docs-panel-children { display: grid; gap: 0.4rem; margin-top: 0.6rem; padding-left: 0.75rem; border-left: 1px solid var(--color-line); }
+.docs-panel-link { font-weight: 600; color: var(--color-fg-strong); }
+html[data-pointer] .docs-panel-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* ---------- Reduced motion ----------
    Nothing moves. Every entry animation runs from a "from" state to the

@@ -8,7 +8,7 @@
         <p class="max-w-xl text-lg text-fg-secondary">{{ final.body }}</p>
         <div class="mt-8 flex flex-wrap gap-3">
           <a href="{{ final.primary.href }}" rel="noopener" class="btn btn-primary">{{ final.primary.label }}</a>
-          <a href="{{ final.secondary.href }}" rel="noopener" class="btn btn-quiet">{{ final.secondary.label }}</a>
+          <a href="{{ final.secondary.href }}"{% if final.secondary.is_external %} rel="noopener"{% endif %} class="btn btn-quiet">{{ final.secondary.label }}</a>
         </div>
       </div>
       <ol class="panel-list mt-auto">

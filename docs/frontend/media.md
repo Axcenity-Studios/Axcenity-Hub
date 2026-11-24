@@ -6,7 +6,11 @@ manifest, `content.MEDIA` (`marketing/content.py`). It is either a
 recreated), and its caption says which. A capture's `subject` says what
 it shows: the engine ("Engine capture", the default) or the Toolbox
 ("Toolbox screenshot", `CAPTURE_SUBJECTS`), so a Toolbox screenshot is
-never presented as the engine's. `tests/test_home.py` checks the
+never presented as the engine's. The engine docs' diagrams are
+illustrative too: their entries are in `documentation/diagrams.py`.
+Each is captioned "Diagram", served as its 1200 px PNG and never drawn
+wider than 600 CSS px, so it's never upscaled
+([documentation.md](documentation.md)). `tests/test_home.py` checks the
 manifest and the files, `tests/test_media.py` the pipeline and the loops,
 and `tests/test_media_browser.py` both in Chromium. The hero's film is
 checked by `tests/test_hero.py` and `tests/test_hero_browser.py`.

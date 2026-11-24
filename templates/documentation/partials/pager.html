@@ -1,0 +1,11 @@
+{# Previous and next, in SUMMARY.md's reading order. #}
+{% if pager %}
+  <nav class="docs-pager" aria-label="{{ docs.pager }}">
+    {% for label, title, url, rel in pager %}
+      <a href="{{ url }}" rel="{{ rel }}" class="docs-pager-link docs-pager-{{ rel }}">
+        <span class="micro text-fg-weak">{{ label }}</span>
+        <span class="mt-1 block font-semibold text-fg-strong">{{ title }}</span>
+      </a>
+    {% endfor %}
+  </nav>
+{% endif %}

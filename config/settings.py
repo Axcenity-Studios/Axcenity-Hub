@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_tailwind_cli",
     "marketing",
+    "documentation",
 ]
 
 MIDDLEWARE = [
@@ -109,7 +110,17 @@ CSRF_COOKIE_SECURE = not DEBUG
 THEME_COOKIE_SECURE = not DEBUG
 
 STATIC_URL = "static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]
+# The docs snapshot's diagrams are served from /static/docs/images/ straight from the
+# snapshot (documentation/content/images/), so there's one copy of each.
+DOCS_SNAPSHOT_DIR = BASE_DIR / "documentation" / "content"
+STATICFILES_DIRS = [BASE_DIR / "static", ("docs/images", DOCS_SNAPSHOT_DIR / "images")]
+
+# The engine checkout `sync_engine_docs` copies the docs from (read-only to the Hub).
+AXCENITY_ENGINE_DIR = Path(
+    os.environ.get(
+        "AXCENITY_ENGINE_DIR", Path.home() / "Documents" / "VSCode Projects" / "Axcenity-Engine"
+    )
+)
 
 # Python's mimetypes may not know .ttf (it doesn't on Windows), so the static
 # server would send the fonts as application/octet-stream.

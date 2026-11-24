@@ -1,0 +1,27 @@
+{# A page's header: breadcrumbs, the title (the page's h1), its description as the lede, the status  #}
+{# badge, the Alpha notice, the link to its source at the snapshot's commit, and its sample projects. #}
+<header class="docs-header">
+  {% if breadcrumbs %}
+    <nav aria-label="{{ docs.breadcrumbs }}" class="docs-crumbs">
+      <ol>
+        {% for title, url in breadcrumbs %}<li>{% if url %}<a href="{{ url }}">{{ title }}</a>{% else %}<span>{{ title }}</span>{% endif %}</li>{% endfor %}
+        <li><span aria-current="page">{{ page.title }}</span></li>
+      </ol>
+    </nav>
+  {% endif %}
+  <h1 id="docs-title" class="headline mt-4 text-4xl text-fg-strong md:text-5xl">{{ page.title }}</h1>
+  {% if page.description %}<p class="docs-lede mt-4 text-lg text-fg-secondary">{{ page.description }}</p>{% endif %}
+  <div class="docs-meta mt-6">
+    {% if page.rendered.meta.status_label %}<span class="docs-status micro"><span class="sr-only">{{ docs.status_title }}: </span>{{ page.rendered.meta.status_label }}</span>{% endif %}
+    <span class="badge-pill micro"><span class="badge-dot" aria-hidden="true"></span>{{ docs.alpha_badge }}</span>
+    <a id="docs-source" href="{{ page.source_url }}" rel="noopener" class="docs-source text-sm">{{ docs.view_source }}</a>
+  </div>
+  <p class="docs-alpha mt-3 text-sm text-fg-secondary">{{ docs.alpha_body }}</p>
+  {% if page.rendered.meta.samples %}
+    <aside class="docs-samples panel mt-6">
+      <p class="micro text-fg-strong">{{ docs.samples }}</p>
+      <p class="mt-2 text-sm text-fg-secondary">{{ docs.samples_body }}</p>
+      <ul class="docs-sample-list mt-3">{% for sample in page.rendered.meta.samples %}<li><code>{{ sample }}</code></li>{% endfor %}</ul>
+    </aside>
+  {% endif %}
+</header>

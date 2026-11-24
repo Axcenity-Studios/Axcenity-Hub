@@ -1,0 +1,4 @@
+{# The docs footer: which engine commit this copy of the docs came from (documentation/content/SOURCE.json). #}
+<footer class="docs-provenance text-sm text-fg-weak">
+  <p>{{ docs.provenance }} <a href="{{ commit_url }}" rel="noopener" aria-label="{{ docs.provenance_link }}: {{ source.commit }}"><code>{{ source.commit|slice:":12" }}</code></a>, {{ docs.provenance_date }} <time datetime="{{ source.committed }}">{{ committed|date:"j F Y" }}</time>.</p>
+</footer>

@@ -10,8 +10,10 @@ index:** the rules below apply everywhere; topic files under
 |---|---|
 | `config/` | Settings, root URLs, WSGI/ASGI, site-wide context processors, `theme.py` (the colour-scheme cookie) |
 | `marketing/` | Public signed-out pages: Home, Toolbox, and Download (Phase 7). `content.py` holds their copy, links and media manifest as data; `drawings.py` computes the drawn media; `media.py` cuts captures into derivatives (`manage.py make_media`) |
+| `documentation/` | The engine docs at `/docs/`: `sync.py` (`sync_engine_docs`), `navigation.py`, `links.py`, `rendering.py`, `highlight.py`, `library.py` (the snapshot as served, and its build check), `diagrams.py`, `strings.py`. See [frontend/documentation.md](frontend/documentation.md) |
+| `documentation/content/` | The committed snapshot of the engine's `documentation/` folder, with `SOURCE.json` (commit and tree). Only `sync_engine_docs` writes it |
 | `marketing/media_sources/` | Captures as copied in (never served, never edited): the sources `make_media` reads, and `toolbox-capture.json`, the Toolbox screenshots' capture record |
-| `templates/` | `base.html` (shared by every shell), `marketing/` (the marketing shell and its pages), `partials/` |
+| `templates/` | `base.html` (shared by every shell), `marketing/` (the marketing shell and its pages), `documentation/` (the docs layout and pages), `partials/` |
 | `styles/source.css` | The Tailwind source; built into `static/css/tailwind.css` (git-ignored) |
 | `static/` | `js/`, `reel/` (the canvas kit and `reel/loops/`, the Home's animated recreations), `fonts/`, `brand/`, `marketing/media/` (the captures' derivatives, written by `make_media`, and the hero's film in `homestead/`) |
 | `tests/` | Every test (see [TESTING.md](TESTING.md)) |
@@ -38,6 +40,8 @@ Later phases add `accounts`, `projects`, `forums`, `showcases`, `reports`,
 |---|---|---|
 | `/` | `marketing:home` | `HomeView` |
 | `/toolbox/` | `marketing:toolbox` | `ToolboxView`: the Toolbox overview ([frontend/toolbox.md](frontend/toolbox.md)) |
+| `/docs/` | `documentation:index` | `DocsIndexView`: the docs' README and a panel per section |
+| `/docs/<path>/` | `documentation:page` | `DocsPageView`: a snapshot page by its lower-cased path without `.md` (`/docs/api/classes/part/`); a README is its folder; unknown paths 404 |
 | `/theme/` | `marketing:theme` | `ThemeView`: POST only, the no-JavaScript fallback for the theme switch |
 | `/admin/` | `admin:*` | Django admin |
 
@@ -62,7 +66,23 @@ Later phases add `accounts`, `projects`, `forums`, `showcases`, `reports`,
   pipeline; `manage.py make_media [--force]` runs it for every capture.
 - Engine links point at `github.com/Axcenity-Studios/Axcenity-Engine`:
   Download at `/releases` (never `/releases/latest`: every release is a
-  prerelease, so it 404s), Docs at the repo's `documentation/` folder.
+  prerelease, so it 404s). Docs links go to `/docs/` (`documentation:index`,
+  and `content.GETTING_STARTED`).
+- `content.Link` takes `args` for a URL with arguments, and a `section`
+  (a URL namespace) that marks it current anywhere in that section.
+
+## The docs snapshot
+
+- The engine repository's `documentation/` folder is the single source
+  of truth. `manage.py sync_engine_docs` copies it from a commit into
+  `documentation/content/`. The copy is atomic, checked against the
+  commit's git tree, and checked by `Library.check()`.
+- Pages render from the snapshot only: no request reads the engine
+  repository, GitHub or the network. Text fixes are made in the engine
+  and re-synced, never in the snapshot.
+- Markdown rendering is a security boundary: raw HTML is off, and every
+  link and image passes `links.resolve`'s allow-list. See
+  [frontend/documentation.md](frontend/documentation.md).
 
 ## Settings
 
@@ -74,6 +94,10 @@ hardening.
 | `DJANGO_DEBUG` | `true` | `DEBUG`; when off, the session, CSRF and theme cookies are `Secure` |
 | `DJANGO_SECRET_KEY` | a development key | Must be set in production |
 | `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated |
+| `AXCENITY_ENGINE_DIR` | `~/Documents/VSCode Projects/Axcenity-Engine` | The engine checkout `sync_engine_docs` reads (never at request time) |
+
+`DOCS_SNAPSHOT_DIR` is `documentation/content/`; its `images/` are served
+at `/static/docs/images/` (a `STATICFILES_DIRS` prefix).
 
 Every cookie is `SameSite=Lax`. Tailwind and DaisyUI build through
 django-tailwind-cli with DaisyUI's official plugin bundle

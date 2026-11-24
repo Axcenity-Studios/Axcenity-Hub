@@ -1,0 +1,9 @@
+{# "On this page": the article's h2 and h3 headings (from 1280 px; hidden below). #}
+{% if page.rendered.outline %}
+  <nav id="docs-outline" class="docs-outline" aria-label="{{ docs.outline }}">
+    <p class="micro text-fg-weak">{{ docs.outline }}</p>
+    <ul class="mt-3">
+      {% for heading in page.rendered.outline %}<li{% if heading.level == 3 %} class="docs-outline-sub"{% endif %}><a href="#{{ heading.id }}">{{ heading.text }}</a></li>{% endfor %}
+    </ul>
+  </nav>
+{% endif %}

@@ -9,7 +9,6 @@ import re
 
 import pytest
 from django.conf import settings
-from django.urls import reverse
 
 SOURCE_CSS = settings.BASE_DIR / "styles" / "source.css"
 
@@ -309,6 +308,17 @@ TEXT_PAIRS = [
     # The hero film's pause button.
     ("film button", "fg-strong", "app"),
     ("film button hovered", "on-ink", "ink"),
+    # The docs (/docs/): the sidebar, the article and its code, tables and figures.
+    ("docs: sidebar links, breadcrumbs, outline", "fg-secondary", "app"),
+    ("docs: sidebar on a phone's panel", "fg-secondary", "panel"),
+    ("docs: section titles, anchors, provenance", "fg-weak", "app"),
+    ("docs: article text and links", "fg", "app"),
+    ("docs: inline code", "fg", "surface"),
+    ("docs: code blocks", "fg", "inset"),
+    ("docs: table headers", "fg-strong", "panel"),
+    ("docs: status badge", "fg-strong", "app"),
+    ("docs: copy button", "fg-secondary", "app"),
+    ("docs: copy button hovered or focused", "on-ink", "ink"),
 ]
 NON_TEXT_PAIRS = [
     ("focus ring on the page", "ink", "app"),
@@ -327,6 +337,7 @@ NON_TEXT_PAIRS = [
     ("node wire and exec pins", "fg-secondary", "inset"),
     ("terrain brush ring", "fg-strong", "surface"),
     ("loop pause button edge", "fg-strong", "app"),
+    ("docs: current sidebar page's bar, status badge edge", "ink", "app"),
 ]
 PAIRS = [(*pair, 4.5) for pair in TEXT_PAIRS] + [(*pair, 3.0) for pair in NON_TEXT_PAIRS]
 
@@ -391,10 +402,12 @@ TESTED_TEXT_TOKENS = {pair[1] for pair in TEXT_PAIRS if pair[2] in {"app", "pane
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("url_name", ["marketing:home", "marketing:toolbox"])
-def test_pages_use_only_tested_text_colours(client, url_name):
+@pytest.mark.parametrize(
+    "url", ["/", "/toolbox/", "/docs/", "/docs/learn/scripting/", "/docs/api/classes/part/"]
+)
+def test_pages_use_only_tested_text_colours(client, url):
     """fg-muted, for one, is under 4.5:1 on the app background, so no text may use it."""
-    html = client.get(reverse(url_name)).content.decode()
+    html = client.get(url).content.decode()
     classes = " ".join(re.findall(r'class="([^"]*)"', html))
     used = set(
         re.findall(r"(?<![\w-])(?:[\w-]+:)?text-((?:fg|ink|on-ink|accent|primary)[\w-]*)", classes)

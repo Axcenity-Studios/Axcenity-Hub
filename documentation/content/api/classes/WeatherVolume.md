@@ -1,0 +1,500 @@
+---
+description: "A Part that sets the weather inside its box by hand, wherever the camera is: whether rain and snow fall there (Precipitation), how much of the world's snow lies (Snow) and how wet surfaces are (Wetness), in place of the shelter the engine finds from roofs."
+---
+
+# WeatherVolume
+
+```luau
+Instance.new("WeatherVolume")
+```
+
+A Part that sets the weather inside its box by hand, wherever the camera is: whether rain and snow fall there (Precipitation), how much of the world's snow lies (Snow) and how wet surfaces are (Wetness), in place of the shelter the engine finds from roofs. As made it's a shelter, for an interior or under an overhang: no drops, dry and bare. Turn the three up to let the weather into an open shed or deepen a snowdrift. It does nothing without a Weather in Lighting. Where volumes overlap, the higher Priority wins; the 8 nearest the camera are drawn. Invisible, anchored and walked through (CanCollide off) by default. Everything a Part has, and Enabled, Precipitation, Snow, Wetness, BlendDistance and Priority.
+
+It also has every member of [Instance](Instance.md).
+
+### Properties
+
+#### Anchored
+
+```luau
+WeatherVolume.Anchored: boolean
+```
+
+If true, the part stays where it is. If false, it falls and collides with other parts.
+
+#### Shape
+
+```luau
+WeatherVolume.Shape: EnumPartType | "Block" | "Ball" | "Cylinder" | "Wedge" | "Capsule" | "CornerWedge"
+```
+
+Block, Ball, Cylinder (along X), Wedge, Capsule (along X, with round ends) or CornerWedge (rising to a point over its back right corner).
+
+#### Position
+
+```luau
+WeatherVolume.Position: Vector3
+```
+
+Where the part's center is, in studs. Setting it on an unanchored part teleports it and stops it moving.
+
+#### Orientation
+
+```luau
+WeatherVolume.Orientation: Vector3
+```
+
+Rotation in degrees around X, Y and Z, applied Z first, then X, then Y.
+
+#### Size
+
+```luau
+WeatherVolume.Size: Vector3
+```
+
+The part's size in studs along X, Y and Z.
+
+#### PivotOffset
+
+```luau
+WeatherVolume.PivotOffset: CFrame
+```
+
+Where the part's pivot is, from its center, and how it's turned: the point the editor's Move and Rotate tools hold it by and turn it about (set with the Pivot tool). At the center, unturned, at first.
+
+#### Color
+
+```luau
+WeatherVolume.Color: Color3
+```
+
+The part's color.
+
+#### Material
+
+```luau
+WeatherVolume.Material: EnumMaterial | "Plastic" | "SmoothPlastic" | "Wood" | "WoodPlanks" | "Marble" | "Granite" | "Concrete" | "Slate" | "Brick" | "Fabric" | "Sand" | "Metal" | "Glass" | "Neon" | "Ice" | "Rubber"
+```
+
+Plastic, Metal, Glass (see-through) or Neon (glows). Setting it resets Metalness and Roughness.
+
+#### MaterialVariant
+
+```luau
+WeatherVolume.MaterialVariant: string
+```
+
+A material file in the project, such as "assets/materials/brick.material.json", drawn in place of Material, Metalness, Roughness and Emission; Color tints it and Transparency fades it. A SurfaceAppearance inside the part wins over it. Empty for none.
+
+#### BlueprintTexture
+
+```luau
+WeatherVolume.BlueprintTexture: boolean
+```
+
+If true, a plain Plastic part is drawn in a prototype grid texture while editing, to build by. It never shows in Play or in a built game.
+
+#### Metalness
+
+```luau
+WeatherVolume.Metalness: number
+```
+
+From 0 (not metal) to 1 (metal).
+
+#### Roughness
+
+```luau
+WeatherVolume.Roughness: number
+```
+
+From 0 (mirror-smooth) to 1 (matte).
+
+#### CastShadow
+
+```luau
+WeatherVolume.CastShadow: boolean
+```
+
+If false, the part casts no sun shadow. It's still shaded by other parts' shadows.
+
+#### Transparency
+
+```luau
+WeatherVolume.Transparency: number
+```
+
+From 0 (as solid as its material) to 1 (invisible).
+
+#### CanCollide
+
+```luau
+WeatherVolume.CanCollide: boolean
+```
+
+If false, other parts pass through it. It still fires Touched. An unanchored part that can't collide falls through the floor.
+
+#### WindAffected
+
+```luau
+WeatherVolume.WindAffected: boolean
+```
+
+If true and the part isn't anchored, workspace.GlobalWind pushes it, harder for parts with bigger faces.
+
+#### EmissiveColor
+
+```luau
+WeatherVolume.EmissiveColor: Color3
+```
+
+The color the part glows in when Emission is above 0.
+
+#### Emission
+
+```luau
+WeatherVolume.Emission: number
+```
+
+How brightly the part glows in EmissiveColor: 0 is no glow, 1 as bright as a white surface in full light, higher values bloom.
+
+#### TileSize
+
+```luau
+WeatherVolume.TileSize: number
+```
+
+Studs one copy of a SurfaceAppearance's textures covers. 0 leaves the shape's own coordinates unscaled.
+
+#### CollisionGroup
+
+```luau
+WeatherVolume.CollisionGroup: string
+```
+
+The collision group it's in, `"Default"` at first. Parts in two groups set not to collide (the Collision Groups window, or `PhysicsService:CollisionGroupSetCollidable`) pass through each other and don't touch. A name that isn't registered counts as Default.
+
+#### CanQuery
+
+```luau
+WeatherVolume.CanQuery: boolean
+```
+
+If false, scripts' raycasts, shape casts and overlap queries (`workspace:Raycast`, `GetPartsInPart`, ...) pass it by. It still collides.
+
+#### CanTouch
+
+```luau
+WeatherVolume.CanTouch: boolean
+```
+
+If false, it fires no Touched or TouchEnded, and touching it fires neither on other parts. It still collides.
+
+#### Massless
+
+```luau
+WeatherVolume.Massless: boolean
+```
+
+If true, the part adds no mass to an assembly it shares with other parts. A part on its own (every part, until welds exist) keeps its own mass.
+
+#### CustomPhysicalProperties
+
+```luau
+WeatherVolume.CustomPhysicalProperties: PhysicalProperties?
+```
+
+Its own density, friction, elasticity and their weights (`PhysicalProperties.new(...)`), or nil for its Material's. Read `CurrentPhysicalProperties` for the ones in use.
+
+#### AssemblyLinearVelocity
+
+```luau
+WeatherVolume.AssemblyLinearVelocity: Vector3
+```
+
+How fast the part moves, in studs a second. Physics updates it as the part moves; setting it throws the part. Anchored parts don't move.
+
+#### AssemblyAngularVelocity
+
+```luau
+WeatherVolume.AssemblyAngularVelocity: Vector3
+```
+
+How fast the part spins, in radians a second around each world axis. Physics updates it; setting it spins the part.
+
+#### LinearDrag
+
+```luau
+WeatherVolume.LinearDrag: number
+```
+
+Air resistance on its speed: each second its assembly loses about that share of it (1 takes away about 63%). 0 at first. Welded parts use their root part's.
+
+#### AngularDrag
+
+```luau
+WeatherVolume.AngularDrag: number
+```
+
+Air resistance on its spin, like LinearDrag. 0.5 at first, so a spinning part slows by itself; 0 spins on.
+
+#### RollingFriction
+
+```luau
+WeatherVolume.RollingFriction: number
+```
+
+Extra spin slowing while its assembly touches anything, so a ball rolls to a stop on the ground but spins on in the air. 0 at first. Welded parts use their root part's.
+
+#### Enabled
+
+```luau
+WeatherVolume.Enabled: boolean
+```
+
+If false, it changes nothing.
+
+#### Precipitation
+
+```luau
+WeatherVolume.Precipitation: boolean
+```
+
+Whether rain and snow fall inside it (false by default). False keeps the drops, their splashes and drips out even under open sky; true lets them fall inside even under a roof, such as an open-sided shed or an overhang the wind blows under.
+
+#### Snow
+
+```luau
+WeatherVolume.Snow: number
+```
+
+How much of the world's snow lies inside it, from 0 to 2 (0 by default): 0 none, 1 as much as under open sky, 2 twice as deep. It takes the place of the shelter the engine finds, so 1 puts snow under a roof. Above 1 the snow is deeper (terrain rises further and the snow on things stands higher) but no whiter.
+
+#### Wetness
+
+```luau
+WeatherVolume.Wetness: number
+```
+
+How much of the world's wetness is inside it, from 0 to 2 (0 by default): 0 dry, 1 as wet as under open sky, more wetter still, up to soaked. It takes the place of the shelter the engine finds, so 1 wets the floor under a roof.
+
+#### BlendDistance
+
+```luau
+WeatherVolume.BlendDistance: number
+```
+
+Studs over which its snow and wetness fade across its faces, half outside them and half inside (1 by default). 0 switches at the faces. Rain and snow stop at the faces whatever it is.
+
+#### Priority
+
+```luau
+WeatherVolume.Priority: number
+```
+
+Where volumes overlap, the one with the higher Priority wins (0 by default). Equal ones follow Explorer order, the later winning.
+
+#### Locked
+
+```luau
+WeatherVolume.Locked: boolean
+```
+
+If true, the editor's viewport can't select or change it, and the building tools leave it alone. It has no effect in a running game.
+
+#### CFrame
+
+```luau
+WeatherVolume.CFrame: CFrame
+```
+
+Its Position and Orientation as one CFrame. Setting it sets both; it isn't saved itself.
+
+#### AssemblyMass
+
+```luau
+WeatherVolume.AssemblyMass: number
+```
+
+The mass of everything moving with it: the parts welded into its assembly, except Massless ones (a part alone keeps its own mass). Read-only.
+
+#### AssemblyCenterOfMass
+
+```luau
+WeatherVolume.AssemblyCenterOfMass: Vector3
+```
+
+Where its mass is centered, in the world: the middle of a block or ball. Read-only.
+
+#### AssemblyLinearMomentum
+
+```luau
+WeatherVolume.AssemblyLinearMomentum: Vector3
+```
+
+Its assembly's mass times its `AssemblyLinearVelocity`: how hard it is to stop. Read-only.
+
+#### CurrentPhysicalProperties
+
+```luau
+WeatherVolume.CurrentPhysicalProperties: PhysicalProperties
+```
+
+The physical properties in use: `CustomPhysicalProperties`, or its Material's when that's nil. Read-only.
+
+### Events
+
+#### Touched
+
+```luau
+WeatherVolume.Touched: Signal
+```
+
+Fires when another part starts touching this one, once per new contact (not every frame while they touch). The handler gets the other part: `part.Touched:Connect(function(otherPart) ... end)`.
+
+#### TouchEnded
+
+```luau
+WeatherVolume.TouchEnded: Signal
+```
+
+Fires when another part stops touching this one: once they've been apart for a few physics steps, or at once when one of them can't touch the other any more (`CanTouch` off, or set not to collide). The handler gets the other part.
+
+### Functions
+
+#### UnionAsync
+
+```luau
+WeatherVolume:UnionAsync(parts: {Instance}, options: {[string]: any}?): UnionOperation
+```
+
+Joins the part and `parts` into one solid and returns it as a new UnionOperation (its Parent is nil), with this part's look and physics. NegateOperations among `parts` are cut out. The work runs in the background and the script waits for it. Errors, saying why, if a part isn't a closed solid (a Capsule, or a model with holes). `options.CollisionFidelity` sets the union's.
+
+#### SubtractAsync
+
+```luau
+WeatherVolume:SubtractAsync(parts: {Instance}, options: {[string]: any}?): UnionOperation
+```
+
+Cuts every one of `parts` out of the part and returns what's left as a new UnionOperation (its Parent is nil), with this part's look and physics: a crater where a ball was. The work runs in the background and the script waits for it. Errors, saying why, if a part isn't a closed solid or nothing is left. `options.CollisionFidelity` sets the union's.
+
+#### IntersectAsync
+
+```luau
+WeatherVolume:IntersectAsync(parts: {Instance}, options: {[string]: any}?): UnionOperation
+```
+
+Keeps only where the part and all of `parts` overlap, as a new UnionOperation (its Parent is nil), with this part's look and physics. The work runs in the background and the script waits for it. Errors, saying why, if a part isn't a closed solid or they don't overlap. `options.CollisionFidelity` sets the union's.
+
+#### GetConnectedParts
+
+```luau
+WeatherVolume:GetConnectedParts(recursive: boolean?): {Instance}
+```
+
+The part, then the parts welded to it by an enabled WeldConstraint; with `recursive` true, every part in its assembly.
+
+#### GetRootPart
+
+```luau
+WeatherVolume:GetRootPart(): Instance
+```
+
+The root of its assembly: an anchored part if there is one, then one that isn't Massless, then the largest. A part alone is its own root.
+
+#### GetPivot
+
+```luau
+WeatherVolume:GetPivot(): CFrame
+```
+
+Where it turns and moves from: a part's own CFrame, or for a Model the centre of the box around its parts, unturned.
+
+#### PivotTo
+
+```luau
+WeatherVolume:PivotTo(target: CFrame): ()
+```
+
+Moves and turns it so its pivot is at `target`. A Model's parts all move together and keep their places relative to each other.
+
+#### SetNetworkOwner
+
+```luau
+WeatherVolume:SetNetworkOwner(player: Instance?): ()
+```
+
+Scripts only (Phase 66): `player`'s device simulates this part's whole assembly from now on, so it responds at once for them, and the server sees what it does; nil gives it back to the server. An anchored part has no owner (an error). Scripts only.
+
+#### GetNetworkOwner
+
+```luau
+WeatherVolume:GetNetworkOwner(): Instance?
+```
+
+Scripts only: the Player whose device simulates this part's assembly now, or nil for the server. An anchored part has no owner (an error). Scripts only.
+
+#### SetNetworkOwnershipAuto
+
+```luau
+WeatherVolume:SetNetworkOwnershipAuto(): ()
+```
+
+Scripts only: the engine chooses who simulates this part's assembly: the player driving a VehicleSeat in it, else the nearest player within 40 studs, else the server. Scripts only.
+
+#### GetNetworkOwnershipAuto
+
+```luau
+WeatherVolume:GetNetworkOwnershipAuto(): boolean
+```
+
+Scripts only: true after SetNetworkOwnershipAuto, until SetNetworkOwner. Scripts only.
+
+#### ApplyImpulse
+
+```luau
+WeatherVolume:ApplyImpulse(impulse: Vector3): ()
+```
+
+Pushes the part through its center of mass: its velocity changes by `impulse` divided by its assembly's mass (`AssemblyMass`, which is `GetMass()` for a part alone). Pushes in one frame add up. Anchored parts don't move.
+
+#### ApplyImpulseAtPosition
+
+```luau
+WeatherVolume:ApplyImpulseAtPosition(impulse: Vector3, position: Vector3): ()
+```
+
+Pushes the part at `position` in the world: it speeds up as `ApplyImpulse` would, and an impulse off its center of mass also spins it.
+
+#### ApplyAngularImpulse
+
+```luau
+WeatherVolume:ApplyAngularImpulse(impulse: Vector3): ()
+```
+
+Spins the part: its `AssemblyAngularVelocity` changes by `impulse` (radians a second times inertia) through its inertia.
+
+#### ApplyForce
+
+```luau
+WeatherVolume:ApplyForce(force: Vector3, seconds: number?): ()
+```
+
+Pushes the part's assembly with `force` for `seconds` (one physics step, 1/60 s, if left out): its `AssemblyLinearVelocity` changes by force times time over its mass. To push steadily, call it every Heartbeat with that frame's time, or use a VectorForce.
+
+#### ApplyTorque
+
+```luau
+WeatherVolume:ApplyTorque(torque: Vector3, seconds: number?): ()
+```
+
+Turns the part's assembly with `torque` for `seconds` (one physics step if left out): its `AssemblyAngularVelocity` changes by torque times time through its inertia. To turn steadily, call it every Heartbeat with that frame's time, or use a Torque.
+
+#### GetMass
+
+```luau
+WeatherVolume:GetMass(): number
+```
+
+Its density times its volume: a 1×1×1 Plastic block weighs 1. MeshParts weigh their collision shape.
+

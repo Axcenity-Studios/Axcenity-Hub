@@ -1,0 +1,153 @@
+---
+description: "The service with a Player for everyone in the game."
+---
+
+# Players
+
+```luau
+game.Players
+```
+
+The service with a Player for everyone in the game.
+
+It also has every member of [Instance](Instance.md).
+
+### Properties
+
+#### CharacterAutoLoads
+
+```luau
+Players.CharacterAutoLoads: boolean
+```
+
+If true, each player gets a character as they join (unless one is already in the Workspace, which becomes theirs) and a new one RespawnTime seconds after their character's Humanoid dies. If false, characters come only from `LoadCharacter`.
+
+#### RespawnTime
+
+```luau
+Players.RespawnTime: number
+```
+
+Seconds between a character's Humanoid dying and its player getting a new character, while CharacterAutoLoads is on.
+
+#### LeaderboardEnabled
+
+```luau
+Players.LeaderboardEnabled: boolean
+```
+
+If false, the default leaderboard isn't drawn, for a game that makes its own. It shows each Player's `leaderstats` Folder of Value objects, top right, and Tab shows and hides it.
+
+#### MaxPlayers
+
+```luau
+Players.MaxPlayers: number
+```
+
+How many players a hosted game takes, the host's own player among them. A player who joins a full game is refused, and their `NetworkService.ConnectionFailed` says the game is full.
+
+#### CharacterAuthority
+
+```luau
+Players.CharacterAuthority: string
+```
+
+Who moves players' characters in a hosted game. "Client" (the default): each device moves its own player's character at once and the server checks it. "Server": the server moves them from the keys players' devices send, and each device predicts its own character and is corrected when the server disagrees, so a modified client can't move it where the game wouldn't.
+
+#### LocalPlayer
+
+```luau
+Players.LocalPlayer: Player
+```
+
+The player on this device. LocalScripts only.
+
+```lua
+-- In a LocalScript: the player on this device.
+local player = game:GetService("Players").LocalPlayer
+print("Hello,", player.DisplayName)
+```
+
+### Events
+
+#### PlayerAdded
+
+```luau
+Players.PlayerAdded: Signal
+```
+
+Fires with the Player when someone joins, after they're put on a team and before their first character spawns.
+
+```lua
+local Players = game:GetService("Players")
+Players.PlayerAdded:Connect(function(player)
+	print(player.DisplayName, "joined")
+end)
+```
+
+#### PlayerRemoving
+
+```luau
+Players.PlayerRemoving: Signal
+```
+
+Fires with the Player when someone leaves a hosted game, just before their Player (and character) are destroyed.
+
+```lua
+local Players = game:GetService("Players")
+Players.PlayerRemoving:Connect(function(player)
+	print(player.Name, "left the game")
+end)
+```
+
+#### PlayerFlagged
+
+```luau
+Players.PlayerFlagged: Signal
+```
+
+Scripts only: fires with the Player and why (a string) when the server catches what their device sent breaking a rule, such as sending far more than a game client does or tables nested too deep. At most once a second for each reason. The server kicks a player flagged too often in a minute on its own (`axcenity-server --kick-flags`); a script may kick sooner or note it.
+
+### Functions
+
+#### GetPlayers
+
+```luau
+Players:GetPlayers(): {Player}
+```
+
+Every Player in the game.
+
+```lua
+local Players = game:GetService("Players")
+for _, player in Players:GetPlayers() do
+	print(player.Name)
+end
+```
+
+#### GetPlayerFromCharacter
+
+```luau
+Players:GetPlayerFromCharacter(character: Instance?): Player?
+```
+
+The Player whose Character is `character`, or nil if none matches.
+
+#### CreateHumanoidModelFromDescription
+
+```luau
+Players:CreateHumanoidModelFromDescription(description: HumanoidDescription): Model
+```
+
+A new character that looks like `description`, for an NPC or a preview: a copy of the game's StarterCharacter with the description applied. Its Parent is nil: name it, place it and put it in the Workspace. An error if the game has no StarterCharacter (StarterPlayer's StarterCharacter names no prefab) or the description can't be applied.
+
+```lua
+local description = Instance.new("HumanoidDescription")
+description:SetItem("hair", "axcenity/hair-long")
+description:RemoveItem("outerwear")
+local guard = game:GetService("Players"):CreateHumanoidModelFromDescription(description)
+guard.Name = "Guard"
+guard:PivotTo(workspace.GuardPost.CFrame)
+guard.Parent = workspace
+```
+
