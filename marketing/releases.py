@@ -85,7 +85,8 @@ class BuildKind:
 
     An editor build is `AxcenityEditor-<version><tail>` (`-windows-x86_64.exe`); any other
     known file has an exact `name` (`SHA256SUMS.txt`). `command` may contain `{file}`, the
-    file's name. The `primary` kind is the one button offered for its system.
+    file's name. The `primary` kind is the one button offered for its system. `icon` names
+    a line icon in templates/partials/icon.html.
     """
 
     system: str
@@ -95,6 +96,7 @@ class BuildKind:
     tail: str = ""
     name: str = ""
     primary: bool = False
+    icon: str = "file"
 
     def __post_init__(self) -> None:
         if self.system not in SYSTEMS:
@@ -118,6 +120,11 @@ class Build:
     @property
     def command(self) -> str:
         return self.kind.command.replace("{file}", self.asset.name) if self.kind else ""
+
+    @property
+    def icon(self) -> str:
+        """The kind's icon; a file no kind recognises is a plain file."""
+        return self.kind.icon if self.kind else "file"
 
 
 @dataclass(frozen=True)
@@ -211,6 +218,17 @@ def select_release(payload: object) -> Release | None:
         return None
     candidates = [release for entry in payload if (release := _parse_release(entry))]
     return max(candidates, key=lambda release: release.published_at, default=None)
+
+
+def find_asset(release: Release | None, name: object) -> Asset | None:
+    """The release's file called exactly `name`, or None (no release, or no such file).
+
+    This is how a download request names its file: by name only, so the URL it ends up at
+    is always the one GitHub gave for this release, never one from the request.
+    """
+    if release is None or not isinstance(name, str):
+        return None
+    return next((asset for asset in release.assets if asset.name == name), None)
 
 
 # ---------- Builds by system ----------

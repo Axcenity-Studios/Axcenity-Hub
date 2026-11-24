@@ -1,6 +1,12 @@
 """Public, signed-out pages."""
 
-from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
+from django.http import (
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseRedirect,
+)
 from django.shortcuts import redirect
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -59,6 +65,10 @@ class ToolboxView(MarketingPageMixin, TemplateView):
         return context
 
 
+# A full-width download panel lays its builds out this many to a row (from 1024 px).
+DOWNLOAD_COLUMNS = 3
+
+
 @method_decorator(vary_on_headers("User-Agent", "Sec-CH-UA-Platform"), name="dispatch")
 class DownloadView(MarketingPageMixin, TemplateView):
     """The engine's newest release at /download/, its builds grouped by system.
@@ -82,18 +92,78 @@ class DownloadView(MarketingPageMixin, TemplateView):
             if offer.release
             else []
         )
-        names = content.DOWNLOAD_PAGE["systems"]
+        panels = [self._panel(group) for group in groups]
         mine = next((group for group in groups if group.detected and group.primary), None)
         context.update(
             page=content.DOWNLOAD_PAGE,
             offer=offer,
-            # (group, its name): the systems' panels, then "other" (every other file).
-            systems=[(group, names[group.system]) for group in groups if group.system != "other"],
-            others=next((group for group in groups if group.system == "other"), None),
+            # The systems' panels, then "other" (every other file).
+            systems=[panel for panel in panels if panel["group"].system != "other"],
+            others=next((panel for panel in panels if panel["group"].system == "other"), None),
             mine=mine,
-            mine_name=names[mine.system] if mine else "",
+            mine_name=content.DOWNLOAD_PAGE["systems"][mine.system] if mine else "",
+            mine_icon=content.DOWNLOAD_SYSTEM_ICONS[mine.system] if mine else "",
         )
         return context
+
+    @staticmethod
+    def _panel(group: releases.SystemGroup) -> dict:
+        """A system's panel: its name and icon, and whether it spans the row (several builds,
+        laid out three to a row). A wide panel whose last row isn't full gets its tip card,
+        spanning the gap (`tip_span` columns)."""
+        wide = len(group.builds) > 1
+        gap = (-len(group.builds)) % DOWNLOAD_COLUMNS if wide else 0
+        tip = content.DOWNLOAD_PAGE["tips"].get(group.system) if gap else None
+        return {
+            "group": group,
+            "name": content.DOWNLOAD_PAGE["systems"][group.system],
+            "icon": content.DOWNLOAD_SYSTEM_ICONS[group.system],
+            "wide": wide,
+            "tip": tip,
+            "tip_span": gap,
+        }
+
+
+class DownloadAgreeView(MarketingPageMixin, TemplateView):
+    """The license agreement every download goes through, at /download/agree/?file=<name>.
+
+    GET shows the terms and the form (the page JavaScript-less visitors reach; with
+    JavaScript the same form opens as a dialog on /download/). POST, with CSRF, needs the
+    agreement box ticked, then redirects (303) to that file's download on GitHub. The file
+    is named, never linked: it must be in the current release, or it's a 404, so this can
+    never redirect anywhere but the release's own files.
+    """
+
+    template_name = "marketing/download_agree.html"
+
+    def _asset(self, name: object) -> releases.Asset:
+        asset = releases.find_asset(releases.current_release().release, name)
+        if asset is None:
+            raise Http404("No such file in the current release.")
+        return asset
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        asset = self._asset(request.GET.get("file"))
+        return self.render_to_response(self.get_context_data(asset=asset))
+
+    def post(self, request: HttpRequest) -> HttpResponse:
+        asset = self._asset(request.POST.get("file"))
+        if request.POST.get("agree") != "yes":
+            context = self.get_context_data(asset=asset, missing_agreement=True)
+            return self.render_to_response(context, status=400)
+        return _see_other(asset.url)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["page"] = content.DOWNLOAD_PAGE
+        return context
+
+
+def _see_other(url: str) -> HttpResponseRedirect:
+    """A 303 to `url`: after the POST, the browser GETs the file."""
+    response = HttpResponseRedirect(url)
+    response.status_code = 303
+    return response
 
 
 class ThemeView(View):

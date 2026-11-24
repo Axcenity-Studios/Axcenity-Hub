@@ -58,7 +58,7 @@ DaisyUI's `primary` and `accent` role and has exactly these uses:
 
 - the primary button (`btn btn-primary`): Download, Download alpha, and
   `/download/`'s one button (Download for <system>, Choose your build, or
-  Open GitHub Releases)
+  Open GitHub Releases), and the license agreement's Agree and download
 - the version badge's dot (`.badge-dot`, the only `var(--color-accent)`)
 - the renderer wipe's scan line (`colors.accent`, drawn only by
   `drawing/renderer.js`)

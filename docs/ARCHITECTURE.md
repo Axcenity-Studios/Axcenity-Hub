@@ -2,16 +2,21 @@
 
 Read this before adding models, URLs, views or services. **This page is an
 index:** the rules below apply everywhere; topic files under
-`docs/architecture/` get written as areas grow (none exist yet).
+`docs/architecture/` get written as areas grow:
+
+| Open… | Before you touch… |
+|---|---|
+| [architecture/github-releases.md](architecture/github-releases.md) | the GitHub release list behind `/download/`: choosing and validating the release, the cache, ETag, fallbacks and backoff |
 
 ## Layout
 
 | Path | Holds |
 |---|---|
 | `config/` | Settings, root URLs, WSGI/ASGI, site-wide context processors, `theme.py` (the colour-scheme cookie) |
-| `marketing/` | Public signed-out pages: Home, Toolbox and Download. `content.py` holds their copy, links and media manifest as data; `drawings.py` computes the drawn media; `media.py` cuts captures into derivatives (`manage.py make_media`); `github.py` is the one GitHub request (the engine's release list) and `releases.py` chooses the release, groups its builds and caches it ([frontend/download.md](frontend/download.md)) |
+| `marketing/` | Public signed-out pages: Home, Toolbox and Download. `content.py` holds their copy, links and media manifest as data; `drawings.py` computes the drawn media; `media.py` cuts captures into derivatives (`manage.py make_media`); `github.py` is the one GitHub request (the engine's release list) and `releases.py` chooses the release, groups its builds and caches it; `legal.py` reflows the engine's LICENSE and NOTICE into prose for the download agreement ([frontend/download.md](frontend/download.md)) |
 | `documentation/` | The engine docs at `/docs/`: `sync.py` (`sync_engine_docs`), `navigation.py`, `links.py`, `rendering.py`, `highlight.py`, `library.py` (the snapshot as served, and its build check), `api.py` (API pages as structure), `search.py` (the index and ranking), `diagrams.py`, `strings.py`. See [frontend/documentation.md](frontend/documentation.md) |
 | `documentation/content/` | The committed snapshot of the engine's `documentation/` folder, with `SOURCE.json` (commit and tree). Only `sync_engine_docs` writes it |
+| `marketing/legal/` | The engine's `LICENSE` and `NOTICE`, copied in unchanged (`content.LEGAL_COMMIT`), shown in full in the download agreement |
 | `marketing/media_sources/` | Captures as copied in (never served, never edited): the sources `make_media` reads, and `toolbox-capture.json`, the Toolbox screenshots' capture record |
 | `templates/` | `base.html` (shared by every shell), `marketing/` (the marketing shell and its pages), `documentation/` (the docs layout and pages), `partials/` |
 | `styles/source.css` | The Tailwind source; built into `static/css/tailwind.css` (git-ignored) |
@@ -40,6 +45,7 @@ Later phases add `accounts`, `projects`, `forums`, `showcases`, `reports`,
 |---|---|---|
 | `/` | `marketing:home` | `HomeView` |
 | `/toolbox/` | `marketing:toolbox` | `ToolboxView`: the Toolbox overview ([frontend/toolbox.md](frontend/toolbox.md)) |
+| `/download/agree/` | `marketing:download_agree` | `DownloadAgreeView`: the license agreement for `?file=<name>` (GET: terms and form; POST with CSRF and `agree=yes`: 303 to that file on GitHub). A file not in the current release is a 404 |
 | `/download/` | `marketing:download` | `DownloadView`: the engine's newest release from GitHub, its builds by system ([frontend/download.md](frontend/download.md)); varies on `User-Agent` and `Sec-CH-UA-Platform` |
 | `/docs/` | `documentation:index` | `DocsIndexView`: the docs' README and a panel per section |
 | `/docs/search/` | `documentation:search` | `DocsSearchView`: `?q=` search over the snapshot's index, `&page=` (20 a page) |
@@ -95,7 +101,8 @@ Later phases add `accounts`, `projects`, `forums`, `showcases`, `reports`,
   never raises for an HTTP or network failure. `marketing/releases.py`
   caches the result in Django's cache (fresh for an hour, kept seven days
   as the fallback) and backs off after a failure. GitHub's data is
-  untrusted input: every field is checked before use.
+  untrusted input: every field is checked before use
+  ([architecture/github-releases.md](architecture/github-releases.md)).
 - The cache is local memory in development. Production needs a shared
   cache so every process shares one list and one backoff (Phase 8).
 

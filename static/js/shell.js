@@ -1,6 +1,6 @@
 // The shell's behaviour: the hover gate, the colour-scheme switch, the nav's
-// scrolled state and the cursor spotlight. It listens on the document
-// (delegation), so it works for any page in either shell.
+// scrolled state, the cursor spotlight and the motifs (animated line icons). It
+// listens on the document (delegation), so it works for any page in either shell.
 (function () {
   var root = document.documentElement;
   var reduce = matchMedia("(prefers-reduced-motion: reduce)");
@@ -121,4 +121,28 @@
   root.addEventListener("mouseleave", function () {
     light(null);
   });
+
+  // ---------- Motifs ----------
+  // Line icons with class="motif" (Home's workflow and stat band, /download/'s
+  // systems and files) play each time they come into view: data-on starts them
+  // once one is well in view (60 %), and only leaving the screen entirely takes
+  // it off, so scrolling back plays it again and a small scroll at the edge
+  // doesn't. Under reduced motion, or without IntersectionObserver, they rest drawn.
+  var motifs = Array.prototype.slice.call(document.querySelectorAll(".motif"));
+  var observes = "IntersectionObserver" in window;
+  if (observes && !reduce.matches && motifs.length) {
+    var player = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.intersectionRatio >= 0.6) entry.target.dataset.on = "";
+          else if (!entry.isIntersecting) delete entry.target.dataset.on;
+        });
+      },
+      { threshold: [0, 0.6] }
+    );
+    motifs.forEach(function (motif) {
+      player.observe(motif);
+    });
+    root.dataset.motifs = "";
+  }
 })();

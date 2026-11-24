@@ -19,6 +19,8 @@ pytestmark = pytest.mark.django_db
 
 SOURCE = (settings.BASE_DIR / "styles" / "source.css").read_text(encoding="utf-8")
 HOME_JS = (settings.BASE_DIR / "static" / "js" / "home.js").read_text(encoding="utf-8")
+# The motifs play through shell.js, on every page.
+SHELL_JS = (settings.BASE_DIR / "static" / "js" / "shell.js").read_text(encoding="utf-8")
 HOME_BLOCKS = [
     content.HOME_HERO,
     content.HOME_FEATURES,
@@ -249,8 +251,8 @@ def test_every_workflow_step_and_fact_has_a_decorative_motif(home, section, item
     assert all('aria-hidden="true"' in svg and 'focusable="false"' in svg for svg in motifs)
 
 
-def test_motifs_play_only_through_home_js_and_rest_drawn_under_reduced_motion():
-    # Hiding and every animation wait for html[data-motifs], which only home.js sets
+def test_motifs_play_only_through_shell_js_and_rest_drawn_under_reduced_motion():
+    # Hiding and every animation wait for html[data-motifs], which only shell.js sets
     # (and not under reduced motion), so without JavaScript the icons are simply drawn.
     rules = re.findall(
         r"^[^{}\n]*\.motif[^{}\n]*\{[^}]*(?:animation|opacity: 0;)[^}]*\}", SOURCE, re.M
@@ -261,11 +263,11 @@ def test_motifs_play_only_through_home_js_and_rest_drawn_under_reduced_motion():
     assert len(rules) >= 10
     for rule in rules:
         assert rule.lstrip().startswith("html[data-motifs] .motif"), rule
-    assert "if (observes && !reduce.matches && motifs.length)" in HOME_JS
-    assert 'root.dataset.motifs = ""' in HOME_JS
+    assert "if (observes && !reduce.matches && motifs.length)" in SHELL_JS
+    assert 'root.dataset.motifs = ""' in SHELL_JS
     # Well in view plays it; only leaving the screen entirely resets it for next time.
-    assert "if (entry.intersectionRatio >= 0.6) entry.target.dataset.on" in HOME_JS
-    assert "else if (!entry.isIntersecting) delete entry.target.dataset.on" in HOME_JS
+    assert "if (entry.intersectionRatio >= 0.6) entry.target.dataset.on" in SHELL_JS
+    assert "else if (!entry.isIntersecting) delete entry.target.dataset.on" in SHELL_JS
     reduced = SOURCE.split("@media (prefers-reduced-motion: reduce) {", 1)[1].split("\n}", 1)[0]
     assert "html[data-motifs] .motif:not([data-on]) { opacity: 1; }" in reduced
 

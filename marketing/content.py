@@ -9,11 +9,12 @@ a dead link.
 
 import json
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from django.templatetags.static import static
 from django.urls import reverse
 
-from marketing import drawings, github, media, releases
+from marketing import drawings, github, legal, media, releases
 
 # The engine's canonical repository (the README's older account redirects here).
 ENGINE_REPO_URL = github.ENGINE_REPO_URL
@@ -1171,6 +1172,13 @@ TOOLBOX_PAGE = {
 
 
 # ---------- Download page (/download/) ----------
+# The engine's LICENSE and NOTICE, copied in unchanged (the engine repository is read only)
+# from LEGAL_COMMIT, shown in full in the download agreement.
+LEGAL_DIR = Path(__file__).resolve().parent / "legal"
+LEGAL_COMMIT = "cae2e6c01144f2ed92f25381e90737e3290b357b"
+ENGINE_LICENSE = (LEGAL_DIR / "LICENSE").read_text(encoding="utf-8")
+ENGINE_NOTICE = (LEGAL_DIR / "NOTICE").read_text(encoding="utf-8")
+
 # The release itself comes from GitHub (marketing/releases.py); this is the page's frame.
 # The labels, hints and commands are the engine's own release notes
 # (packaging/release-notes.md.tpl in the engine repository).
@@ -1181,6 +1189,7 @@ DOWNLOAD_BUILDS = [
         "Setup wizard",
         "Run the setup wizard. If SmartScreen appears, choose More info, then Run anyway.",
         tail="-windows-x86_64.exe",
+        icon="installer",
         primary=True,
     ),
     releases.BuildKind(
@@ -1189,6 +1198,7 @@ DOWNLOAD_BUILDS = [
         "Agree to the license and drag Axcenity Editor onto Applications. It's unsigned, "
         "so Control-click the app and choose Open the first time.",
         tail="-macos-universal.dmg",
+        icon="disk",
         primary=True,
     ),
     releases.BuildKind(
@@ -1197,40 +1207,57 @@ DOWNLOAD_BUILDS = [
         "Make it executable, then run it.",
         command="chmod +x {file}",
         tail="-linux-x86_64.AppImage",
+        icon="app",
         primary=True,
     ),
     releases.BuildKind(
-        "linux", "Debian / Ubuntu", command="sudo apt install ./{file}", tail="-linux-x86_64.deb"
+        "linux",
+        "Debian / Ubuntu",
+        command="sudo apt install ./{file}",
+        tail="-linux-x86_64.deb",
+        icon="package",
     ),
     releases.BuildKind(
         "linux",
         "Fedora / RHEL / openSUSE",
         command="sudo dnf install ./{file}",
         tail="-linux-x86_64.rpm",
+        icon="package",
     ),
     releases.BuildKind(
-        "linux", "Arch Linux", command="sudo pacman -U {file}", tail="-linux-x86_64.pkg.tar.zst"
+        "linux",
+        "Arch Linux",
+        command="sudo pacman -U {file}",
+        tail="-linux-x86_64.pkg.tar.zst",
+        icon="package",
     ),
     releases.BuildKind(
         "linux",
         "Any Linux, portable (tar.gz)",
         "Extract it and run ./axcenity-editor.",
         tail="-linux-x86_64.tar.gz",
+        icon="archive",
     ),
     releases.BuildKind(
         "other",
         "Updater archive",
         "What the editor's own updater installs. You don't need it.",
         tail="-windows-x86_64-update.zip",
+        icon="archive",
     ),
     releases.BuildKind(
-        "other", "Checksums", "Every file's SHA-256, one per line.", name="SHA256SUMS.txt"
+        "other",
+        "Checksums",
+        "Every file's SHA-256, one per line.",
+        name="SHA256SUMS.txt",
+        icon="hash",
     ),
     releases.BuildKind(
         "other",
         "Signed release manifest",
         "Lists every file's SHA-256 and is signed with minisign.",
         name="axcenity-release.json",
+        icon="manifest",
     ),
     releases.BuildKind(
         "other",
@@ -1238,14 +1265,20 @@ DOWNLOAD_BUILDS = [
         "Check the manifest with the engine's public key, axcenity-release.pub:",
         command="minisign -Vm axcenity-release.json -p axcenity-release.pub",
         name="axcenity-release.json.minisig",
+        icon="key",
     ),
     releases.BuildKind(
         "other",
         "Release history",
         "The history the editor's Version Explorer reads.",
         name="axcenity-history.json",
+        icon="history",
     ),
 ]
+
+# Each system's line icon (templates/partials/icon.html): drawn for the Hub, not the
+# systems' trademarked logos.
+DOWNLOAD_SYSTEM_ICONS = {"windows": "windows", "macos": "macos", "linux": "linux", "other": "files"}
 
 DOWNLOAD_PAGE = {
     "title": "Download",
@@ -1297,6 +1330,122 @@ DOWNLOAD_PAGE = {
         ],
     },
     "data_note": "Release data from the GitHub API, refreshed about once an hour.",
+    # The agreement every download goes through (a dialog, or /download/agree/ without
+    # JavaScript). The terms are the engine's own words: README.md's "License and trademark"
+    # and LICENSE (Apache 2.0) sections 6 and 7. `quotes` are checked against the README.
+    "agreement": {
+        "title": "Before you download",
+        "page_title": "License agreement",
+        "description": (
+            "The Apache License 2.0 and the Axcenity trademark terms you agree to before "
+            "downloading Axcenity Engine."
+        ),
+        "lede": (
+            "Axcenity Engine is free and open source. Downloading it means agreeing to "
+            "its license and trademark terms:"
+        ),
+        "file_label": "You're downloading",
+        "terms": [
+            {
+                "title": "Apache License 2.0",
+                "body": "Axcenity Engine is licensed under the Apache License 2.0.",
+            },
+            {
+                "title": "Your games are yours",
+                "body": (
+                    "Games you create with Axcenity belong entirely to you—no royalties and "
+                    "no fees. Sell or distribute them however you choose."
+                ),
+            },
+            {
+                "title": "Forks are welcome",
+                "body": (
+                    "You may fork and modify the engine freely under the Apache License 2.0. "
+                    "Keep the LICENSE and NOTICE files, mark any files you modify, and "
+                    "distribute your fork under a different name."
+                ),
+            },
+            {
+                "title": "Trademark",
+                "body": (
+                    "Axcenity™ and Axcenity Engine™ (the word marks) are pending trademarks of "
+                    "Paul Janota. The Apache License 2.0 does not grant permission to use the "
+                    "Axcenity name or trademarks, except as required for reasonable and "
+                    "customary use in describing the origin of the work and reproducing the "
+                    "content of the NOTICE file."
+                ),
+            },
+            {
+                "title": "No warranty",
+                "body": (
+                    "The engine is provided \u201cas is\u201d, without warranties or conditions "
+                    "of any kind (Apache License 2.0, section 7)."
+                ),
+            },
+        ],
+        # The engine's LICENSE and NOTICE in full, beside the terms (copies in marketing/legal/,
+        # checked against the engine's checkout when it's on the machine).
+        "full_text": {
+            "label": "Full text",
+            "tabs": [
+                # Set as prose: the files' hard wraps joined so the pane can wrap them.
+                {"key": "license", "label": "LICENSE", "blocks": legal.reflow(ENGINE_LICENSE)},
+                {"key": "notice", "label": "NOTICE", "blocks": legal.reflow(ENGINE_NOTICE)},
+            ],
+        },
+        "checkbox": (
+            "I have read and agree to the Apache License 2.0 and the Axcenity trademark terms."
+        ),
+        "agree": "Agree and download",
+        "cancel": "Cancel",
+        "back": Link("Back to every build", url_name="marketing:download", fragment="builds"),
+        "required": "Tick the box to agree before downloading.",
+    },
+    # Cards that fill the gap a full-width system panel's last row leaves (Linux, Other files).
+    "tips": {
+        "linux": {
+            "icon": "app",
+            "title": "Not sure which?",
+            "body": (
+                "Start with the AppImage: it runs on any distribution without installing "
+                "anything. The packages install through your distribution's package manager."
+            ),
+        },
+        "other": {
+            "icon": "hash",
+            "title": "Check your download",
+            "body": (
+                "The checksums, the signed manifest and its signature confirm each file is "
+                "the one this release published."
+            ),
+            "link": Link("How to check", url_name="marketing:download", fragment="verify"),
+        },
+    },
+    # Beside the checksum commands: the engine's own from-source steps
+    # (documentation/learn/getting-started.md, Install).
+    "from_source": {
+        "eyebrow": "From source",
+        "title": "Or build it yourself.",
+        "body": "Install Rust with rustup, then clone the engine and run the editor from its folder:",
+        "terminal": "Terminal",
+        "commands": [
+            f"git clone {ENGINE_REPO_URL}.git",
+            "cd Axcenity-Engine",
+            "cargo run -p axcenity-editor",
+        ],
+        "note": (
+            "Windows and Linux are the main platforms and are checked on every change. "
+            "macOS works but is checked less often."
+        ),
+        "links": [
+            GETTING_STARTED,
+            Link(
+                "System requirements",
+                url_name="documentation:page",
+                args=("reference/system-requirements",),
+            ),
+        ],
+    },
 }
 
 
@@ -1308,6 +1457,9 @@ def all_links() -> list[Link]:
         DOWNLOAD_PAGE["choose"],
         DOWNLOAD_PAGE["all_releases"],
         DOWNLOAD_PAGE["unavailable"]["link"],
+        DOWNLOAD_PAGE["tips"]["other"]["link"],
+        DOWNLOAD_PAGE["agreement"]["back"],
+        *DOWNLOAD_PAGE["from_source"]["links"],
     ]
     links += [TOOLBOX_PAGE["primary"], TOOLBOX_PAGE["secondary"], TOOLBOX_PAGE["run"]["readme"]]
     for block in (HOME_HERO, HOME_FINAL):

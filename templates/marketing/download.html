@@ -1,8 +1,10 @@
 {% extends "marketing/shell.html" %}
+{% load shell_tags %}
 {# /download/: the engine's newest release from GitHub, its builds by system (docs/frontend/download.md). #}
 {# Every word comes from content.DOWNLOAD_PAGE and content.DOWNLOAD_BUILDS, or from the release itself.  #}
 {% block title %}{{ page.title }}{% endblock %}
 {% block description %}{{ page.description }}{% endblock %}
+{% block head %}<script src="{% versioned_static 'js/download.js' %}" defer></script>{% endblock %}
 {% block content %}
 <section id="overview" class="under-nav">
   <div class="mx-auto max-w-[1400px] px-4 pt-10 pb-12 md:px-8 md:pt-16 md:pb-16">
@@ -20,7 +22,7 @@
         {% if release.is_alpha %}<p class="mt-2 max-w-2xl text-fg-secondary">{{ page.alpha_note }}</p>{% endif %}
         <div class="mt-8 flex flex-wrap gap-3">
           {% if mine %}
-            <a href="{{ mine.primary.asset.url }}" class="btn btn-primary">{{ page.download_for }} {{ mine_name }}</a>
+            <a href="{% url 'marketing:download_agree' %}?file={{ mine.primary.asset.name|urlencode }}" data-download data-file="{{ mine.primary.asset.name }}" data-size="{{ mine.primary.asset.size|filesizeformat }}" class="btn btn-primary">{% include "partials/icon.html" with name=mine_icon size=18 class="motif dl-motif" %}{{ page.download_for }} {{ mine_name }}</a>
             <a href="{{ page.other_systems.href }}" class="btn btn-quiet">{{ page.other_systems.label }}</a>
           {% else %}
             <a href="{{ page.choose.href }}" class="btn btn-primary">{{ page.choose.label }}</a>
@@ -48,27 +50,11 @@
 {% if offer.release %}
 <section id="builds" class="mx-auto max-w-[1400px] px-4 pb-16 md:px-8" aria-labelledby="builds-title">
   <h2 id="builds-title" class="headline text-3xl text-fg-strong md:text-4xl">{{ page.builds_title }}</h2>
-  <div class="mt-8 grid items-start gap-6 lg:grid-cols-3">
-    {% for group, name in systems %}
-      <section class="panel dl-system" aria-labelledby="system-{{ group.system }}"{% if group.detected %} data-detected{% endif %}>
-        <div class="tb-bar justify-between pr-3">
-          <h3 id="system-{{ group.system }}" class="tb-chip tb-chip-current">{{ name }}</h3>
-          {% if group.detected %}<span class="dl-tag micro">{{ page.detected }}</span>{% endif %}
-        </div>
-        <ul class="dl-builds">
-          {% for build in group.builds %}{% include "marketing/download/build.html" %}{% endfor %}
-        </ul>
-      </section>
-    {% endfor %}
+  {# Single-build systems (Windows, macOS) share a row; a system with several (Linux) spans it. #}
+  <div class="mt-8 grid gap-6 lg:grid-cols-2">
+    {% for panel in systems %}{% include "marketing/download/panel.html" %}{% endfor %}
   </div>
-  {% if others %}
-    <section class="panel dl-system mt-6" aria-labelledby="system-other">
-      <div class="tb-bar"><h3 id="system-other" class="tb-chip tb-chip-current">{{ page.systems.other }}</h3></div>
-      <ul class="dl-builds dl-builds-wide">
-        {% for build in others.builds %}{% include "marketing/download/build.html" %}{% endfor %}
-      </ul>
-    </section>
-  {% endif %}
+  {% if others %}<div class="mt-6 grid">{% include "marketing/download/panel.html" with panel=others %}</div>{% endif %}
   <p class="mt-8 flex flex-wrap gap-3">
     {% if offer.release.page_url %}<a href="{{ offer.release.page_url }}" rel="noopener" class="btn btn-quiet">{{ page.notes }}</a>{% endif %}
     <a href="{{ page.all_releases.href }}" rel="noopener" class="btn btn-quiet">{{ page.all_releases.label }}</a>
@@ -76,15 +62,45 @@
 </section>
 
 <section id="verify" class="mx-auto max-w-[1400px] px-4 pt-8 pb-28 md:px-8 md:pb-36">
-  <p class="micro text-fg-weak">{{ page.verify.eyebrow }}</p>
-  <h2 class="headline mt-4 text-3xl text-fg-strong md:text-4xl">{{ page.verify.title }}</h2>
-  <p class="mt-4 max-w-2xl text-fg-secondary">{{ page.verify.body }}</p>
-  <dl class="panel dl-verify mt-8 max-w-3xl">
-    {% for system, command in page.verify.commands %}
-      <div><dt class="micro text-fg-weak">{{ system }}</dt><dd><code class="dl-command">{{ command }}</code></dd></div>
-    {% endfor %}
-  </dl>
-  <p class="mt-8 text-sm text-fg-secondary">{{ page.data_note }}</p>
+  <div class="grid gap-14 lg:grid-cols-2 lg:gap-8">
+    <div class="flex min-w-0 flex-col">
+      <p class="micro text-fg-weak">{{ page.verify.eyebrow }}</p>
+      <h2 class="headline mt-4 text-3xl text-fg-strong md:text-4xl">{{ page.verify.title }}</h2>
+      <p class="mt-4 max-w-2xl text-fg-secondary">{{ page.verify.body }}</p>
+      <dl class="panel dl-verify mt-8 flex-1">
+        {% for system, command in page.verify.commands %}
+          <div><dt class="micro text-fg-weak">{{ system }}</dt><dd><code class="dl-command">{{ command }}</code></dd></div>
+        {% endfor %}
+      </dl>
+    </div>
+    <div id="source" class="flex min-w-0 flex-col">
+      <p class="micro text-fg-weak">{{ page.from_source.eyebrow }}</p>
+      <h2 class="headline mt-4 text-3xl text-fg-strong md:text-4xl">{{ page.from_source.title }}</h2>
+      <p class="mt-4 max-w-2xl text-fg-secondary">{{ page.from_source.body }}</p>
+      <div class="panel mt-8 flex flex-1 flex-col p-px">
+        <p class="tb-bar"><span class="tb-chip tb-chip-current">{{ page.from_source.terminal }}</span></p>
+        <pre class="tb-terminal" tabindex="0"><code>{% for command in page.from_source.commands %}<span class="tb-prompt" aria-hidden="true">$ </span>{{ command }}
+{% endfor %}</code></pre>
+        <div class="mt-auto flex flex-col gap-5 p-6 md:p-7">
+          <p class="text-sm text-fg-secondary">{{ page.from_source.note }}</p>
+          <p class="flex flex-wrap gap-3">
+            {% for link in page.from_source.links %}{% include "partials/nav_link.html" with link=link class="btn btn-quiet btn-sm" %}{% endfor %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="mt-10 text-sm text-fg-secondary">{{ page.data_note }}</p>
 </section>
+
+{# Every Download link opens this agreement first (static/js/download.js); without JavaScript the #}
+{# links go to /download/agree/, the same form as a page.                                         #}
+<dialog class="dl-dialog" aria-labelledby="agreement-title" data-agreement>
+  <div class="tb-bar justify-between pr-3"><span class="tb-chip tb-chip-current">{{ page.agreement.page_title }}</span></div>
+  <div class="p-6 md:p-8">
+    <h2 id="agreement-title" class="headline text-2xl text-fg-strong md:text-3xl">{{ page.agreement.title }}</h2>
+    <div class="mt-4">{% include "marketing/download/agreement.html" with in_dialog=True asset=None %}</div>
+  </div>
+</dialog>
 {% endif %}
 {% endblock %}

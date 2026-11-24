@@ -6,17 +6,21 @@ import copy
 import json
 import re
 from datetime import UTC, datetime, timedelta
+from html import unescape
 from pathlib import Path
+from urllib.parse import quote
 
 import pytest
 import requests
 import responses
+from django.conf import settings
 from django.core.cache import cache
 from django.template.defaultfilters import filesizeformat
+from django.test import Client
 from django.urls import resolve, reverse
 from django.utils.html import escape
 
-from marketing import content, github, releases, views
+from marketing import content, github, legal, releases, views
 from tests.test_home import _copy, _part_main, _visible
 
 FIXTURE = Path(__file__).parent / "fixtures" / "github" / "releases.json"
@@ -451,9 +455,16 @@ def _live(payload=None):
     )
 
 
+def _agree(name: str) -> str:
+    """The agreement URL a Download link goes to for one file."""
+    return f"{reverse('marketing:download_agree')}?file={quote(name)}"
+
+
 def _primaries(html: str) -> list[tuple[str, str]]:
+    """(href, label) of each primary button in <main>, its icon's markup left out."""
     main = _part_main(html)
-    return re.findall(r'<a href="([^"]+)"[^>]*class="btn btn-primary">([^<]+)</a>', main)
+    found = re.findall(r'<a href="([^"]+)"[^>]*class="btn btn-primary">(.*?)</a>', main, re.S)
+    return [(unescape(href), re.sub(r"<[^>]+>", "", label).strip()) for href, label in found]
 
 
 def test_the_download_page_is_at_download_in_the_marketing_shell():
@@ -503,13 +514,13 @@ def test_the_visitors_system_is_highlighted_and_every_build_stays_reachable(
 ):
     _live()
     html = _get(client, user_agent).content.decode()
-    url = f"{DOWNLOAD_URL}AxcenityEditor-0.3.0-alpha.1{suffix}"
-    assert _primaries(html) == [(url, f"Download for {system}")]
+    name = f"AxcenityEditor-0.3.0-alpha.1{suffix}"
+    assert _primaries(html) == [(_agree(name), f"Download for {system}")]
     detected = re.findall(r'aria-labelledby="system-(\w+)" data-detected', html)
     assert detected == [{"Windows": "windows", "macOS": "macos", "Linux": "linux"}[system]]
     assert html.count(">Your system<") == 1
     for raw in PAYLOAD[0]["assets"]:
-        assert f'href="{raw["browser_download_url"]}"' in html, raw["name"]
+        assert f'href="{escape(_agree(raw["name"]))}" data-download' in html, raw["name"]
 
 
 @pytest.mark.parametrize("user_agent", [ANDROID_UA, IPHONE_UA, ""])
@@ -648,3 +659,430 @@ def test_the_copy_is_honest_about_the_alpha():
     text = " ".join(_copy(content.DOWNLOAD_PAGE))
     assert "Alpha" in text and "Windows, macOS and Linux" in text
     assert "Lua " not in text
+
+
+# ---------- Icons ----------
+
+ICONS = (settings.BASE_DIR / "templates" / "partials" / "icon.html").read_text("utf-8")
+
+
+def _drawn(name: str) -> bool:
+    return f'name == "{name}"' in ICONS
+
+
+def test_every_system_and_kind_of_file_has_an_icon_the_partial_draws():
+    assert set(content.DOWNLOAD_SYSTEM_ICONS) == set(releases.SYSTEMS)
+    for icon in content.DOWNLOAD_SYSTEM_ICONS.values():
+        assert _drawn(icon), icon
+    for kind in content.DOWNLOAD_BUILDS:
+        assert kind.icon != "file" and _drawn(kind.icon), kind.label
+    # A file no kind recognises still gets one.
+    assert _drawn("file")
+    asset = releases.Asset("notes.pdf", 1, "https://github.com/x")
+    assert releases.Build(asset).icon == "file"
+
+
+def _icon_paths(name: str) -> str:
+    """The first path or shape the partial draws for an icon, to find it in a page."""
+    body = ICONS.split(f'name == "{name}" %}}', 1)[1]
+    return re.search(r"<(?:path|rect|circle) [^>]*>", body).group(0)
+
+
+@pytest.mark.parametrize(
+    ("user_agent", "icon"), [(WINDOWS_UA, "windows"), (MAC_UA, "macos"), (LINUX_UA, "linux")]
+)
+@responses.activate
+def test_the_primary_button_and_each_panel_carry_their_systems_icon(client, user_agent, icon):
+    _live()
+    main = _part_main(_get(client, user_agent).content.decode())
+    button = re.search(r'class="btn btn-primary">(.*?)</a>', main, re.S).group(1)
+    assert _icon_paths(icon) in button and 'aria-hidden="true"' in button
+    for system, name in content.DOWNLOAD_SYSTEM_ICONS.items():
+        heading = re.search(rf'<h3 id="system-{system}"[^>]*>(.*?)</h3>', main, re.S).group(1)
+        assert _icon_paths(name) in heading, system
+
+
+@responses.activate
+def test_each_file_shows_its_kinds_icon(client):
+    _live()
+    main = _part_main(_get(client).content.decode())
+    cards = re.findall(r'<li class="dl-build" style="--stagger: \d+">(.*?)</li>', main, re.S)
+    assert len(cards) == len(PAYLOAD[0]["assets"])
+    for card in cards:
+        name = re.search(r'<span class="sr-only"> ([^<]+)</span>', card).group(1)
+        kind = next(k for k in content.DOWNLOAD_BUILDS if k.matches(name))
+        assert _icon_paths(kind.icon) in card, name
+        # The SHA-256 and the button sit together in the card's foot, which lines them up.
+        foot = card.split('<div class="dl-build-foot">', 1)[1]
+        assert "dl-hash" in foot and "btn btn-quiet btn-sm" in foot
+
+
+# ---------- New releases ----------
+
+
+def _next_release() -> dict:
+    """The real newest release as a later one would look: v0.4.0-alpha.1, published after it."""
+    text = json.dumps(PAYLOAD[0]).replace("0.3.0-alpha.1", "0.4.0-alpha.1")
+    entry = json.loads(text)
+    entry["published_at"] = "2026-12-05T18:00:00Z"
+    return entry
+
+
+@responses.activate
+def test_a_newly_published_release_replaces_the_old_one_once_the_hour_is_up(client):
+    _live()
+    releases.current_release(now=NOW)
+    # GitHub's list changed, so it answers the stored ETag with a 200 and a new one.
+    responses.replace(
+        responses.GET, LIST_URL, json=[_next_release(), *_payload()], headers={"ETag": 'W/"new"'}
+    )
+    assert releases.current_release(now=NOW + timedelta(minutes=30)).release.tag == (
+        "v0.3.0-alpha.1"
+    )
+    offer = releases.current_release(now=NOW + timedelta(hours=1))
+    assert offer.state == "live" and offer.release.tag == "v0.4.0-alpha.1"
+    assert responses.calls[1].request.headers.get("If-None-Match") == ETAG
+    # The build kinds match by file pattern, not version, so the new files group the same way.
+    groups = releases.group_builds(offer.release, content.DOWNLOAD_BUILDS)
+    assert [g.system for g in groups] == ["windows", "macos", "linux", "other"]
+    assert all(build.kind for g in groups for build in g.builds)
+    assert groups[0].primary.asset.name == "AxcenityEditor-0.4.0-alpha.1-windows-x86_64.exe"
+
+
+@responses.activate
+def test_the_page_offers_the_new_release(client):
+    responses.get(LIST_URL, json=[_next_release(), *_payload()], headers={"ETag": ETAG})
+    html = _get(client).content.decode()
+    assert _primaries(html) == [
+        (_agree("AxcenityEditor-0.4.0-alpha.1-windows-x86_64.exe"), "Download for Windows")
+    ]
+    assert "v0.4.0-alpha.1" in html and "0.3.0-alpha.1-" not in html
+
+
+@responses.activate
+def test_a_draft_stays_hidden_until_it_is_published():
+    draft = {**_next_release(), "draft": True}
+    responses.get(LIST_URL, json=[draft, *_payload()], headers={"ETag": ETAG})
+    assert releases.current_release(now=NOW).release.tag == "v0.3.0-alpha.1"
+
+
+# ---------- Filling the layout ----------
+
+
+def _tips(html: str) -> list[str]:
+    return re.findall(r'<li class="dl-build dl-tip[^"]*"', _part_main(html))
+
+
+@pytest.mark.parametrize(
+    ("linux_builds", "tip"),
+    [
+        (5, '<li class="dl-build dl-tip"'),  # 3 + 2: one cell left
+        (4, '<li class="dl-build dl-tip lg:col-span-2"'),  # 3 + 1: two cells left
+        (3, None),  # a full row: nothing to fill
+    ],
+)
+@responses.activate
+def test_a_tip_card_fills_the_gap_in_the_linux_panels_last_row(client, linux_builds, tip):
+    payload = _payload()
+    linux = [a for a in payload[0]["assets"] if "-linux-" in a["name"]]
+    for extra in linux[linux_builds:]:
+        payload[0]["assets"].remove(extra)
+    _live(payload)
+    html = _get(client).content.decode()
+    linux_panel = html.split('id="system-linux"', 1)[1].split("</section>", 1)[0]
+    found = _tips(f'<main id="content">{linux_panel}</main>')
+    assert found == ([tip] if tip else [])
+    if tip:
+        assert escape(content.DOWNLOAD_PAGE["tips"]["linux"]["title"]) in linux_panel
+
+
+@responses.activate
+def test_other_files_tip_links_to_checking_the_download(client):
+    _live()
+    html = _get(client).content.decode()
+    other = html.split('id="system-other"', 1)[1].split("</section>", 1)[0]
+    assert content.DOWNLOAD_PAGE["tips"]["other"]["title"] in other
+    assert 'href="/download/#verify"' in other and 'id="verify"' in html
+    # Windows and macOS have one build each: they share a row and need no tip.
+    assert len(_tips(html)) == 2
+
+
+@responses.activate
+def test_the_from_source_steps_are_the_engines_own(client):
+    _live()
+    html = _get(client).content.decode()
+    guide = (settings.DOCS_SNAPSHOT_DIR / "learn" / "getting-started.md").read_text("utf-8")
+    source = content.DOWNLOAD_PAGE["from_source"]
+    assert "cargo run -p axcenity-editor" in source["commands"] and (
+        "cargo run -p axcenity-editor" in guide
+    )
+    assert source["note"] in guide
+    assert source["commands"][0] == f"git clone {content.ENGINE_REPO_URL}.git"
+    terminal = html.split('<pre class="tb-terminal"', 1)[1].split("</pre>", 1)[0]
+    for command in source["commands"]:
+        assert f"{escape(command)}\n" in terminal
+    for link in source["links"]:
+        assert f'href="{link.href}"' in html
+    assert reverse("documentation:page", args=("reference/system-requirements",))
+
+
+@responses.activate
+def test_the_download_icons_are_decorative_motifs(client):
+    _live()
+    main = _part_main(_get(client).content.decode())
+    motifs = re.findall(r'<svg class="motif dl-motif"[^>]*>', main)
+    # The button's, one per panel (4), one per file (12) and one per tip (2).
+    assert len(motifs) == 1 + 4 + 12 + 2
+    assert all('aria-hidden="true"' in svg and 'focusable="false"' in svg for svg in motifs)
+    # Every icon has a part that draws in or moves.
+    for name in {
+        *content.DOWNLOAD_SYSTEM_ICONS.values(),
+        *(k.icon for k in content.DOWNLOAD_BUILDS),
+    }:
+        body = ICONS.split(f'name == "{name}" %}}', 1)[1].split("{% ", 1)[0]
+        assert 'class="m-' in body, name
+
+
+# ---------- The license agreement ----------
+
+AGREEMENT = content.DOWNLOAD_PAGE["agreement"]
+AGREE_URL = "/download/agree/"
+EXE = "AxcenityEditor-0.3.0-alpha.1-windows-x86_64.exe"
+ENGINE_DIR = Path.home() / "Documents" / "VSCode Projects" / "Axcenity-Engine"
+
+
+@responses.activate
+def test_every_download_link_goes_through_the_agreement(client):
+    _live()
+    main = _part_main(_get(client).content.decode())
+    links = re.findall(r'<a href="([^"]+)" data-download data-file="([^"]+)"', main)
+    # The button, then one per file.
+    assert len(links) == 1 + len(PAYLOAD[0]["assets"])
+    for href, name in links:
+        assert unescape(href) == _agree(unescape(name))
+    # No link on the page reaches a file without the agreement.
+    assert "/releases/download/" not in main
+
+
+@responses.activate
+def test_the_agreement_page_shows_the_terms_and_the_form(client):
+    _live()
+    response = client.get(AGREE_URL, {"file": EXE})
+    assert response.status_code == 200
+    html = response.content.decode()
+    assert reverse("marketing:download_agree") == AGREE_URL
+    assert "<title>License agreement · Axcenity</title>" in html
+    assert html.count("<h1") == 1
+    assert f"{EXE} · 187.9" in html
+    for term in AGREEMENT["terms"]:
+        assert escape(term["body"]) in html, term["title"]
+    form = html.split('<form method="post" action="/download/agree/"', 1)[1].split("</form>", 1)[0]
+    assert 'name="csrfmiddlewaretoken"' in form
+    assert f'<input type="hidden" name="file" value="{EXE}">' in form
+    assert '<input type="checkbox" name="agree" value="yes" required>' in form
+    _assert_full_text(html)
+
+
+def _assert_full_text(html: str) -> None:
+    """The engine's LICENSE and NOTICE in full beside the terms, set as prose, as tabs that
+    need no script."""
+    pane = html.split('<div class="dl-fulltext"', 1)[1]
+    for key, text in (("license", content.ENGINE_LICENSE), ("notice", content.ENGINE_NOTICE)):
+        body = pane.split(f'data-fulltext="{key}"', 1)[1].split("\n        </div>", 1)[0]
+        # Every word of the file, in order: nothing dropped by the reflow or the template.
+        shown = unescape(re.sub(r"<[^>]+>", " ", body.split(">", 1)[1])).split()
+        assert shown == _words(text), key
+    assert "<pre" not in pane
+    assert (
+        '<h3 class="dl-legal-heading">TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION</h3>'
+        in pane
+    )
+    assert "<p><strong>7. Disclaimer of Warranty.</strong> Unless required" in pane
+    assert '<h3 class="dl-legal-heading">Third-party code</h3>' in pane
+    assert (
+        '<input type="radio" name="fulltext" id="fulltext-license" class="dl-tab-input sr-only" checked>'
+        in pane
+    )
+    assert '<label for="fulltext-notice" class="tb-chip dl-tab">NOTICE</label>' in pane
+    # Nothing sends the visitor to GitHub to read the terms.
+    assert "/blob/main/LICENSE" not in html
+
+
+@responses.activate
+def test_agreeing_redirects_to_the_files_download_on_github(client):
+    _live()
+    response = client.post(AGREE_URL, {"file": EXE, "agree": "yes"})
+    assert response.status_code == 303
+    assert response["Location"] == f"{DOWNLOAD_URL}{EXE}"
+
+
+@pytest.mark.parametrize("agree", [None, "", "on", "no", "YES"])
+@responses.activate
+def test_without_ticking_the_box_there_is_no_download(client, agree):
+    _live()
+    data = {"file": EXE} | ({"agree": agree} if agree is not None else {})
+    response = client.post(AGREE_URL, data)
+    assert response.status_code == 400
+    assert "Location" not in response
+    html = response.content.decode()
+    assert AGREEMENT["required"] in html and 'role="alert"' in html
+    assert 'aria-invalid="true"' in html
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        None,
+        "",
+        "notes.pdf",
+        f"{DOWNLOAD_URL}{EXE}",
+        "https://evil.example/AxcenityEditor.exe",
+        f"../{EXE}",
+        EXE.upper(),
+    ],
+)
+@responses.activate
+def test_only_a_file_in_the_current_release_can_be_agreed_to(client, name):
+    _live()
+    query = {"file": name} if name is not None else {}
+    assert client.get(AGREE_URL, query).status_code == 404
+    assert client.post(AGREE_URL, {**query, "agree": "yes"}).status_code == 404
+
+
+@responses.activate
+def test_with_no_release_to_offer_the_agreement_is_a_404(client):
+    responses.get(LIST_URL, status=503)
+    assert client.get(AGREE_URL, {"file": EXE}).status_code == 404
+
+
+@responses.activate
+def test_agreeing_requires_a_csrf_token(db):
+    _live()
+    response = Client(enforce_csrf_checks=True).post(AGREE_URL, {"file": EXE, "agree": "yes"})
+    assert response.status_code == 403
+    assert "Location" not in response
+
+
+@responses.activate
+def test_the_download_page_carries_the_agreement_as_a_dialog(client):
+    _live()
+    html = _get(client).content.decode()
+    dialog = html.split('<dialog class="dl-dialog"', 1)[1].split("</dialog>", 1)[0]
+    assert 'aria-labelledby="agreement-title" data-agreement' in dialog
+    assert '<form method="post" action="/download/agree/"' in dialog
+    assert 'name="csrfmiddlewaretoken"' in dialog
+    assert '<input type="hidden" name="file" value="">' in dialog
+    assert "required" in dialog and "data-agreement-cancel" in dialog
+    assert re.search(r'<script src="/static/js/download\.js\?v=[^"]+" defer>', html)
+
+
+def test_download_js_gates_every_link_and_keeps_modified_clicks_as_pages():
+    js = (settings.BASE_DIR / "static" / "js" / "download.js").read_text("utf-8")
+    assert 'event.target.closest("a[data-download]")' in js
+    assert "event.preventDefault();" in js and "dialog.showModal();" in js
+    assert "if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;" in js
+    assert "submit.disabled = !box.checked;" in js and "box.checked = false;" in js
+    assert 'typeof dialog.showModal !== "function"' in js
+
+
+def _plain(markdown: str) -> str:
+    """Markdown as read: links as their text, no emphasis or code marks, one space between words."""
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", markdown).replace("**", "").replace("`", "")
+    return " ".join(text.split())
+
+
+@pytest.mark.skipif(not ENGINE_DIR.exists(), reason="the engine's checkout isn't on this machine")
+def test_the_terms_are_the_engines_own_words():
+    readme = _plain((ENGINE_DIR / "README.md").read_text("utf-8"))
+    licence = " ".join((ENGINE_DIR / "LICENSE").read_text("utf-8").split())
+    for term in AGREEMENT["terms"][:4]:
+        for sentence in re.split(r"(?<=\.) ", term["body"]):
+            assert sentence in readme, sentence
+    assert "Apache License Version 2.0" in licence
+    assert 'on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND' in licence
+    assert "reasonable and customary use in describing the origin of the Work" in licence
+
+
+@responses.activate
+def test_the_dialog_carries_the_full_license_and_notice(client):
+    _live()
+    html = _get(client).content.decode()
+    _assert_full_text(html.split('<dialog class="dl-dialog"', 1)[1].split("</dialog>", 1)[0])
+
+
+def test_the_full_texts_are_the_apache_license_and_the_engines_notice():
+    assert content.ENGINE_LICENSE.lstrip().startswith("Apache License")
+    assert "Version 2.0, January 2004" in content.ENGINE_LICENSE
+    assert "6. Trademarks." in content.ENGINE_LICENSE
+    assert content.ENGINE_NOTICE.startswith("Axcenity Engine\nCopyright 2026")
+
+
+@pytest.mark.skipif(not ENGINE_DIR.exists(), reason="the engine's checkout isn't on this machine")
+def test_the_copied_license_and_notice_match_the_engines():
+    for name, text in (("LICENSE", content.ENGINE_LICENSE), ("NOTICE", content.ENGINE_NOTICE)):
+        assert (ENGINE_DIR / name).read_text("utf-8") == text, f"re-copy {name} from the engine"
+
+
+# ---------- The legal texts as prose ----------
+
+
+def _words(text: str) -> list[str]:
+    """A plain-text file's words in order, its heading underlines left out."""
+    return [word for word in text.split() if not re.fullmatch(r"[-=]{3,}", word)]
+
+
+def _block_words(blocks) -> list[str]:
+    return [w for b in blocks for part in (b.lead, b.text, *b.lines) for w in part.split()]
+
+
+@pytest.mark.parametrize(
+    "text", [content.ENGINE_LICENSE, content.ENGINE_NOTICE], ids=["LICENSE", "NOTICE"]
+)
+def test_reflowing_keeps_every_word_in_order(text):
+    assert _block_words(legal.reflow(text)) == _words(text)
+
+
+def test_the_license_reflows_into_headings_sections_and_sub_items():
+    blocks = legal.reflow(content.ENGINE_LICENSE)
+    title = blocks[0]
+    assert title.kind == "lines" and title.centred
+    assert title.lines == (
+        "Apache License",
+        "Version 2.0, January 2004",
+        "http://www.apache.org/licenses/",
+    )
+    headings = [b.text for b in blocks if b.kind == "heading"]
+    assert headings == [
+        "TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION",
+        "1. Definitions.",
+        "END OF TERMS AND CONDITIONS",
+        "APPENDIX: How to apply the Apache License to your work.",
+    ]
+    leads = [b.lead for b in blocks if b.lead]
+    assert leads[0] == "2. Grant of Copyright License." and leads[-1].startswith("9. ")
+    assert len(leads) == 8
+    # Definitions and (a)–(d) are indented; the hard wraps are gone.
+    assert all(b.level == 1 for b in blocks if b.text.startswith(('"License"', "(a)", "(d)")))
+    assert all("\n" not in b.text and "  " not in b.text for b in blocks)
+
+
+def test_the_notice_reflows_its_underlined_headings():
+    blocks = legal.reflow(content.ENGINE_NOTICE)
+    assert blocks[0].lines == ("Axcenity Engine", "Copyright 2026 Paul Janota and contributors")
+    assert not blocks[0].centred
+    assert [b.text for b in blocks if b.kind == "heading"] == [
+        "Third-party sample assets",
+        "Bundled programs",
+        "Third-party code",
+    ]
+
+
+def test_reflow_handles_the_edges():
+    assert legal.reflow("") == []
+    first = "A body line long enough to have been hard-wrapped at eighty columns,"
+    text = f"Title\n-----\n\n{first}\r\n   and its   continuation.\r\n\nShort\nlines"
+    assert legal.reflow(text) == [
+        legal.Block("heading", text="Title"),
+        legal.Block("paragraph", text=f"{first} and its continuation."),
+        legal.Block("lines", lines=("Short", "lines")),
+    ]

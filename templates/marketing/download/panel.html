@@ -1,0 +1,21 @@
+{# One system's panel on /download/ (DownloadView._panel): its title chip, then its files. A wide #}
+{# panel spans the row with its files three to a row, and a tip card fills its last row's gap.   #}
+<section class="panel dl-system{% if panel.wide %} lg:col-span-2{% endif %}" aria-labelledby="system-{{ panel.group.system }}"{% if panel.group.detected %} data-detected{% endif %}>
+  <div class="tb-bar justify-between pr-3">
+    <h3 id="system-{{ panel.group.system }}" class="tb-chip tb-chip-current dl-system-name">{% include "partials/icon.html" with name=panel.icon size=16 class="motif dl-motif" %}{{ panel.name }}</h3>
+    {% if panel.group.detected %}<span class="dl-tag micro">{{ page.detected }}</span>{% endif %}
+  </div>
+  <ul class="dl-builds{% if panel.wide %} dl-builds-wide{% endif %}">
+    {% for build in panel.group.builds %}{% include "marketing/download/build.html" %}{% endfor %}
+    {% if panel.tip %}
+      <li class="dl-build dl-tip{% if panel.tip_span == 2 %} lg:col-span-2{% endif %}" style="--stagger: {{ panel.group.builds|length }}">
+        <div class="dl-build-head">
+          <span class="dl-build-icon">{% include "partials/icon.html" with name=panel.tip.icon size=20 class="motif dl-motif" %}</span>
+          <p class="min-w-0 flex-1 font-semibold text-fg-strong">{{ panel.tip.title }}</p>
+        </div>
+        <p class="mt-3 text-sm text-fg-secondary">{{ panel.tip.body }}</p>
+        {% if panel.tip.link %}<p class="dl-build-foot">{% include "partials/nav_link.html" with link=panel.tip.link class="btn btn-quiet btn-sm" %}</p>{% endif %}
+      </li>
+    {% endif %}
+  </ul>
+</section>

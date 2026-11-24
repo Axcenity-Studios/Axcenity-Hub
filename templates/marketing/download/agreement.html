@@ -1,0 +1,51 @@
+{# The license agreement: the terms and form on the left, the engine's LICENSE and NOTICE in   #}
+{# full on the right (below on phones). In /download/'s dialog (static/js/download.js fills in #}
+{# the file) and on /download/agree/ (asset given). It POSTs the file's name, never its URL.   #}
+{% with agreement=page.agreement %}
+<div class="dl-agreement">
+  <div class="min-w-0">
+    <p class="text-fg-secondary">{{ agreement.lede }}</p>
+    <dl class="dl-terms mt-6">
+      {% for term in agreement.terms %}
+        <div><dt class="font-semibold text-fg-strong">{{ term.title }}</dt><dd class="mt-1 text-sm text-fg-secondary">{{ term.body }}</dd></div>
+      {% endfor %}
+    </dl>
+    <form method="post" action="{% url 'marketing:download_agree' %}" class="mt-6">
+      {% csrf_token %}
+      <input type="hidden" name="file" value="{{ asset.name|default:'' }}">
+      <p class="micro text-fg-weak">{{ agreement.file_label }}</p>
+      <p class="dl-file mt-1" data-agreement-file>{% if asset %}{{ asset.name }} · {{ asset.size|filesizeformat }}{% endif %}</p>
+      <label class="dl-agree mt-4">
+        <input type="checkbox" name="agree" value="yes" required{% if missing_agreement %} aria-invalid="true" aria-describedby="agree-required"{% endif %}>
+        <span class="text-sm text-fg-strong">{{ agreement.checkbox }}</span>
+      </label>
+      {% if missing_agreement %}<p id="agree-required" class="dl-notice mt-3" role="alert">{{ agreement.required }}</p>{% endif %}
+      <div class="mt-6 flex flex-wrap gap-3">
+        <button type="submit" class="btn btn-primary">{{ agreement.agree }}</button>
+        {% if in_dialog %}<button type="button" class="btn btn-quiet" data-agreement-cancel>{{ agreement.cancel }}</button>
+        {% else %}{% include "partials/nav_link.html" with link=agreement.back class="btn btn-quiet" %}{% endif %}
+      </div>
+    </form>
+  </div>
+  {# Tabs without JavaScript: a radio per text, its label the chip; :has() shows the chosen one. #}
+  <div class="dl-fulltext" role="group" aria-label="{{ agreement.full_text.label }}">
+    <div class="dl-fulltext-frame">
+      <div class="tb-bar">
+        {% for tab in agreement.full_text.tabs %}
+          <input type="radio" name="fulltext" id="fulltext-{{ tab.key }}" class="dl-tab-input sr-only"{% if forloop.first %} checked{% endif %}>
+          <label for="fulltext-{{ tab.key }}" class="tb-chip dl-tab">{{ tab.label }}</label>
+        {% endfor %}
+      </div>
+      {% for tab in agreement.full_text.tabs %}
+        <div class="dl-fulltext-body dl-legal" data-fulltext="{{ tab.key }}" tabindex="0" role="document" aria-label="{{ tab.label }}">
+          {% for block in tab.blocks %}
+            {% if block.kind == "heading" %}<h3 class="dl-legal-heading">{{ block.text }}</h3>
+            {% elif block.kind == "lines" %}<p class="dl-legal-lines{% if block.centred %} text-center{% endif %}">{% for line in block.lines %}{{ line }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</p>
+            {% else %}<p{% if block.level %} class="dl-legal-sub"{% endif %}>{% if block.lead %}<strong>{{ block.lead }}</strong> {% endif %}{{ block.text }}</p>{% endif %}
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endwith %}

@@ -11,7 +11,7 @@ enforces every rule here; the colour rules are in [theme.md](theme.md).
 | `marketing/drawings.py` | `terrain_wireframe()` (SVG geometry) and `luau_lines()` (Luau tokens, as the editor colours them) |
 | `templates/marketing/home.html` | Includes one partial per section from `templates/marketing/home/` |
 | `templates/marketing/media/` | `frame.html` (a 16:10 frame: a capture's `picture.html`, or a loop's canvas over its drawing, and the caption), the loops' fallback drawings `terrain.html`, `luau.html`, `editor.html`, `toolbox.html`, `animation.html` and `wipe.html` |
-| `static/js/home.js` | The hero's film, rotation, reveals, motifs and the pillars' stage. Loaded only by Home, deferred |
+| `static/js/home.js` | The hero's film, rotation, reveals and the pillars' stage. Loaded only by Home, deferred (the motifs play through `shell.js`, on every page) |
 | `static/reel/loops/` | The animated recreations ([media.md](media.md), [canvas.md](canvas.md)), loaded as one module at the end of the page |
 | `static/marketing/media/` | Capture derivatives written by `make_media` (sources in `marketing/media_sources/`), and the hero's film in `homestead/` |
 
@@ -58,7 +58,7 @@ Each workflow step and fact names a line icon (`Item.icon`) from
 `partials/icon.html`, drawn with `class="motif"` (decorative:
 `aria-hidden`), sized with its numeral (`.flow-motif`) or its title
 (`.stat-motif`, 0.8 em). It plays **each time it comes into view**:
-`home.js` sets `data-on` once it's 60 % in view and clears it only when
+`shell.js` sets `data-on` once it's 60 % in view and clears it only when
 it's fully off screen (`html[data-motifs]` marks that it's running).
 Until then it's hidden; then its `.m-draw` strokes draw in
 (`pathLength="1"`, dash offset 1 to 0) and one other part makes a single

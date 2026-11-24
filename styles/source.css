@@ -370,7 +370,8 @@ html[data-pointer] .loop-button:hover { color: var(--color-on-ink); background: 
 
 /* Motifs: the workflow's and the stat band's line icons (partials/icon.html,
    decorative), beside each numeral and to the left of each stat's title, sized
-   with them. They play each time they come into view: home.js sets data-on
+   with them, and /download/'s system and file icons. They play each time they
+   come into view: shell.js sets data-on
    when one is well in view and clears it once it's fully off screen
    (html[data-motifs]). Until then it's hidden; then its .m-draw strokes draw
    in and one other part makes a single move, --stagger × 80 ms late like the
@@ -460,14 +461,76 @@ html[data-motifs] .motif[data-on] .m-bubble + .m-bubble { animation-delay: calc(
 
 /* ---------- The download page (/download/) ----------
    A panel per system in the Toolbox's title-bar language; the visitor's own system is
-   outlined in ink (never the accent). File names, hashes and commands wrap or scroll
-   inside their own box, never the page. */
+   outlined in ink (never the accent). File names, hashes and commands wrap inside
+   their own box, never widening the page. */
 .dl-tag { padding: 0.2rem 0.4rem; border-radius: 0.2rem; box-shadow: inset 0 0 0 1px var(--color-line-strong); color: var(--color-fg-strong); }
 /* 1px of padding keeps the title bar's background off the panel's outline. */
-.dl-system { min-width: 0; padding: 1px; }
+/* A panel is a column whose list fills it, and each card is a column whose foot (SHA-256 and
+   button) is pushed to the bottom: cards sharing a row, or panels sharing a row, line up. */
+.dl-system { display: flex; min-width: 0; flex-direction: column; padding: 1px; }
 .dl-system[data-detected] { box-shadow: inset 0 0 0 1px var(--color-ink); }
-.dl-builds { display: grid; margin: 0; padding: 0; list-style: none; }
-.dl-build { min-width: 0; padding: 1.25rem 1.25rem 1.5rem; }
+.dl-system-name { gap: 0.5rem; }
+.dl-builds { display: grid; flex: 1; margin: 0; padding: 0; list-style: none; }
+.dl-build { display: flex; min-width: 0; flex-direction: column; padding: 1.25rem 1.25rem 1.5rem; }
+.dl-build-head { display: flex; align-items: center; gap: 0.75rem; }
+.dl-build-icon { display: grid; flex: none; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 0.375rem;
+  color: var(--color-fg-strong); background: var(--color-inset); box-shadow: inset 0 0 0 1px var(--color-line);
+  transition: color 0.4s var(--ease-expo), background-color 0.4s var(--ease-expo); }
+html[data-pointer] .dl-build:hover .dl-build-icon { color: var(--color-on-ink); background: var(--color-ink); }
+.dl-build-foot { margin-top: auto; padding-top: 1rem; }
+/* The card that fills the gap in a full-width panel's last row: a tip, on the surface. */
+.dl-tip { background: var(--color-surface); }
+/* The license agreement: a modal <dialog> on /download/ (static/js/download.js) and the same
+   form as a page at /download/agree/. */
+.dl-dialog { width: min(72rem, calc(100vw - 2rem)); max-width: none; max-height: calc(100dvh - 2rem); margin: auto; padding: 1px;
+  border: 0; color: var(--color-fg); background: var(--color-panel); box-shadow: inset 0 0 0 1px var(--color-line-strong); overflow: auto; }
+/* While the dialog is open the page behind it doesn't scroll, and neither the dialog nor the
+   license pane hands its leftover scroll on to the page (overscroll-behavior). The gutter
+   stays reserved, so hiding the page's scrollbar doesn't shift it. */
+html:has(.dl-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
+.dl-dialog { overscroll-behavior: contain; }
+.dl-dialog::backdrop { background: color-mix(in srgb, var(--color-app) 72%, transparent); backdrop-filter: blur(6px); }
+.dl-dialog[open] { animation: dl-dialog-in 0.45s var(--ease-expo); }
+@keyframes dl-dialog-in { from { opacity: 0; transform: translateY(14px) scale(0.98); } }
+.dl-terms { display: grid; gap: 0.875rem; }
+.dl-terms dd { margin: 0; }
+/* Terms and form on the left; the full LICENSE and NOTICE on the right, scrolling inside a
+   pane as tall as the left column (its frame is absolute, so it never sets the row's height).
+   Below 1024 px the pane stacks under the form at a fixed height. */
+.dl-agreement { display: grid; gap: 1.75rem; }
+.dl-fulltext-frame { display: flex; flex-direction: column; height: 26rem; padding: 1px; background: var(--color-inset);
+  box-shadow: inset 0 0 0 1px var(--color-line); }
+@media (min-width: 1024px) {
+  .dl-agreement { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 2rem; }
+  .dl-fulltext { position: relative; min-height: 20rem; }
+  .dl-fulltext-frame { position: absolute; inset: 0; height: auto; } }
+.dl-fulltext-body { flex: 1; min-height: 0; margin: 0; padding: 1.25rem 1.5rem 1.5rem; overflow: auto; overscroll-behavior: contain; }
+/* The LICENSE and NOTICE as prose (marketing/legal.py reflows their hard-wrapped lines). */
+.dl-legal { font-size: 0.8125rem; line-height: 1.65; color: var(--color-fg-secondary); overflow-wrap: anywhere; }
+.dl-legal > * + * { margin-top: 0.75rem; }
+.dl-legal strong { color: var(--color-fg-strong); font-weight: 600; }
+.dl-legal-heading { margin-top: 1.5rem; font-family: var(--font-mono); font-size: 10.5px; font-weight: 400; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--color-fg-strong); }
+.dl-legal > .dl-legal-heading:first-child { margin-top: 0; }
+.dl-legal-lines { color: var(--color-fg-strong); }
+.dl-legal-lines.text-center { padding-bottom: 0.5rem; font-weight: 600; }
+.dl-legal-sub { padding-left: 1.25rem; }
+.dl-tab { cursor: pointer; }
+.dl-tab-input:checked + .dl-tab { color: var(--color-fg-strong); background: var(--color-surface); box-shadow: inset 0 -2px 0 var(--color-ink); }
+.dl-tab-input:focus-visible + .dl-tab { outline: 2px solid var(--color-ink); outline-offset: -2px; }
+html[data-pointer] .dl-tab:hover { color: var(--color-fg-strong); }
+/* Only the chosen text shows; without :has() the LICENSE does. */
+.dl-fulltext [data-fulltext]:not([data-fulltext="license"]) { display: none; }
+.dl-fulltext:has(#fulltext-notice:checked) [data-fulltext="license"] { display: none; }
+.dl-fulltext:has(#fulltext-notice:checked) [data-fulltext="notice"] { display: block; }
+.dl-agree { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.875rem 1rem; cursor: pointer;
+  background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--color-line-strong); }
+.dl-agree input { flex: none; width: 1.125rem; height: 1.125rem; margin-top: 0.125rem; accent-color: var(--color-ink); }
+.dl-dialog .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* The icons are motifs (they draw in as they come into view; see Motifs), in their
+   container's colour rather than the motifs' secondary grey. */
+.dl-motif { color: inherit; }
 .dl-build + .dl-build { border-top: 1px solid var(--color-line); }
 @media (min-width: 1024px) {
   .dl-builds-wide { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -475,8 +538,9 @@ html[data-motifs] .motif[data-on] .m-bubble + .m-bubble { animation-delay: calc(
   .dl-builds-wide > .dl-build:nth-child(3n + 1) { border-left: 0; }
   .dl-builds-wide > .dl-build:nth-child(n + 4) { border-top: 1px solid var(--color-line); } }
 .dl-file { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--color-fg-secondary); overflow-wrap: anywhere; }
-.dl-command { display: block; padding: 0.5rem 0.75rem; overflow-x: auto; font-family: var(--font-mono); font-size: 0.8125rem;
-  color: var(--color-fg-strong); background: var(--color-inset); box-shadow: inset 0 0 0 1px var(--color-line); white-space: pre; }
+.dl-command { display: block; padding: 0.5rem 0.75rem; font-family: var(--font-mono); font-size: 0.8125rem; line-height: 1.6;
+  color: var(--color-fg-strong); background: var(--color-inset); box-shadow: inset 0 0 0 1px var(--color-line);
+  white-space: pre-wrap; overflow-wrap: anywhere; }
 .dl-digest { display: grid; gap: 0.25rem; }
 .dl-digest dd { margin: 0; }
 .dl-hash { font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.5; color: var(--color-fg-secondary); overflow-wrap: anywhere; word-break: break-all; }

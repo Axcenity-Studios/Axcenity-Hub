@@ -32,9 +32,11 @@ Later phases add topic files for each area they build.
 - Tailwind finds classes by scanning files. **Write class names out in
   full**; a class built from pieces at runtime won't be found.
 - Any JavaScript library is a vendored static file. `static/js/shell.js`
-  runs on every page; `static/js/home.js` only on Home (its `head`
+  runs on every page (including the motifs: any `class="motif"` icon
+  draws in as it comes into view); `static/js/home.js` only on Home (its `head`
   block); the animated loops' ES modules (`static/reel/loops/main.js`)
-  once, at the end of Home; `static/js/docs.js` on the docs pages.
+  once, at the end of Home; `static/js/docs.js` on the docs pages;
+  `static/js/download.js` on `/download/` (the license dialog).
 
 ## Shells
 

@@ -28,6 +28,167 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-24 — Axcenity Hub: Phase 7/17 follow-up, download page layout, icons and license agreement
+
+### Prompts
+
+1. (The Phase 7 commit question) "Commit and push"
+2. (With a screenshot of the Linux panel) "Ok we need to fix this layout issue with
+   the linux build it is over extending making it not look too good"
+3. "Ok I am thinking we can include some iconography for the different operating
+   systems also to me this does not look very nice but the download buttons are not
+   in line with eachother. There should also be someiconography for each of the other
+   files and checksums. If not already these downloads should pull from the latest
+   release so they should update dynamically when a new tagged release comes out."
+4. (With screenshots of the Other files and Linux panels) "Ok I feel like there is
+   some empty space within the download page that could look better, can you add or
+   change the layout in a way to make these less empty also animation the icons
+   would be cool as well."
+5. "Ok one othe thing can you have a popup when downloading any file for a license
+   agreement based on apache and my trademark where they have to agree betore
+   downloading. Also please append this conversation to PROMPTS.md according to
+   source formatting"
+6. "We might as well have the full text to the rigth of the license agreement text
+   for them to click on rather than having them navigate over to the GitHub page."
+7. (While that was being built) "Ok when scroling through the license page it also
+   scrolls the download page as well"
+8. "Ok the text in the notice and the license files is wrapped weirdly can you fix
+   this to make it look better."
+
+### Summary
+
+- **Outcome:** Phase 7 was committed and pushed (`1109030`). Then
+  `/download/` was reworked:
+  - **Layout:** Windows and macOS share a row; Linux spans it with its
+    builds three to a row; commands wrap; Download buttons line up across
+    every row.
+  - **Icons:** line icons for each system and kind of file, animated as
+    motifs.
+  - **Filling the gaps:** tip cards fill the gaps in the Linux and Other
+    files panels, and "Or build it yourself." sits beside the checksum
+    commands.
+  - **License agreement:** every download now goes through it, as a
+    popup or, without JavaScript, a page. The engine's full LICENSE and
+    NOTICE sit beside the terms in a tabbed, scrolling pane, so the
+    GitHub links went away. They're set as prose: the files' hard wraps
+    are joined, with headings, bold section titles and indented
+    sub-items.
+  - **New releases:** the page already updated on its own; that's now
+    tested.
+  - 958 tests pass (890 fast, 134 in `test_download.py`); Ruff is clean.
+    Nothing from these rounds is committed yet.
+- **Changes:**
+  - `templates/marketing/download.html`, new `download/panel.html`,
+    `download/build.html`:
+    - the row layout and full-width panels
+    - tip cards; the two-column `#verify` with `#source`
+    - icons and the cards' pinned SHA-256 and button
+    - Download links to `/download/agree/?file=…`; the agreement dialog;
+      `download.js`
+  - New `templates/marketing/download/agreement.html` (the shared terms
+    and form, with the full-text pane and its LICENSE and NOTICE tabs)
+    and `download_agree.html` (the page without JavaScript).
+  - New `marketing/legal.py`: `reflow` turns a hard-wrapped plain-text
+    legal file into headings, centred line blocks and paragraphs (bold
+    section lead, sub-item level). A test checks it keeps every word in
+    order.
+  - New `marketing/legal/LICENSE` and `NOTICE`: the engine's, copied in
+    unchanged from commit `cae2e6c`, and loaded as
+    `content.ENGINE_LICENSE` and `ENGINE_NOTICE`.
+  - `marketing/views.py`: `DownloadView._panel` (wide panels, tip span);
+    `DownloadAgreeView` (GET terms; POST with CSRF and `agree=yes` → 303
+    to the file; unknown file → 404).
+  - `marketing/urls.py`: `marketing:download_agree` at `/download/agree/`.
+  - `marketing/releases.py`: `BuildKind.icon`, `Build.icon`, `find_asset`.
+  - `marketing/content.py`:
+    - icons for every build kind, and `DOWNLOAD_SYSTEM_ICONS`
+    - `DOWNLOAD_PAGE` gains `tips`, `from_source` (the engine's
+      getting-started steps) and `agreement` (the engine README's
+      "License and trademark" words and LICENSE section 7)
+  - `templates/partials/icon.html`: 14 new icons (windows, macos, linux,
+    installer, disk, app, package, archive, hash, manifest, key, history,
+    file, files), each with parts that draw in or move.
+  - `static/js/shell.js` / `home.js`: the motif player moved from Home's
+    script to the shell's, so any page's motifs play.
+  - New `static/js/download.js`: the agreement dialog. It opens on any
+    Download link and keeps "Agree and download" disabled until the box
+    is ticked; modified clicks fall through to the page.
+  - `styles/source.css`:
+    - the card column and its pinned foot; wrapping commands
+    - the icon tile and its hover; the tip card
+    - the dialog and its terms
+  - `tests/test_download.py`:
+    - layout: links through the agreement, icons and motifs, tip cards
+      for 3–5 Linux builds, from-source steps against the docs snapshot
+    - a new release replacing the old one; drafts hidden
+    - the agreement: refusals, unknown and hostile file names, no
+      release, CSRF, and the terms against the engine's README and
+      LICENSE
+  - `tests/test_home.py`: the motif test reads `shell.js`.
+  - Docs:
+    - `docs/frontend/download.md`: icons, the layout, the agreement
+    - new `docs/architecture/github-releases.md`: choosing the release,
+      the cache and new releases, moved out to keep the topic file under
+      ~200 lines
+    - the ARCHITECTURE index, URLs and External APIs; FRONTEND (the
+      scripts); TESTING; `theme.md` (the primary button's uses);
+      `home.md` (motifs now in `shell.js`)
+- **TDD:** none. These were follow-up requests outside the `/implement`
+  flow, built with ordinary tests.
+- **Decisions:**
+  - Icons:
+    - The system icons are drawn for the Hub (a four-pane window, an
+      apple, a penguin) rather than copying the Windows, Apple or Tux
+      trademarks.
+    - The icons reuse Home's motif system rather than a second animation
+      mechanism.
+  - Layout:
+    - A wide panel's gap is filled only when there's tip copy for that
+      system, spanning one or two columns as needed.
+    - New releases still appear within the hourly cache rather than
+      faster, to stay under GitHub's 60 unauthenticated requests an hour.
+      Webhooks (Phase 10) could clear the cache instantly.
+  - The agreement:
+    - It quotes the engine's own README and LICENSE rather than new legal
+      text.
+    - It's asked on every download.
+    - It works without JavaScript as its own page.
+    - The full texts are copied in (the engine repo is read only) rather
+      than fetched. A test fails when the engine's copies change. The
+      tabs are radios with `:has()`, so they need no script.
+    - Its POST takes a file's name, never a URL, so the redirect can only
+      reach the current release's files.
+- **Deviations:** none. Every change was the user's request; the user
+  didn't redirect any recommendation.
+- **Sideways:**
+  - My unlayered `margin: 0` on `.dl-terms` beat Tailwind's `mt-6`, the
+    same mistake as earlier in Phase 7. The dialog screenshot caught it.
+  - A scripted docs edit cut the Icons section in the wrong order and
+    duplicated it; the next line count caught it, and the section was
+    rewritten.
+  - Scrolling to the end of the license pane carried on scrolling the
+    page behind the dialog, and a modal `<dialog>` doesn't lock the
+    page's scroll either (prompt 7). Fixed with `overscroll-behavior:
+    contain` on the pane and the dialog, and `overflow: hidden` on
+    `html:has(.dl-dialog[open])`. Verified with wheel events in
+    Playwright: the page stays put; it scrolls again once the dialog
+    closes.
+  - The full texts first showed raw in a `<pre>`. Their 75-column hard
+    wraps re-wrapped in the narrower pane and left stray one-word lines
+    (prompt 8), so `legal.reflow` now sets them as prose. Two of my test
+    inputs were wrong, not the code:
+    - a double space in the source ("brackets!)  The") made the copy check
+      miss, so joined paragraphs now have single spaces
+    - an edge-case test used short lines, which keep their breaks by
+      design; its input was fixed
+  - Killing the dev server with `pkill -f` matched the shell running it
+    (exit 144); later runs stopped it by process ID instead.
+  - Screenshots and a Playwright run of the dialog checked the work at
+    375 and 1440 px: it opens with the file, the button is disabled until
+    the box is ticked, agreeing goes to the exact GitHub file and closes
+    the dialog, and Escape closes it. GitHub was intercepted, so nothing
+    downloaded.
+
 ## 2026-11-24 — Axcenity Hub: Phase 7/17, Download page
 
 ### Prompts
