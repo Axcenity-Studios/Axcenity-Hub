@@ -10,7 +10,7 @@ index:** the rules below apply everywhere; topic files under
 |---|---|
 | `config/` | Settings, root URLs, WSGI/ASGI, site-wide context processors, `theme.py` (the colour-scheme cookie) |
 | `marketing/` | Public signed-out pages: Home, Toolbox, and Download (Phase 7). `content.py` holds their copy, links and media manifest as data; `drawings.py` computes the drawn media; `media.py` cuts captures into derivatives (`manage.py make_media`) |
-| `documentation/` | The engine docs at `/docs/`: `sync.py` (`sync_engine_docs`), `navigation.py`, `links.py`, `rendering.py`, `highlight.py`, `library.py` (the snapshot as served, and its build check), `diagrams.py`, `strings.py`. See [frontend/documentation.md](frontend/documentation.md) |
+| `documentation/` | The engine docs at `/docs/`: `sync.py` (`sync_engine_docs`), `navigation.py`, `links.py`, `rendering.py`, `highlight.py`, `library.py` (the snapshot as served, and its build check), `api.py` (API pages as structure), `search.py` (the index and ranking), `diagrams.py`, `strings.py`. See [frontend/documentation.md](frontend/documentation.md) |
 | `documentation/content/` | The committed snapshot of the engine's `documentation/` folder, with `SOURCE.json` (commit and tree). Only `sync_engine_docs` writes it |
 | `marketing/media_sources/` | Captures as copied in (never served, never edited): the sources `make_media` reads, and `toolbox-capture.json`, the Toolbox screenshots' capture record |
 | `templates/` | `base.html` (shared by every shell), `marketing/` (the marketing shell and its pages), `documentation/` (the docs layout and pages), `partials/` |
@@ -41,7 +41,8 @@ Later phases add `accounts`, `projects`, `forums`, `showcases`, `reports`,
 | `/` | `marketing:home` | `HomeView` |
 | `/toolbox/` | `marketing:toolbox` | `ToolboxView`: the Toolbox overview ([frontend/toolbox.md](frontend/toolbox.md)) |
 | `/docs/` | `documentation:index` | `DocsIndexView`: the docs' README and a panel per section |
-| `/docs/<path>/` | `documentation:page` | `DocsPageView`: a snapshot page by its lower-cased path without `.md` (`/docs/api/classes/part/`); a README is its folder; unknown paths 404 |
+| `/docs/search/` | `documentation:search` | `DocsSearchView`: `?q=` search over the snapshot's index, `&page=` (20 a page) |
+| `/docs/<path>/` | `documentation:page` | `DocsPageView`: a snapshot page by its lower-cased path without `.md` (`/docs/api/classes/part/`); a README is its folder; API pages get their own templates; unknown paths 404 |
 | `/theme/` | `marketing:theme` | `ThemeView`: POST only, the no-JavaScript fallback for the theme switch |
 | `/admin/` | `admin:*` | Django admin |
 

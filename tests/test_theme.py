@@ -319,6 +319,9 @@ TEXT_PAIRS = [
     ("docs: status badge", "fg-strong", "app"),
     ("docs: copy button", "fg-secondary", "app"),
     ("docs: copy button hovered or focused", "on-ink", "ink"),
+    ("docs: search box and API tables", "fg", "panel"),
+    ("docs: search box placeholder", "fg-weak", "panel"),
+    ("docs: a search match", "fg-strong", "surface"),
 ]
 NON_TEXT_PAIRS = [
     ("focus ring on the page", "ink", "app"),
@@ -403,7 +406,17 @@ TESTED_TEXT_TOKENS = {pair[1] for pair in TEXT_PAIRS if pair[2] in {"app", "pane
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "url", ["/", "/toolbox/", "/docs/", "/docs/learn/scripting/", "/docs/api/classes/part/"]
+    "url",
+    [
+        "/",
+        "/toolbox/",
+        "/docs/",
+        "/docs/learn/scripting/",
+        "/docs/api/",
+        "/docs/api/classes/part/",
+        "/docs/api/enums/",
+        "/docs/search/?q=part",
+    ],
 )
 def test_pages_use_only_tested_text_colours(client, url):
     """fg-muted, for one, is under 4.5:1 on the app background, so no text may use it."""

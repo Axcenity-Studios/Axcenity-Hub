@@ -1,0 +1,10 @@
+{# The right rail of an API page: its members (or the API home's groups) by kind, from 1280 px. #}
+{% if rail %}
+  <nav id="docs-outline" class="docs-outline api-rail" aria-label="{{ docs.outline }}">
+    <p class="micro text-fg-weak">{{ docs.outline }}</p>
+    {% for title, items in rail %}
+      <p class="api-rail-title micro">{{ title }}</p>
+      <ul>{% for name, url in items %}<li><a href="{{ url }}">{{ name }}</a></li>{% endfor %}</ul>
+    {% endfor %}
+  </nav>
+{% endif %}

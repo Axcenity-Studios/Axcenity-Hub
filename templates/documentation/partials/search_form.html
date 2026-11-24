@@ -1,0 +1,7 @@
+{# Search the docs (/docs/search/): a plain GET form at the top of the sidebar column, outside the #}
+{# phone disclosure so it's always in reach.                                                       #}
+<form id="docs-search" class="docs-search" role="search" action="{% url 'documentation:search' %}" method="get">
+  <label for="docs-search-input" class="sr-only">{{ docs.search_label }}</label>
+  <input id="docs-search-input" class="docs-search-input" type="search" name="q" value="{{ search_query }}" placeholder="{{ docs.search_placeholder }}" maxlength="{{ search_limit }}" autocomplete="off" enterkeyhint="search">
+  <button type="submit" class="docs-search-button micro">{{ docs.search }}</button>
+</form>

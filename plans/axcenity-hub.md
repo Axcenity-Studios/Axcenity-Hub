@@ -329,12 +329,12 @@ Built test-first with the `tdd` skill; the rest of the phase is built and tested
 
 ### Acceptance criteria
 
-- [ ] Every class, type, enum, library and global listed in `SUMMARY.md` has a page with its member table, and every member anchor resolves
-- [ ] Type names in signatures link to their pages wherever such a page exists
-- [ ] The API home lists every entry with JavaScript off; the filter narrows it with JavaScript on
-- [ ] Search returns the expected first result for a fixed set of queries (`Part`, `Touched`, `TweenService`, `Enum.Material`, `task.wait`), paginates, and handles empty and over-long queries
-- [ ] No horizontal page scroll at 375 px on the longest class page (covered by Phase 6B's smoke test pointed at it)
-- [ ] `docs/frontend/documentation.md` covers the API layout and search
+- [x] Every class, type, enum, library and global listed in `SUMMARY.md` has a page with its member table, and every member anchor resolves
+- [x] Type names in signatures link to their pages wherever such a page exists
+- [x] The API home lists every entry with JavaScript off; the filter narrows it with JavaScript on
+- [x] Search returns the expected first result for a fixed set of queries (`Part`, `Touched`, `TweenService`, `Enum.Material`, `task.wait`), paginates, and handles empty and over-long queries
+- [x] No horizontal page scroll at 375 px on the longest class page (covered by Phase 6B's smoke test pointed at it)
+- [x] `docs/frontend/documentation.md` covers the API layout and search
 
 ---
 

@@ -5,12 +5,15 @@
 diagrams under `images/`. Pages are rendered on first use and kept. Nothing here
 reads the engine repository or the network: the snapshot is the only source.
 
+The API reference's pages (`api.page_kind`) are also read as structure (`api_page`), and
+their signatures link type names to their pages (`type_links`).
+
 `check()` is the build check that `sync_engine_docs` runs on a new snapshot before
 swapping it in, and the tests run on the committed one: every page renders with
 a title and description, every link and image resolves, every `#anchor` names a
 heading on its page, SUMMARY.md and the pages agree (no orphans, nothing missing),
 no two pages share a URL, every status is known, and every image is a manifest
-diagram at its recorded size.
+diagram at its recorded size; every API page parses, and no page takes the search URL.
 """
 
 import dataclasses
@@ -23,18 +26,28 @@ from urllib.parse import quote
 from django.conf import settings
 from PIL import Image
 
-from . import links, navigation, rendering
+from . import api, links, navigation, rendering
 from .diagrams import DIAGRAMS, Diagram
 from .sync import SOURCE_FILE
 
 SUMMARY_FILE = "SUMMARY.md"
+ENUMS_PAGE = "api/enums.md"
+# The URL slugs the docs use for themselves (documentation/urls.py), which no page may take.
+RESERVED_SLUGS = frozenset({"search"})
 # Ids the docs pages use around the article (templates/documentation/ and the shells), which a
 # heading id must never repeat; the landing page adds one `docs-panel-<n>` per section
 # (`Library.reserved_ids`). A test checks this covers every id outside the article.
 PAGE_IDS = frozenset(
     {"content", "site-nav", "site-footer", "theme-toggle"}
     | {"docs-nav", "docs-article", "docs-title", "docs-source", "docs-outline"}
-    | {"docs-sections", "docs-sections-title"}
+    | {"docs-sections", "docs-sections-title", "docs-search", "docs-search-input"}
+    # The API home (templates/documentation/api/home.html): its filter and one panel per group.
+    | {"api-filter-input", "api-filter-status"}
+    | {
+        f"api-{group}{suffix}"
+        for group in ("classes", "types", "enums", "libraries", "globals")
+        for suffix in ("", "-title")
+    }
 )
 
 
@@ -73,12 +86,29 @@ class Library:
         self.images = tuple(f for f in files if f.startswith(links.IMAGES_FOLDER))
         self._by_slug = {links.page_slug(path): path for path in self.paths}
         self._pages: dict[str, Page] = {}
+        self._api: dict[str, api.ApiPage] = {}
 
     @property
     def reserved_ids(self) -> frozenset[str]:
         """The ids no heading may take: the page's own, and the landing page's panels."""
         panels = range(1, len(self.navigation.sections) + 1)
         return PAGE_IDS | {f"docs-panel-{number}" for number in panels}
+
+    @functools.cached_property
+    def type_links(self) -> dict[str, tuple[str, str]]:
+        """Each name an API signature can link: a class or data type (`Part` → its page)
+        and an enum as signatures spell it (`EnumMaterial` → the Enums page's anchor)."""
+        names: dict[str, tuple[str, str]] = {}
+        if ENUMS_PAGE in self.paths:
+            text = (self.root / ENUMS_PAGE).read_text("utf-8")
+            enums = rendering.render(text, ENUMS_PAGE, pages=self.paths, diagrams={})
+            for heading in enums.headings:
+                if heading.level == 2 and heading.text.startswith("Enum."):
+                    names[heading.text.replace(".", "", 1)] = (ENUMS_PAGE, heading.id)
+        for path in self.paths:
+            if api.page_kind(path) in ("class", "type"):
+                names[path.rpartition("/")[2].removesuffix(".md")] = (path, "")
+        return names
 
     # ---------- Lookups ----------
 
@@ -107,6 +137,7 @@ class Library:
                 pages=self.paths,
                 diagrams={k: v for k, v in self.diagrams.items() if k in self.images},
                 reserved_ids=self.reserved_ids,
+                type_links=self.type_links if api.page_kind(path) else None,
             )
             place = self.navigation.trail(path)
             section, trail = (place[0].title, place[1]) if place else ("", ())
@@ -123,6 +154,31 @@ class Library:
                 next=self.navigation.next(path),
             )
         return self._pages[path]
+
+    def api_page(self, path: str) -> api.ApiPage | None:
+        """The API page at `path` read as structure, or None if it isn't one."""
+        if api.page_kind(path) is None:
+            return None
+        if path not in self._api:
+            text = (self.root / path).read_text("utf-8")
+            self._api[path] = api.parse(text, path, self.page(path).rendered.headings, self.paths)
+        return self._api[path]
+
+    @functools.cached_property
+    def search_index(self) -> tuple:
+        """Every page, guide heading and API member, for search (documentation/search.py)."""
+        from .search import build_index
+
+        return build_index(self)
+
+    def api_pages(self, kind: str) -> list[api.ApiPage]:
+        """Every API page of one kind ("class", "type"…), in reading order."""
+        order = {path: at for at, path in enumerate(self.navigation.order)}
+        paths = sorted(
+            (p for p in self.paths if api.page_kind(p) == kind),
+            key=lambda p: order.get(p, len(order)),
+        )
+        return [self.api_page(path) for path in paths]
 
     # ---------- The build check ----------
 
@@ -142,6 +198,10 @@ class Library:
         problems += [f"{SUMMARY_FILE}: lists {p} twice" for p in set(listed) if listed.count(p) > 1]
         if len(self._by_slug) != len(self.paths):
             problems.append("two pages share a URL (their paths differ only in case)")
+        problems += [
+            f"{self._by_slug[slug]}: takes the URL /docs/{slug}/, which the docs use"
+            for slug in sorted(RESERVED_SLUGS & self._by_slug.keys())
+        ]
 
         rendered: dict[str, rendering.Rendered] = {}
         for path in self.paths:
@@ -159,6 +219,10 @@ class Library:
             status = page.rendered.meta.status
             if status and status not in rendering.STATUS_LABELS:
                 problems.append(f"{path}: unknown status {status!r}")
+            try:
+                self.api_page(path)
+            except api.ApiError as error:
+                problems.append(str(error))
 
         for path, page in rendered.items():
             for link in page.links:

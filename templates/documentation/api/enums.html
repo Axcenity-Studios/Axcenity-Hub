@@ -1,0 +1,18 @@
+{% extends "documentation/layout.html" %}
+{# The Enums page: one anchored heading per enum (the rendered page's own ids, so links such as #}
+{# EnumMaterial in a signature land on it), its description and its items as chips.            #}
+{% block article %}
+  {% include "documentation/partials/header.html" %}
+  <div class="doc-prose api-lead">{{ page.rendered.lead|safe }}</div>
+  <div class="doc-prose api-enums">
+    {% for enum in api.members %}
+      <section class="api-enum" aria-labelledby="{{ enum.anchor }}">
+        <h2 id="{{ enum.anchor }}">{{ enum.qualified }}<a class="doc-anchor" href="#{{ enum.anchor }}" aria-label="Link to {{ enum.qualified }}"><span aria-hidden="true">#</span></a></h2>
+        <p>{{ enum.summary_html|safe }}</p>
+        <ul class="api-chips" aria-label="{{ docs.api_items }}">{% for item in enum.items %}<li><code>{{ item }}</code></li>{% endfor %}</ul>
+      </section>
+    {% endfor %}
+  </div>
+  {% include "documentation/partials/pager.html" %}
+{% endblock %}
+{% block rail %}{% include "documentation/partials/api_rail.html" %}{% endblock %}

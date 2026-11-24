@@ -1,7 +1,8 @@
-{# The sidebar: SUMMARY.md's sections as collapsible groups, the current page marked and its group open. #}
+{# The sidebar: the search form, then SUMMARY.md's sections as collapsible groups, the current page marked and its group open. #}
 {# Wide screens show it open beside the article (its toggle hidden). Below 1024 px it's a disclosure    #}
 {# at the top: the script after it closes it there; without JavaScript it simply stays open.           #}
 <div class="docs-sidebar">
+  {% include "documentation/partials/search_form.html" %}
   <details id="docs-nav" class="docs-nav" open>
     <summary class="docs-nav-toggle">{{ docs.nav_toggle }}</summary>
     <nav aria-label="{{ docs.nav_label }}" class="docs-nav-body">

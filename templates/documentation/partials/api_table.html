@@ -1,0 +1,16 @@
+{# One summary table of an API page: each member's name (to its anchor), type or signature (type #}
+{# names linked to their pages) and first sentence. It scrolls in its own box on a phone.         #}
+<div class="doc-table api-table" role="region" tabindex="0" aria-label="{{ table.title }}">
+  <table>
+    <thead><tr><th scope="col">{{ docs.api_name }}</th><th scope="col">{{ docs.api_signature }}</th><th scope="col">{{ docs.api_about }}</th></tr></thead>
+    <tbody>
+      {% for row in table.rows %}
+        <tr>
+          <th scope="row"><a href="{{ row.url }}" class="api-name"><code>{{ row.member.name }}</code></a></th>
+          <td><code class="api-sig">{{ row.signature|safe }}</code></td>
+          <td>{{ row.member.summary_html|safe }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

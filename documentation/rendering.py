@@ -11,6 +11,10 @@ This is a security boundary: the engine's Markdown becomes part of the Hub's pag
 - External links get `rel="noopener"`; images must be diagrams in the manifest
   (documentation/diagrams.py), drawn at their recorded size.
 
+On API pages (`type_links` given), a `luau` block straight under a heading is a
+signature: the type names in it link to their pages (`highlight.type_names`), and
+each link is an internal link the build check follows.
+
 Heading ids are GitHub-style slugs (what the docs' own `#anchor` links use),
 made unique per page: a repeat gets `-1`, `-2`… skipping any id already taken,
 including the ids the page around the article uses.
@@ -149,11 +153,18 @@ class InternalLink:
 class Rendered:
     title: str
     html: str
+    # The start of `html`, before the first heading (an API page's constructor and intro).
+    lead: str
     meta: FrontMatter
     headings: tuple[Heading, ...]
     links: tuple[InternalLink, ...]
     images: tuple[str, ...]
     problems: tuple[str, ...]
+
+    @property
+    def body(self) -> str:
+        """`html` from the first heading on."""
+        return self.html[len(self.lead) :]
 
     @property
     def outline(self) -> tuple[Heading, ...]:
@@ -165,7 +176,8 @@ class Rendered:
         return frozenset(h.id for h in self.headings)
 
 
-def _plain_text(children: list[Token] | None) -> str:
+def plain_text(children: list[Token] | None) -> str:
+    """An inline token's words: its text and code spans, without markup."""
     return "".join(
         child.content for child in children or () if child.type in ("text", "code_inline")
     ).strip()
@@ -254,7 +266,8 @@ def _render_fence(self, tokens, idx, options, env):
     data = f' data-language="{escape(language)}"' if language else ""
     return (
         f'<div class="doc-code"{data}><pre tabindex="0" aria-label="{label}"><code>'
-        f"{highlight.highlight(token.content, language)}</code></pre></div>\n"
+        f"{highlight.highlight(token.content, language, token.meta.get('type_links'))}"
+        "</code></pre></div>\n"
     )
 
 
@@ -265,6 +278,12 @@ def _render_table_open(self, tokens, idx, options, env):
 _MD = _markdown()
 
 
+def parse_body(body: str) -> list[Token]:
+    """The Markdown `body` (front matter already split off) as markdown-it block tokens,
+    parsed exactly as `render` parses it."""
+    return _MD.parse(body)
+
+
 def render(
     text: str,
     path: str,
@@ -272,12 +291,15 @@ def render(
     pages: Collection[str],
     diagrams: Mapping[str, Diagram],
     reserved_ids: Collection[str] = (),
+    type_links: Mapping[str, tuple[str, str]] | None = None,
 ) -> Rendered:
     """Render the snapshot page at `path` (its full text, front matter included).
 
     `pages` are the snapshot's page paths, for link checks; `diagrams` the images a page
     may show; `reserved_ids` the ids the page around the article already uses. The first
     h1 becomes the title (taken out of the body: the page header shows it).
+    `type_links` (type name → its page's snapshot path and anchor) links the type names
+    in an API page's signatures.
     """
     meta, body = split_front_matter(text)
     tokens = _MD.parse(body)
@@ -290,7 +312,7 @@ def render(
 
     for index, token in enumerate(tokens):
         if token.type == "heading_open":
-            level, text_ = int(token.tag[1]), _plain_text(tokens[index + 1].children)
+            level, text_ = int(token.tag[1]), plain_text(tokens[index + 1].children)
             if level == 1 and not title:
                 title = text_
                 drop.update({index, index + 1, index + 2})
@@ -299,6 +321,20 @@ def render(
             token.attrSet("id", ident)
             tokens[index + 2].meta["anchor"] = (ident, text_)
             headings.append(Heading(level, ident, text_))
+        elif (
+            token.type == "fence"
+            and type_links
+            and index
+            and tokens[index - 1].type == "heading_close"
+        ):
+            if token.info.strip().lower() != "luau":
+                continue
+            urls = {}
+            for name in highlight.type_names(token.content, type_links):
+                target, fragment = type_links[name]
+                urls[name] = links.page_url(target) + (f"#{fragment}" if fragment else "")
+                internal.append(InternalLink(target, fragment))
+            token.meta["type_links"] = urls
         elif token.type == "paragraph_open":
             children = tokens[index + 1].children or []
             if len(children) == 1 and children[0].type == "image":
@@ -321,7 +357,7 @@ def render(
                 elif child.type == "link_close" and refusing:
                     child.meta["refused"], refusing = True, False
                 elif child.type == "image":
-                    child.meta["alt"] = _plain_text(child.children)
+                    child.meta["alt"] = plain_text(child.children)
                     src = child.attrGet("src") or ""
                     resolved = links.resolve(src, path, (), diagrams)
                     if resolved.problem or resolved.target not in diagrams:
@@ -332,10 +368,15 @@ def render(
                     images.append(resolved.target)
 
     kept = [token for index, token in enumerate(tokens) if index not in drop]
-    html = _MD.renderer.render(kept, _MD.options, {})
+    first_heading = next(
+        (at for at, token in enumerate(kept) if token.type == "heading_open"), len(kept)
+    )
+    lead = _MD.renderer.render(kept[:first_heading], _MD.options, {})
+    html = lead + _MD.renderer.render(kept[first_heading:], _MD.options, {})
     return Rendered(
         title=title,
         html=html,
+        lead=lead,
         meta=meta,
         headings=tuple(headings),
         links=tuple(internal),

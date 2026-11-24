@@ -1,0 +1,43 @@
+{% extends "documentation/layout.html" %}
+{# Search results (/docs/search/?q=): the matched page, member or heading, a snippet with the     #}
+{# query's words marked, 20 a page. An empty or over-long query shows a message, never an error. #}
+{% block description %}{{ docs.search_lede }}{% endblock %}
+{% block article %}
+  <header class="docs-header">
+    <nav aria-label="{{ docs.breadcrumbs }}" class="docs-crumbs">
+      <ol>
+        {% for title, url in breadcrumbs %}<li><a href="{{ url }}">{{ title }}</a></li>{% endfor %}
+        <li><span aria-current="page">{{ docs.search }}</span></li>
+      </ol>
+    </nav>
+    <h1 id="docs-title" class="headline mt-4 text-4xl text-fg-strong md:text-5xl">{{ docs.search_title }}</h1>
+    <p class="docs-lede mt-4 text-lg text-fg-secondary">{{ docs.search_lede }}</p>
+  </header>
+  <div class="search-results mt-10" aria-live="polite">
+    {% if problem %}
+      <p class="search-message">{{ problem }}</p>
+    {% elif not outcome.results %}
+      <p class="search-message">{{ docs.search_none }}</p>
+    {% else %}
+      <p class="micro text-fg-weak">{{ docs.search_results }} <q class="text-fg-strong">{{ outcome.query }}</q> · {{ count_label }}</p>
+      <ol class="search-list mt-4">
+        {% for result, pieces in marked %}
+          <li class="search-result">
+            <a href="{{ result.entry.url }}" class="search-link">
+              <span class="search-kind micro">{% if result.entry.kind == "member" %}{{ docs.search_kinds.member }}{% elif result.entry.kind == "heading" %}{{ docs.search_kinds.heading }}{% else %}{{ docs.search_kinds.page }}{% endif %}</span>
+              <span class="search-title">{% if result.entry.label %}<code>{{ result.entry.label }}</code> <span class="text-fg-secondary">· {{ result.entry.page }}</span>{% else %}{{ result.entry.page }}{% endif %}</span>
+            </a>
+            {% if pieces %}<p class="search-snippet text-sm text-fg-secondary">{% for text, matched in pieces %}{% if matched %}<mark>{{ text }}</mark>{% else %}{{ text }}{% endif %}{% endfor %}</p>{% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+      {% if results.paginator.num_pages > 1 %}
+        <nav class="search-pages" aria-label="{{ docs.search_pages }}">
+          {% if results.has_previous %}<a href="?q={{ outcome.query|urlencode }}&amp;page={{ results.previous_page_number }}" rel="prev" class="search-page-link">{{ docs.previous }}</a>{% endif %}
+          <span class="text-sm text-fg-secondary">{{ page_label }}</span>
+          {% if results.has_next %}<a href="?q={{ outcome.query|urlencode }}&amp;page={{ results.next_page_number }}" rel="next" class="search-page-link">{{ docs.next }}</a>{% endif %}
+        </nav>
+      {% endif %}
+    {% endif %}
+  </div>
+{% endblock %}

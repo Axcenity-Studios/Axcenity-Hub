@@ -10,10 +10,12 @@ Luau lexer marks a different set of names as builtins, so it isn't used.
 `highlight(code, language)` renders a fenced block's contents as HTML: `luau` and
 `lua` get `<span class="luau-…">` pieces (the `.luau-*` rules in styles/source.css
 colour them, contrast-tested in both schemes); every other language is escaped
-plain text.
+plain text. Given `links` (a type name → URL), it also links the type names in an
+API signature (`type_names` says which words those are).
 """
 
-from collections.abc import Iterator
+import re
+from collections.abc import Collection, Iterator, Mapping
 
 from django.utils.html import escape
 from pygments.lexer import Lexer
@@ -152,14 +154,65 @@ class EditorLuauLexer(Lexer):
         yield from editor_tokens(text)
 
 
-def highlight(code: str, language: str) -> str:
+_WORD = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+# A word touching one of these is an owner (`Part.`) or a member (`.Anchored`), not a type.
+_FIELD = ".:"
+
+
+def _type_spans(code: str, names: Collection[str]) -> list[tuple[int, int]]:
+    """Where `names` stand as type names in `code`: plain words and builtins (never in a
+    string or comment), not right after or before `.` or `:`."""
+    spans = []
+    for start, kind, text in editor_tokens(code):
+        if kind not in (Text, Name.Builtin):
+            continue
+        for word in _WORD.finditer(text):
+            begin, end = start + word.start(), start + word.end()
+            if word.group() not in names:
+                continue
+            before, after = code[begin - 1 : begin] if begin else "", code[end : end + 1]
+            if (before and before in _FIELD) or (after and after in _FIELD):
+                continue
+            spans.append((begin, end))
+    return spans
+
+
+def type_names(code: str, names: Collection[str]) -> list[str]:
+    """The words of `names` that `code` (an API signature) uses as type names, in order:
+    in `Part:UnionAsync(parts: {Instance}): UnionOperation`, Instance and UnionOperation
+    (Part is the owner)."""
+    return [code[begin:end] for begin, end in _type_spans(code, names)]
+
+
+def highlight(code: str, language: str, links: Mapping[str, str] | None = None) -> str:
     """A fenced block's contents as HTML: Luau and Lua in the editor's colours, anything
-    else as escaped plain text. The trailing newline the fence leaves is dropped."""
+    else as escaped plain text. The trailing newline the fence leaves is dropped.
+
+    With `links` (type name → URL), each type name in Luau code (see `type_names`)
+    becomes a link to its page.
+    """
     code = code.removesuffix("\n")
     if language.lower() not in LUAU_LANGUAGES:
         return str(escape(code))
+    linked = dict(_type_spans(code, links)) if links else {}
     pieces = []
-    for kind, text in EditorLuauLexer().get_tokens(code):
+    for start, kind, text in editor_tokens(code):
         css = KINDS.get(kind)
-        pieces.append(f'<span class="luau-{css}">{escape(text)}</span>' if css else escape(text))
+        at = 0
+        for begin, end in sorted(linked.items()):
+            if begin < start or end > start + len(text):
+                continue
+            pieces.append(_piece(text[at : begin - start], css))
+            word = code[begin:end]
+            pieces.append(
+                f'<a class="api-type" href="{escape(links[word])}">{_piece(word, css)}</a>'
+            )
+            at = end - start
+        pieces.append(_piece(text[at:], css))
     return "".join(pieces)
+
+
+def _piece(text: str, css: str | None) -> str:
+    if not text:
+        return ""
+    return f'<span class="luau-{css}">{escape(text)}</span>' if css else str(escape(text))

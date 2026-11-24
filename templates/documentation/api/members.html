@@ -1,0 +1,29 @@
+{% extends "documentation/layout.html" %}
+{# A class, data type, library or globals page of the API reference: the header, the constructor #}
+{# and intro (the page's lead), a summary table per kind of member, the members inherited from     #}
+{# Instance (collapsed), then every member in full. documentation/views.py `api_context`.         #}
+{% block article %}
+  {% include "documentation/partials/header.html" %}
+  <div class="doc-prose api-lead">{{ page.rendered.lead|safe }}</div>
+  {% if tables or inherited %}
+  <section class="api-summary" aria-label="{{ docs.api_members }}">
+    {% for table in tables %}
+      <h2 class="api-summary-title micro">{% if table.anchor %}<a href="#{{ table.anchor }}">{{ table.title }}</a>{% else %}{{ table.title }}{% endif %} <span class="text-fg-weak">{{ table.rows|length }}</span></h2>
+      {% include "documentation/partials/api_table.html" %}
+    {% endfor %}
+    {% if inherited %}
+      <details class="api-inherited">
+        <summary class="micro">{{ docs.api_inherited }} {{ inherited.title }} <span class="text-fg-weak">{{ inherited.count }}</span></summary>
+        <p class="mt-3 text-sm text-fg-secondary">{{ docs.api_inherited }} <a href="{{ inherited.url }}">{{ inherited.title }}</a>.</p>
+        {% for table in inherited.tables %}
+          <h3 class="api-summary-title micro">{{ table.title }} <span class="text-fg-weak">{{ table.rows|length }}</span></h3>
+          {% include "documentation/partials/api_table.html" %}
+        {% endfor %}
+      </details>
+    {% endif %}
+  </section>
+  {% endif %}
+  {% if page.rendered.body %}<div class="doc-prose api-details">{{ page.rendered.body|safe }}</div>{% endif %}
+  {% include "documentation/partials/pager.html" %}
+{% endblock %}
+{% block rail %}{% include "documentation/partials/api_rail.html" %}{% endblock %}

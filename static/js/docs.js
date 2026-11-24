@@ -51,6 +51,39 @@
     block.appendChild(button);
   });
 
+  // ---------- The API home's filter ----------
+  // Without JavaScript the filter stays hidden and every name is listed. With it, typing
+  // keeps the names whose name or one line holds every word, and hides empty groups.
+  var filter = docs.querySelector("[data-api-filter]");
+  if (filter) {
+    var input = filter.querySelector("input");
+    var status = document.getElementById("api-filter-status");
+    var none = filter.querySelector(".api-filter-none");
+    var groups = docs.querySelectorAll("[data-api-group]");
+    var apply = function () {
+      var words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+      var shown = 0;
+      groups.forEach(function (group) {
+        var visible = 0;
+        group.querySelectorAll("[data-filter]").forEach(function (item) {
+          var text = item.getAttribute("data-filter");
+          var match = words.every(function (word) { return text.indexOf(word) !== -1; });
+          item.hidden = !match;
+          if (match) visible += 1;
+        });
+        group.hidden = visible === 0;
+        shown += visible;
+      });
+      status.textContent = words.length
+        ? filter.dataset.count.replace("{shown}", shown).replace("{total}", filter.dataset.total)
+        : "";
+      none.hidden = shown !== 0;
+    };
+    filter.hidden = false;
+    input.addEventListener("input", apply);
+    if (input.value) apply(); // a value the browser restored on going back
+  }
+
   // ---------- The sidebar's disclosure ----------
   // Open beside the article on wide screens; a closed disclosure below 1024 px (the
   // inline script after it closes it before first paint).

@@ -17,11 +17,13 @@ enforce everything here.
 | `documentation/links.py` | `resolve()`: one link → its Hub URL or a reported problem; `page_slug`, `page_url`, `image_url` |
 | `documentation/highlight.py` | `EditorLuauLexer` (Pygments) and `highlight()` |
 | `documentation/rendering.py` | `render()`: front matter, Markdown, heading ids, links, code, tables, figures |
-| `documentation/library.py` | `Library`: the snapshot as served (cached pages) and `check()`, the build check; `library()` |
+| `documentation/library.py` | `Library`: the snapshot as served (cached pages, `api_page`, `type_links`, `search_index`) and `check()`, the build check; `library()` |
+| `documentation/api.py` | `parse()`: an API page as structure (`ApiPage`, `Member`); `page_kind()` |
+| `documentation/search.py` | `build_index()`, `clean_query()`, `search()` (the ranking), `mark()` |
 | `documentation/diagrams.py` | `DIAGRAMS`: the diagrams' media-manifest entries |
 | `documentation/strings.py` | Every word around the pages (`DOCS`) |
-| `templates/documentation/` | `layout.html`, `page.html`, `index.html` and `partials/` |
-| `static/js/docs.js` | The copy buttons and the sidebar's disclosure (progressive) |
+| `templates/documentation/` | `layout.html`, `page.html`, `index.html`, `search.html`, `api/` and `partials/` |
+| `static/js/docs.js` | The copy buttons, the sidebar's disclosure and the API home's filter (progressive) |
 
 ## Re-syncing
 
@@ -68,7 +70,8 @@ made in the engine, committed, then re-synced.
 Every page renders with a title (its `#` heading) and a front-matter
 `description`. SUMMARY.md and the pages agree: no orphans, nothing
 listed that's missing, nothing listed twice, and no two paths sharing a
-lower-cased URL. Every link and image resolves, every `#anchor` names a
+lower-cased URL, and none takes `/docs/search/`. Every API page parses
+(`api.ApiError` otherwise). Every link and image resolves, every `#anchor` names a
 heading on its target page, every `status` is known, and every image is
 a manifest diagram at its recorded size.
 
@@ -170,3 +173,34 @@ page. Home's "Read the docs", the footer's Docs and Getting started
 (`content.GETTING_STARTED`) and the closing section point here. GitHub
 stays one click away: each page's View source link and the footer's
 GitHub link.
+
+## The API reference (`/docs/api/…`)
+
+`api.parse` reads the generated pages' fixed shape (see its docstring).
+Anchors are the rendered headings' own ids, never recomputed. Kinds keep the
+engine's words: Properties, Events, Functions. `views.API_TEMPLATES` picks:
+
+- **Class, type, libraries, globals** (`api/members.html`): header, the lead
+  (constructor and intro, `Rendered.lead`), a summary table per kind (name to
+  its anchor, type or signature, first sentence), "Inherited from Instance"
+  collapsed, then every member in full (`Rendered.body`). The rail lists the
+  members by kind. Pages with no members (DataRow) show only their intro.
+- **Enums** (`api/enums.html`): an anchored heading per enum, items as chips.
+- **API home** (`api/home.html`): the README, then a panel each for Classes,
+  Data types, Enums, Libraries and Globals. The filter is `hidden` in the
+  markup; `docs.js` shows it and hides names (and empty panels) lacking any
+  typed word, so without JavaScript everything is listed.
+- **Type links:** a `luau` block right under a heading on an API page is a
+  signature; its class, type and `EnumX` names (`highlight.type_names`, never
+  an owner, member, string or comment) link to their pages, checked by build.
+
+## Search (`/docs/search/?q=`)
+
+The form tops the sidebar column. The index (`Library.search_index`, built
+once per process) holds every page, guide heading and API member.
+`clean_query` trims and collapses whitespace; empty or over 100 characters is a
+message, never an error. Ranking: an exact name (title or full name before a
+member's short name; `:` reads as `.`), then the words in a title, heading,
+member name, description; within a rank, prefix matches then reading order.
+One result per URL, 20 a page (Django's paginator; a bad page number falls
+back), matched words in `<mark>`.

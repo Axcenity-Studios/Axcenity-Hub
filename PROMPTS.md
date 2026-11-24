@@ -28,6 +28,87 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-24 — Axcenity Hub: Phase 6C/17, API reference
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub.md phase 6C`.
+2. "Looks good go ahead and move to implementation, stoping only at red
+   phases"
+3. (TDD 1, parsing an API page, RED) "Lookgs good move to next red phase"
+4. (TDD 2, search ranking and query handling, RED) "Looks good move to next
+   red phase after making this one pass"
+
+### Summary
+
+- **Outcome:** the engine's generated API reference (144 classes, 46 data
+  types, 53 enums, the `task` library and 5 globals) is a browsable
+  reference, and the docs have search. 813 tests pass (fast and browser);
+  Ruff check and format are clean.
+  - `/docs/api/`: a panel each for Classes, Data types, Enums, Libraries and
+    Globals, with a progressive filter.
+  - Class, type, library and globals pages: the constructor and intro, a
+    summary table per kind with linked signatures, Instance's members in a
+    collapsed group, the members in full, and a rail of members by kind.
+  - The enums page: an anchor per enum, items as chips.
+  - `/docs/search/?q=`: ranked, paginated results with marked snippets.
+- **Changes:**
+  - `documentation/api.py` (new): `parse()` reads an API page into an
+    `ApiPage` of `Member`s, pairing its headings with the rendered ids;
+    `page_kind()`; `first_sentence()`.
+  - `documentation/search.py` (new): `build_index()`, `clean_query()`,
+    `search()` (the ranking), `mark()`.
+  - `documentation/rendering.py`: `parse_body()` and `plain_text()` made
+    public; `Rendered.lead`/`body` (split at the first heading);
+    `type_links` link the type names in API signatures and record them as
+    internal links for the build check.
+  - `documentation/highlight.py`: `type_names()` and a `links` argument to
+    `highlight()`, keeping each piece's Luau colour.
+  - `documentation/library.py`: `type_links`, `api_page()`, `api_pages()`,
+    `search_index`; the build check parses every API page and refuses a page
+    at `/docs/search/`; the new ids are reserved from headings.
+  - `documentation/views.py`, `urls.py`, `strings.py`: per-kind API
+    templates, `api_context`/`api_home_context`, `DocsSearchView` at
+    `documentation:search`, and their words.
+  - `templates/documentation/api/` (`members`, `enums`, `home`),
+    `search.html`, partials `api_table`, `api_rail`, `search_form` (in the
+    sidebar column).
+  - `static/js/docs.js`: the API home's filter. `styles/source.css`: the
+    `.api-*` and `.search-*` rules.
+  - Tests: `tests/test_documentation_api.py` (new, 36 tests); the browser
+    test now targets the longest class page and checks the filter; the
+    theme tests gain the search box and match pairs and the new pages.
+  - Docs: `docs/frontend/documentation.md` (API layout and search),
+    ARCHITECTURE (modules, the search URL), FRONTEND, TESTING; plan Phase 6C
+    ticked.
+- **TDD:** (1) parsing a class page into its constructor, inheritance and
+  members by kind, with first-sentence summaries and the renderer's own
+  anchors; (2) search ranking (exact name, title, heading, member,
+  description; prefix then reading order; one result per URL) and query
+  handling (trim, collapse, empty and over-long refused).
+- **Decisions:** member kinds keep the engine's words (Properties, Events,
+  Functions, not "Methods"); anchors come from the rendered headings, never
+  recomputed; owners, members, strings and comments are never linked as
+  types; the API home uses stacked panels, not tabs; the search form sits
+  at the top of the sidebar column, outside the phone disclosure; queries
+  over 100 characters get a message; the enums page is fully structured
+  (its prose is only each enum's description and items); `classes.md` and
+  `types.md` stay plain pages.
+- **Deviations:** none; the user approved the brief and both tests as
+  written, and asked to stop only at red phases.
+- **Sideways:**
+  - On the real snapshot, `TweenService` first found the
+    `DataModel.TweenService` property, since every exact name tied. Added
+    the brief's tie-break (a full name before a member's short name); the
+    fixed-query acceptance test covers it, not the TDD test.
+  - Two new tests assumed every API page has members. ReplicatedStorage
+    (only Instance's) and DataRow (read by column name) have none. The test
+    now checks member totals, and such pages hide the empty summary.
+  - A test expected `Instance.new` as plain text; `Instance` is a Luau
+    builtin and sits in a colour span.
+  - A `pkill -f` meant for the screenshot server matched its own shell and
+    ended the command; the server was stopped another way.
+
 ## 2026-11-24 — Axcenity Hub: Phase 6B/17, Documentation site
 
 ### Prompts

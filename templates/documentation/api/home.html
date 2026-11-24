@@ -1,0 +1,24 @@
+{% extends "documentation/layout.html" %}
+{# The API home (/docs/api/): the API's README, then a panel per group listing every name with its #}
+{# one line. The filter is progressive: hidden until docs.js shows it, so without JavaScript every #}
+{# name is listed. documentation/views.py `api_home_context`.                                      #}
+{% block article %}
+  {% include "documentation/partials/header.html" %}
+  <div class="doc-prose">{{ page.rendered.html|safe }}</div>
+  <div class="api-filter" data-api-filter hidden data-count="{{ docs.api_filter_count }}" data-total="{{ api_total }}">
+    <label for="api-filter-input" class="micro text-fg-strong">{{ docs.api_filter }}</label>
+    <input id="api-filter-input" class="docs-search-input mt-2" type="search" placeholder="{{ docs.api_filter_placeholder }}" autocomplete="off" aria-describedby="api-filter-status">
+    <p id="api-filter-status" class="mt-2 text-sm text-fg-secondary" aria-live="polite"></p>
+    <p class="api-filter-none mt-2 text-sm text-fg-secondary" hidden>{{ docs.api_filter_none }}</p>
+  </div>
+  {% for slug, title, entries in groups %}
+    <section id="api-{{ slug }}" class="panel api-panel" aria-labelledby="api-{{ slug }}-title" data-api-group>
+      <h2 id="api-{{ slug }}-title" class="micro text-fg-strong">{{ title }} <span class="text-fg-weak">{{ entries|length }}</span></h2>
+      <ul class="api-list">
+        {% for entry in entries %}<li data-filter="{{ entry.filter_text }}"><a href="{{ entry.url }}" class="api-name"><code>{{ entry.name }}</code></a> <span class="text-sm text-fg-secondary">{{ entry.about }}</span></li>{% endfor %}
+      </ul>
+    </section>
+  {% endfor %}
+  {% include "documentation/partials/pager.html" %}
+{% endblock %}
+{% block rail %}{% include "documentation/partials/api_rail.html" %}{% endblock %}
