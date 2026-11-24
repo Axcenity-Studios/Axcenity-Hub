@@ -28,6 +28,114 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-24 — Axcenity Hub: Phase 8/17, Accounts, security and two-factor sign-in
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub.md phase 8`.
+2. (On the brief) "Ok thre is one conflict that I want to resolve which involves email
+   verification: allauth documentation states that mandatory prevents unverified users
+   from logging in and optional permits unverified login while still sending verification
+   emails. Enumeration prevention with optional verification can require allowing multiple
+   accounts to share an email address when using strict prevention. Do not assume that
+   changing the password-login step alone cheives the desird behavior. Also add in an
+   additional test which will exercise the actuall allauth signup and password login flows
+   with an existing email and newly registered unverified account. make sure that all five
+   requirements hold to tis. If the alluths stage architecture cannot support this cleanly
+   use a narrower scoped versin of this as to not weaken signup and login intergration or
+   email uniqueness and enumeration protection."
+3. (TDD 1, the verification gate, RED) "Looks good move to next red phase after passing
+   this test"
+4. (TDD 2, case-insensitive uniqueness, RED) "Looks good just one safegurad - make sure
+   that migration checks for existing case-insensitive duplicated before creating indexes
+   and reports the conflicting record clearly. Do not silently delete or merge accounts.
+   Other than tat make this test pass and move to development"
+
+### Summary
+
+- **Outcome:** django-allauth (65.22.1, with MFA) gives the Hub sign-up, sign-in by
+  email, sign-out, email verification, password reset and two-factor sign-in
+  (authenticator app plus ten one-time recovery codes).
+  - A Profile per member (display name, bio) and an editor-style **app shell** for
+    signed-in pages; sign-in pages use a slim **entrance** layout. allauth's templates
+    are all restyled through its layouts and elements.
+  - The nav's Sign in is a real link; signed in, it reads Account.
+  - Hardening: sessions (24 h idle, 14 days absolute, rotation on sign-in, password and
+    two-factor changes, server-side sign-out); CSRF on every URL; one-hour single-use
+    reset links; two rate-limit layers (cache, plus a database backstop); enumeration-
+    safe sign-in, sign-up and reset; honeypots; Turnstile (off until keys are set, fails
+    closed, never the only check); production settings that pass `check --deploy` with
+    no warnings.
+  - 1,061 tests pass (988 fast, 73 browser); Ruff is clean. All 12 acceptance criteria
+    are ticked.
+- **Changes:**
+  - `accounts/` (new app):
+    - `models.py`: `Profile`, `AuthAttempt`; migrations 0001–0003 (0002 adds the
+      case-insensitive unique indexes after checking for duplicates)
+    - `stages.py`, `adapter.py`: the signup-only verification stage, the signup message
+      fix, the QR code with its own white paper
+    - `access.py`: the contribution gate; `integrity.py`: the indexes and duplicate check
+    - `forms.py`, `throttle.py`, `turnstile.py`, `middleware.py`, `signals.py`,
+      `validators.py`, `admin.py`, `views.py`, `urls.py`, `strings.py`,
+      `templatetags/app_shell.py`
+  - `config/settings.py`: allauth and MFA settings, sessions, headers, the production
+    block (secret key and hosts required, HTTPS, HSTS, shared cache, SMTP), `MAILERS` in
+    place of the deprecated `EMAIL_BACKEND`, Turnstile keys. `config/urls.py`: `/accounts/`.
+  - Templates (new): `app/shell.html`, `app/entrance.html`, `allauth/layouts/*`,
+    `allauth/elements/*`, `accounts/*`, `partials/form_fields.html`, `messages.html`,
+    `theme_switch.html` (taken out of `site_nav.html`). Five icons in `icon.html`; the
+    `.app-*` and `.entrance` classes in `styles/source.css`.
+  - `marketing/content.py`, `views.py`, `site_nav.html`: Sign in and Account links.
+  - Tests (new): `test_accounts.py`, `test_accounts_security.py`,
+    `test_accounts_mfa.py`, `test_settings_production.py`, `test_accounts_browser.py`,
+    `gate_urls.py`. Changed: `conftest.py` (browser tests' database, below),
+    `test_browser_server.py`, `test_shell.py` (Sign in is a link now),
+    `test_theme_switch.py` (the renamed production flag).
+  - `pyproject.toml`, `uv.lock`: `django-allauth[mfa]`.
+  - Docs: `docs/architecture/accounts.md` and `docs/frontend/app-shell.md` (new); the
+    ARCHITECTURE, FRONTEND and TESTING indexes.
+- **TDD:** each test was written first and failed on an assertion:
+  1. The verification gate: an unverified member signs in through allauth's login view
+     but a contribution is refused (no action, redirect to verify, the link re-sent),
+     and it goes through once verified. Failed with a 200 where a redirect was expected.
+  2. Case-insensitive uniqueness: sign-up refuses `ALICE`, creates nothing for
+     `Alice@Example.COM`, and the database refuses case-only duplicates in `auth_user`
+     and `account_emailaddress`. Failed with "DID NOT RAISE IntegrityError".
+- **Decisions:**
+  - The verification conflict (prompt 2): allauth runs `mandatory`, so signup stays
+    enumeration-safe and email-unique with no "strict" mode. The adapter's
+    `get_login_stages()` hook swaps in a stage that applies mandatory handling only at
+    signup, so an unverified password login goes through. A throwaway prototype against
+    real allauth compared stock `mandatory` and the swap before any code was written: the
+    only difference was the unverified login.
+  - Narrowed scope: no adding or changing email addresses in this phase (allauth's
+    add-email form accepts another account's address unverified). The Hub's own email
+    page shows status and resend only.
+  - Sign-in by email only; usernames 3–30 characters, stored as typed, with a reserved
+    list. Sessions end after 24 hours idle or 14 days. Production cache: the database
+    cache by default, Redis when `DJANGO_REDIS_URL` is set. Turnstile only on signup and
+    the reset request, failing closed. Public profile pages wait for the forums.
+- **Deviations:** the end-to-end policy test and the migration's duplicate safeguard
+  (report every conflicting record, change nothing) were added at the user's request.
+- **Sideways:**
+  - The end-to-end test found a real enumeration leak in allauth's defaults: its
+    verification cooldown is per address, so the "Confirmation email sent" message went
+    missing on a signup with an address mailed minutes earlier. The adapter now drops
+    that message at signup; the page itself still says an email was sent.
+  - Browser tests were reaching the **development database** (`db.sqlite3`) when run on
+    their own: `browser_server` asked for the test database too late. No data was lost.
+    Every browser test is now marked for the test database at collection, and a guard
+    fails any test that reaches `db.sqlite3`.
+  - Django 6.1's `check --deploy` refused the console email backend in production;
+    production now uses SMTP from the environment.
+  - Two-factor enrolment didn't seem to rotate the session in tests: allauth sends that
+    signal on commit, which a wrapped test never reaches. The test now uses real commits.
+  - The migration test restored only to 0002 and dropped the 0003 table for later tests;
+    it now restores to the latest migration.
+  - Smaller fixes: a hard-coded white behind the QR code broke a theme rule (the white
+    moved into the image); allauth's pages needed the app column's width and spacing;
+    a lone untagged submit button is now the primary one.
+
 ## 2026-11-24 — Axcenity Hub: Phase 7/17 follow-up, download page layout, icons and license agreement
 
 ### Prompts

@@ -146,7 +146,7 @@ def test_the_cookie_is_secure_in_production(client, settings):
 def test_production_settings_turn_secure_on():
     """THEME_COOKIE_SECURE follows DEBUG, like the session and CSRF cookies."""
     source = (settings.BASE_DIR / "config" / "settings.py").read_text(encoding="utf-8")
-    assert "THEME_COOKIE_SECURE = not DEBUG" in source
+    assert "PRODUCTION = not DEBUG" in source and "THEME_COOKIE_SECURE = PRODUCTION" in source
     assert 'SESSION_COOKIE_SAMESITE = "Lax"' in source and 'CSRF_COOKIE_SAMESITE = "Lax"' in source
 
 

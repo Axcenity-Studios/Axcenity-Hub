@@ -7,6 +7,7 @@ index:** the rules below apply everywhere; topic files under
 | Open… | Before you touch… |
 |---|---|
 | [architecture/github-releases.md](architecture/github-releases.md) | the GitHub release list behind `/download/`: choosing and validating the release, the cache, ETag, fallbacks and backoff |
+| [architecture/accounts.md](architecture/accounts.md) | accounts and sign-in: the email-verification policy and gate, case-insensitive uniqueness, sessions, password reset, rate limits, enumeration, two-factor, Turnstile, production settings |
 
 ## Layout
 
@@ -16,14 +17,15 @@ index:** the rules below apply everywhere; topic files under
 | `marketing/` | Public signed-out pages: Home, Toolbox and Download. `content.py` holds their copy, links and media manifest as data; `drawings.py` computes the drawn media; `media.py` cuts captures into derivatives (`manage.py make_media`); `github.py` is the one GitHub request (the engine's release list) and `releases.py` chooses the release, groups its builds and caches it; `legal.py` reflows the engine's LICENSE and NOTICE into prose for the download agreement ([frontend/download.md](frontend/download.md)) |
 | `documentation/` | The engine docs at `/docs/`: `sync.py` (`sync_engine_docs`), `navigation.py`, `links.py`, `rendering.py`, `highlight.py`, `library.py` (the snapshot as served, and its build check), `api.py` (API pages as structure), `search.py` (the index and ranking), `diagrams.py`, `strings.py`. See [frontend/documentation.md](frontend/documentation.md) |
 | `documentation/content/` | The committed snapshot of the engine's `documentation/` folder, with `SOURCE.json` (commit and tree). Only `sync_engine_docs` writes it |
+| `accounts/` | Profiles and the sign-in policy around django-allauth: the verification gate (`access.py`), the signup-only verification stage, case-insensitive unique indexes, the rate-limit backstop, Turnstile, session lifetimes ([architecture/accounts.md](architecture/accounts.md)) |
 | `marketing/legal/` | The engine's `LICENSE` and `NOTICE`, copied in unchanged (`content.LEGAL_COMMIT`), shown in full in the download agreement |
 | `marketing/media_sources/` | Captures as copied in (never served, never edited): the sources `make_media` reads, and `toolbox-capture.json`, the Toolbox screenshots' capture record |
-| `templates/` | `base.html` (shared by every shell), `marketing/` (the marketing shell and its pages), `documentation/` (the docs layout and pages), `partials/` |
+| `templates/` | `base.html` (shared by every shell), `marketing/` (the marketing shell and its pages), `documentation/` (the docs layout and pages), `app/` (the app shell and the entrance), `allauth/` (allauth's layouts and elements), `accounts/`, `partials/` |
 | `styles/source.css` | The Tailwind source; built into `static/css/tailwind.css` (git-ignored) |
 | `static/` | `js/`, `reel/` (the canvas kit and `reel/loops/`, the Home's animated recreations), `fonts/`, `brand/`, `marketing/media/` (the captures' derivatives, written by `make_media`, and the hero's film in `homestead/`) |
 | `tests/` | Every test (see [TESTING.md](TESTING.md)) |
 
-Later phases add `accounts`, `projects`, `forums`, `showcases`, `reports`,
+Later phases add `projects`, `forums`, `showcases`, `reports`,
 `moderation` and `api` (see the plan's architectural decisions).
 
 ## Rules
@@ -31,10 +33,16 @@ Later phases add `accounts`, `projects`, `forums`, `showcases`, `reports`,
 - **Thin class-based views.** Logic goes in models and managers;
   cross-model workflows get a service module. Every public function in a
   deep module gets a docstring and type hints.
-- **Every URL is named and app-namespaced** (`marketing:home`).
+- **Every URL is named and app-namespaced** (`marketing:home`). The one exception is
+  allauth's pages (`account_login`, `mfa_index`, ...): allauth reverses its own
+  un-namespaced names. The Hub's account pages are `accounts:*`.
 - **Access:** members-only views use `LoginRequiredMixin`; anything the
   caller can't see is a 404, never a 403. Every write is CSRF protected.
   Nothing is `csrf_exempt` (Phase 10's webhook will be the one exception).
+  Views that post, create or report use `accounts.access.VerifiedEmailRequiredMixin`,
+  and their services call `ensure_can_contribute(user)`.
+- **New URLs are members-only by default:** `test_accounts_security.py` walks every
+  URL, and anything not on its `PUBLIC` list must send an anonymous visitor to sign in.
 - **Secrets** come from environment variables only, never the database.
 - **Untrusted input is validated against a fixed set** before use (the
   theme cookie is the first example: only `system`, `light`, `dark`).
@@ -50,6 +58,10 @@ Later phases add `accounts`, `projects`, `forums`, `showcases`, `reports`,
 | `/docs/` | `documentation:index` | `DocsIndexView`: the docs' README and a panel per section |
 | `/docs/search/` | `documentation:search` | `DocsSearchView`: `?q=` search over the snapshot's index, `&page=` (20 a page) |
 | `/docs/<path>/` | `documentation:page` | `DocsPageView`: a snapshot page by its lower-cased path without `.md` (`/docs/api/classes/part/`); a README is its folder; API pages get their own templates; unknown paths 404 |
+| `/accounts/profile/` | `accounts:profile` | `ProfileView`: the member's own profile and its form (members only) |
+| `/accounts/verify-email/` | `accounts:verify_email` | `VerifyEmailView`: where the contribution gate sends an unverified member (`?next=`, same-site only) |
+| `/accounts/email/` | `account_email` | `EmailView`: the address, its status and a resend button (replaces allauth's page) |
+| `/accounts/…` | `account_*`, `mfa_*` | allauth: sign in, sign up, sign out, confirm email, password change and reset, re-authenticate, two-factor (`/accounts/2fa/…`) |
 | `/theme/` | `marketing:theme` | `ThemeView`: POST only, the no-JavaScript fallback for the theme switch |
 | `/admin/` | `admin:*` | Django admin |
 
@@ -103,19 +115,27 @@ Later phases add `accounts`, `projects`, `forums`, `showcases`, `reports`,
   as the fallback) and backs off after a failure. GitHub's data is
   untrusted input: every field is checked before use
   ([architecture/github-releases.md](architecture/github-releases.md)).
-- The cache is local memory in development. Production needs a shared
-  cache so every process shares one list and one backoff (Phase 8).
+- The cache is local memory in development. Production shares one (the
+  database cache, or Redis): one list, one backoff and one set of rate limits
+  for every process ([architecture/accounts.md](architecture/accounts.md)).
 
 ## Settings
 
-`config/settings.py`, development defaults; Phase 8 adds production
-hardening.
+`config/settings.py`: development defaults, and production when `DJANGO_DEBUG`
+is off ([architecture/accounts.md](architecture/accounts.md#production-settings)).
 
 | Variable | Default | Effect |
 |---|---|---|
-| `DJANGO_DEBUG` | `true` | `DEBUG`; when off, the session, CSRF and theme cookies are `Secure` |
-| `DJANGO_SECRET_KEY` | a development key | Must be set in production |
-| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated |
+| `DJANGO_DEBUG` | `true` | `DEBUG`; off is production: Secure cookies, SSL redirect, HSTS, shared cache, SMTP |
+| `DJANGO_SECRET_KEY` | a development key | Required in production (50+ characters), or settings refuse to load |
+| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated; required in production |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | none | Production: comma-separated `https://` origins |
+| `DJANGO_BEHIND_PROXY`, `DJANGO_TRUSTED_PROXY_COUNT` | off, `1` | Production behind a TLS proxy: trust `X-Forwarded-Proto` and that many `X-Forwarded-For` hops |
+| `DJANGO_REDIS_URL` | none | Production: Redis as the shared cache (otherwise the database cache) |
+| `DJANGO_EMAIL_BACKEND` | console (dev), SMTP (production) | The default mailer's backend |
+| `DJANGO_EMAIL_HOST`, `_PORT`, `_HOST_USER`, `_HOST_PASSWORD`, `_USE_TLS` | `localhost`, `587`, none, none, on | Production SMTP |
+| `DJANGO_DEFAULT_FROM_EMAIL` | `Axcenity Hub <noreply@localhost>` | The sender |
+| `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | none | Cloudflare Turnstile on signup and reset; off unless both are set |
 | `AXCENITY_ENGINE_DIR` | `~/Documents/VSCode Projects/Axcenity-Engine` | The engine checkout `sync_engine_docs` reads (never at request time) |
 
 `DOCS_SNAPSHOT_DIR` is `documentation/content/`; its `images/` are served

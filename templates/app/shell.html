@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load static app_shell %}
+{# The app shell: the editor-style frame for signed-in pages (docs/frontend/app-shell.md). #}
+{# A top bar, a rail of sections like the editor's Explorer, and the page in 1px panels.  #}
+{# allauth's account pages use it too (templates/allauth/layouts/manage.html).            #}
+{% block title %}{% block head_title %}Account{% endblock %}{% endblock %}
+{% block body %}
+{% account_copy as copy %}
+<a href="#content" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 btn btn-sm">Skip to content</a>
+<header class="app-bar">
+  <a href="{% url 'marketing:home' %}" class="flex shrink-0 items-center" aria-label="Axcenity home">
+    <img src="{% static 'brand/wordmark-white.png' %}" alt="Axcenity" width="77" height="24" class="logo-img h-5 w-auto">
+  </a>
+  <span class="app-bar-place micro">{{ copy.APP_PLACE }}</span>
+  <div class="ml-auto flex items-center gap-2">
+    {% include "partials/theme_switch.html" %}
+    {% if user.is_authenticated %}
+    <details class="app-user">
+      <summary class="app-user-button" aria-label="{{ copy.ACCOUNT_MENU }}: {{ user.get_username }}">
+        {% include "partials/icon.html" with name="user" size=16 %}
+        <span class="app-user-name">{{ user.get_username }}</span>
+      </summary>
+      <div class="app-user-menu">
+        <p class="app-user-email">{{ user.email }}</p>
+        <form method="post" action="{% url 'account_logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="app-menu-item">{% include "partials/icon.html" with name="sign-out" size=16 %}{{ copy.SIGN_OUT }}</button>
+        </form>
+      </div>
+    </details>
+    {% endif %}
+  </div>
+</header>
+<div class="app-frame">
+  {# Open without JavaScript; the script below folds it on phones (like the docs' sidebar). #}
+  <details id="app-rail" class="app-rail" open>
+    <summary class="app-rail-toggle micro">{{ copy.RAIL_HEADING }}</summary>
+    <nav aria-label="{{ copy.RAIL_HEADING }}" class="app-rail-body">
+      <p class="app-rail-heading micro">{{ copy.RAIL_HEADING }}</p>
+      <ul class="app-rail-list">
+        {% app_rail as rail %}
+        {% for item in rail %}
+        <li><a href="{{ item.href }}" class="app-rail-link"{% if item.current %} aria-current="page"{% endif %}>{% include "partials/icon.html" with name=item.icon size=16 %}{{ item.label }}</a></li>
+        {% endfor %}
+      </ul>
+    </nav>
+  </details>
+  <script>if (!matchMedia("(min-width: 1024px)").matches) document.getElementById("app-rail").open = false;</script>
+  <main id="content" tabindex="-1" class="app-main">
+    {% include "partials/messages.html" %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% block extra_body %}{% endblock %}
+{% endblock %}

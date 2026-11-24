@@ -10,19 +10,9 @@
       {% for link in nav_links %}{% include "partials/nav_link.html" with link=link class="nav-link" %}{% endfor %}
     </nav>
     <div class="ml-auto flex items-center gap-2">
-      {# The colour scheme switch: System, Light, Dark in turn. shell.js switches at once and #}
-      {# writes the ax-theme cookie; without JavaScript the form posts the next choice.       #}
-      <form method="post" action="{% url 'marketing:theme' %}" class="flex" data-theme-form>
-        {% csrf_token %}
-        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-        <button type="submit" id="theme-toggle" class="nav-icon" name="choice" value="{{ theme_next }}"
-                aria-label="Theme: {{ theme_label }}. Switch to {{ theme_next_label }}" title="Theme: {{ theme_label }}">
-          <span class="scheme-icon" data-scheme-icon="system">{% include "partials/icon.html" with name="monitor" size=18 %}</span>
-          <span class="scheme-icon" data-scheme-icon="light">{% include "partials/icon.html" with name="sun" size=18 %}</span>
-          <span class="scheme-icon" data-scheme-icon="dark">{% include "partials/icon.html" with name="moon" size=18 %}</span>
-        </button>
-      </form>
-      <span class="hidden md:inline-flex px-1 text-sm">{% include "partials/nav_link.html" with link=nav_sign_in class="nav-sign-in" %}</span>
+      {% include "partials/theme_switch.html" %}
+      {# Signed in, Sign in becomes Account (the profile, in the app shell). #}
+      <span class="hidden md:inline-flex px-1 text-sm">{% if user.is_authenticated %}{% include "partials/nav_link.html" with link=nav_account class="nav-sign-in" %}{% else %}{% include "partials/nav_link.html" with link=nav_sign_in class="nav-sign-in" %}{% endif %}</span>
       <a href="{{ nav_download.href }}"{% if nav_download.is_external %} rel="noopener"{% endif %} class="btn btn-primary btn-sm"{% if nav_download.url_name and nav_download.url_name == request.resolver_match.view_name %} aria-current="page"{% endif %}>{{ nav_download.label }}</a>
       <details class="nav-menu md:hidden">
         <summary class="nav-icon cursor-pointer">
@@ -32,7 +22,7 @@
         </summary>
         <nav aria-label="Menu" class="nav-menu-panel flex flex-col">
           {% for link in nav_links %}{% include "partials/nav_link.html" with link=link class="nav-link h-11 self-start" %}{% endfor %}
-          {% include "partials/nav_link.html" with link=nav_sign_in class="nav-link h-11 self-start" %}
+          {% if user.is_authenticated %}{% include "partials/nav_link.html" with link=nav_account class="nav-link h-11 self-start" %}{% else %}{% include "partials/nav_link.html" with link=nav_sign_in class="nav-link h-11 self-start" %}{% endif %}
         </nav>
       </details>
     </div>

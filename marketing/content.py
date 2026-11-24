@@ -823,7 +823,9 @@ NAV_LINKS = [
     Link("Docs", url_name="documentation:index", section="documentation"),
     Link("Community", soon=True),
 ]
-SIGN_IN = Link("Sign in", soon=True)
+# allauth's sign-in page (its URL names aren't namespaced); signed in, the nav shows Account.
+SIGN_IN = Link("Sign in", url_name="account_login")
+ACCOUNT = Link("Account", url_name="accounts:profile", section="accounts")
 # The engine docs, served by the documentation app from its snapshot (/docs/).
 GETTING_STARTED = Link(
     "Getting started", url_name="documentation:page", args=("learn/getting-started",)
@@ -1451,7 +1453,7 @@ DOWNLOAD_PAGE = {
 
 def all_links() -> list[Link]:
     """Every link in this module, for the link checks in the tests."""
-    links = [*NAV_LINKS, SIGN_IN, DOWNLOAD, HOME_TOOLBOX["cta"]]
+    links = [*NAV_LINKS, SIGN_IN, ACCOUNT, DOWNLOAD, HOME_TOOLBOX["cta"]]
     links += [
         DOWNLOAD_PAGE["other_systems"],
         DOWNLOAD_PAGE["choose"],

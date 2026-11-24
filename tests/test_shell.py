@@ -79,14 +79,18 @@ def test_the_current_page_is_marked(home):
     assert set(marked) == {"Engine"}  # Features links into the page, so it's never current
 
 
-def test_sign_in_is_coming_soon_and_never_a_link(home):
+def test_sign_in_links_to_the_sign_in_page_until_signed_in(home, client, django_user_model):
     nav = _nav(home)
-    assert "Sign in" in nav
-    assert not re.search(r"<a [^>]*>\s*Sign in", nav)
-    assert re.search(
-        r'<span class="soon [^"]*">Sign in<span class="soon-tag micro">Soon</span>', nav
-    )
-    assert "/accounts/" not in home
+    sign_in = reverse("account_login")
+    assert len(re.findall(rf'<a href="{sign_in}"[^>]*>Sign in</a>', nav)) == 2  # bar and menu
+    assert "Sign in<span" not in nav  # never the "Soon" label any more
+
+    user = django_user_model.objects.create_user("ada", "ada@example.com", "a-Long-pass-7731")
+    client.force_login(user)
+    nav = _nav(client.get("/").content.decode())
+    profile = reverse("accounts:profile")
+    assert len(re.findall(rf'<a href="{profile}"[^>]*>Account</a>', nav)) == 2
+    assert sign_in not in nav
 
 
 def test_coming_soon_items_are_never_links(home):

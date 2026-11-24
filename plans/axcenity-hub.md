@@ -390,18 +390,18 @@ Built test-first with the `tdd` skill; the rest of the phase is built and tested
 
 ### Acceptance criteria
 
-- [ ] Every item below has tests
-- [ ] **Sessions and cookies:** HttpOnly session cookie; Secure session and CSRF cookies in production; SameSite=Lax; the session rotates on login and privilege change; sessions expire after a documented idle and absolute age; logout invalidates the session server-side
-- [ ] **CSRF:** every state-changing view rejects requests without a valid token, HTMX included; no `csrf_exempt` outside the webhook endpoint (Phase 10)
-- [ ] **Password reset:** tokens are single-use, expire after a documented window (≤ 1 hour), and are invalidated by any password change; the reset page doesn't leak the token through referrers
-- [ ] **Email verification:** a documented policy. Default: unverified accounts can sign in but can't post, create projects or submit reports until verified; tests enforce it
-- [ ] **Throttling:** failed logins, signups, reset requests and MFA attempts are rate-limited per IP and per account; the limit holds under the production cache (shared cache documented), and the database-count limits still apply if the cache is cleared
-- [ ] **Enumeration protection:** login, signup and reset give identical responses and timing-safe behaviour whether or not the account or email exists
-- [ ] **Two-factor:** users can enrol TOTP, get one-time recovery codes, sign in with either, and disable 2FA only after re-authentication; an MFA step can't be skipped by navigating directly
-- [ ] **Production settings:** `manage.py check --deploy` passes under production settings (HSTS, SSL redirect, secure cookies, `X-Frame-Options`, content-type nosniff, referrer policy, `DEBUG` off, `ALLOWED_HOSTS` set, secret key from the environment)
-- [ ] **Unauthenticated access:** a test walks every members-only URL and asserts an anonymous request is redirected to login (or gets a 404 for object URLs), never served content
-- [ ] **Turnstile:** verified server-side with the official test keys; when Turnstile fails or is unreachable, the server-side protections still block abuse; it's never the only check
-- [ ] Unique, validated registration (case-insensitive username and email uniqueness)
+- [x] Every item below has tests
+- [x] **Sessions and cookies:** HttpOnly session cookie; Secure session and CSRF cookies in production; SameSite=Lax; the session rotates on login and privilege change; sessions expire after a documented idle and absolute age; logout invalidates the session server-side
+- [x] **CSRF:** every state-changing view rejects requests without a valid token, HTMX included; no `csrf_exempt` outside the webhook endpoint (Phase 10)
+- [x] **Password reset:** tokens are single-use, expire after a documented window (≤ 1 hour), and are invalidated by any password change; the reset page doesn't leak the token through referrers
+- [x] **Email verification:** a documented policy. Default: unverified accounts can sign in but can't post, create projects or submit reports until verified; tests enforce it
+- [x] **Throttling:** failed logins, signups, reset requests and MFA attempts are rate-limited per IP and per account; the limit holds under the production cache (shared cache documented), and the database-count limits still apply if the cache is cleared
+- [x] **Enumeration protection:** login, signup and reset give identical responses and timing-safe behaviour whether or not the account or email exists
+- [x] **Two-factor:** users can enrol TOTP, get one-time recovery codes, sign in with either, and disable 2FA only after re-authentication; an MFA step can't be skipped by navigating directly
+- [x] **Production settings:** `manage.py check --deploy` passes under production settings (HSTS, SSL redirect, secure cookies, `X-Frame-Options`, content-type nosniff, referrer policy, `DEBUG` off, `ALLOWED_HOSTS` set, secret key from the environment)
+- [x] **Unauthenticated access:** a test walks every members-only URL and asserts an anonymous request is redirected to login (or gets a 404 for object URLs), never served content
+- [x] **Turnstile:** verified server-side with the official test keys; when Turnstile fails or is unreachable, the server-side protections still block abuse; it's never the only check
+- [x] Unique, validated registration (case-insensitive username and email uniqueness)
 
 ---
 

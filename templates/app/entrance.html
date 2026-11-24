@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load static %}
+{# The entrance: sign in, sign up, password reset and the two-factor step. A slim bar  #}
+{# and one centred panel, without the marketing nav (docs/frontend/app-shell.md).      #}
+{# allauth's entrance pages use it (templates/allauth/layouts/entrance.html).           #}
+{% block title %}{% block head_title %}Sign in{% endblock %}{% endblock %}
+{% block body %}
+<a href="#content" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 btn btn-sm">Skip to content</a>
+<header class="app-bar">
+  <a href="{% url 'marketing:home' %}" class="flex shrink-0 items-center" aria-label="Axcenity home">
+    <img src="{% static 'brand/wordmark-white.png' %}" alt="Axcenity" width="77" height="24" class="logo-img h-5 w-auto">
+  </a>
+  <div class="ml-auto flex items-center gap-2">
+    {% include "partials/theme_switch.html" %}
+  </div>
+</header>
+<main id="content" tabindex="-1" class="entrance grid-bg">
+  <div class="entrance-panel panel">
+    {% include "partials/messages.html" %}
+    {% block content %}{% endblock %}
+  </div>
+</main>
+{% block extra_body %}{% endblock %}
+{% endblock %}

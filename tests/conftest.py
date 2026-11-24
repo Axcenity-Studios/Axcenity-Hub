@@ -108,6 +108,28 @@ def network_guard(monkeypatch) -> NetworkGuard:
     return guard
 
 
+def pytest_collection_modifyitems(items):
+    """Every browser test gets the transactional test database, declared up front.
+
+    pytest-django sets the test database up for tests that declare it (a django_db mark or
+    a database fixture in their signature). Asked for lazily, from inside browser_server,
+    it came too late: a browser test run on its own reached the development database,
+    which a transactional test flushes at teardown. Declaring it here closes that.
+    """
+    for item in items:
+        if item.get_closest_marker("browser") and not item.get_closest_marker("django_db"):
+            item.add_marker(pytest.mark.django_db(transaction=True))
+
+
+def assert_test_database() -> None:
+    """Fail loudly unless the default connection is the test database."""
+    from django.db import connection
+
+    name = str(connection.settings_dict["NAME"])
+    if name == str(settings.BASE_DIR / "db.sqlite3"):
+        pytest.fail("A test reached the development database (db.sqlite3); see conftest.py")
+
+
 @pytest.fixture
 def browser_server(request, network_guard):
     """The live server, reachable from a `browser` test at its own 127.0.0.1:<port> only.
@@ -117,9 +139,10 @@ def browser_server(request, network_guard):
     """
     if request.node.get_closest_marker("browser") is None:
         pytest.fail("browser_server is only for tests marked @pytest.mark.browser")
-    # Loaded lazily, after the check; pytest-django gives a live server test the
-    # transactional database itself only when live_server is a declared fixture.
+    # The transactional test database is declared for every browser test at collection
+    # (pytest_collection_modifyitems); the guard makes sure it really is the test one.
     request.getfixturevalue("transactional_db")
+    assert_test_database()
     live_server = request.getfixturevalue("live_server")
     url = urlsplit(live_server.url)
     network_guard.allow(url.hostname, url.port)

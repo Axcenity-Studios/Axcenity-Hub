@@ -1,0 +1,4 @@
+{% extends "accounts/email.html" %}
+{% load app_shell %}
+{% block head_title %}Verify your email{% endblock %}
+{% block page_title %}{% account_copy as copy %}{{ copy.VERIFY_TITLE }}{% endblock %}

@@ -27,6 +27,7 @@ class MarketingPageMixin:
         context.update(
             nav_links=content.NAV_LINKS,
             nav_sign_in=content.SIGN_IN,
+            nav_account=content.ACCOUNT,
             nav_download=content.DOWNLOAD,
             footer_columns=content.FOOTER_COLUMNS,
             footer_tagline=content.FOOTER_TAGLINE,

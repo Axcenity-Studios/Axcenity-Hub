@@ -16,6 +16,7 @@ its code).
 | [frontend/download.md](frontend/download.md) | the download page (`/download/`): the release from GitHub, the build kinds and their copy, system detection, the cache and fallbacks, the `.dl-*` classes |
 | [frontend/toolbox.md](frontend/toolbox.md) | the Toolbox page (`/toolbox/`): its sections, the `.tb-*` panel classes, the commands and demo credentials, its screenshots and their capture record |
 | [frontend/documentation.md](frontend/documentation.md) | the docs at `/docs/`: re-syncing the snapshot, rendering and its link rules, heading ids, Luau highlighting, the three-column layout, the sidebar, `docs.js`, the API reference's layouts and type links, search |
+| [frontend/app-shell.md](frontend/app-shell.md) | the app shell for signed-in pages, the sign-in entrance, allauth's layouts and elements, `form_fields.html`, the honeypot and Turnstile markup, the `.app-*` classes |
 | [frontend/canvas.md](frontend/canvas.md) | the loops' canvas kit (`static/reel/`): the loop contract, its context, the determinism and seamless-wrap rules, the drawing modules, fidelity to the editor |
 
 Later phases add topic files for each area they build.
@@ -36,17 +37,22 @@ Later phases add topic files for each area they build.
   draws in as it comes into view); `static/js/home.js` only on Home (its `head`
   block); the animated loops' ES modules (`static/reel/loops/main.js`)
   once, at the end of Home; `static/js/docs.js` on the docs pages;
-  `static/js/download.js` on `/download/` (the license dialog).
+  `static/js/download.js` on `/download/` (the license dialog). The one
+  script from another site is Cloudflare Turnstile's `api.js`, which
+  Cloudflare doesn't allow to be vendored, on signup and reset only when
+  Turnstile is configured ([app-shell.md](frontend/app-shell.md)).
 
 ## Shells
 
 - `templates/base.html`: the document every shell shares: `<html
   data-theme="axcenity">` with the validated scheme choice, the pre-paint
   scheme script, font preloads, the versioned stylesheet and `shell.js`.
-- `templates/marketing/shell.html` (this phase): a skip link, the fixed
+- `templates/marketing/shell.html`: a skip link, the fixed
   nav (`partials/site_nav.html`), `<main id="content">` and the four-column
-  footer (`partials/site_footer.html`). An editor-style app shell for
-  signed-in pages arrives in Phase 8 and extends `base.html` too.
+  footer (`partials/site_footer.html`).
+- `templates/app/shell.html` (signed-in pages) and `templates/app/entrance.html`
+  (sign in, sign up, reset): see [app-shell.md](frontend/app-shell.md). All three
+  share `partials/theme_switch.html`.
 - **Nav:** wordmark (home), Engine, Features (`/#features`), Toolbox,
   Docs, Community; then the
   theme switch, Sign in, and Download (the only primary button). It's
@@ -58,7 +64,8 @@ Later phases add topic files for each area they build.
   Engine, Learn and Community, from `content.FOOTER_COLUMNS`.
 - **Links to pages that don't exist yet** are `soon` in `content.py`:
   `partials/nav_link.html` renders them as a label with a "Soon" tag,
-  never as an `<a>`. Sign in stays `soon` until Phase 8.
+  never as an `<a>`. Sign in links to `account_login`; signed in, the nav shows
+  Account (`accounts:profile`) in its place.
 
 ## Rules for every template
 

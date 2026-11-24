@@ -1,0 +1,6 @@
+{# Django's messages (allauth's included), as a polite live region. #}
+{% if messages %}
+<ul class="app-messages" role="status">
+  {% for message in messages %}<li class="app-message">{{ message }}</li>{% endfor %}
+</ul>
+{% endif %}

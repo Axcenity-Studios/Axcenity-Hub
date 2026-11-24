@@ -1,0 +1,12 @@
+{# The colour scheme switch: System, Light, Dark in turn. shell.js switches at once and #}
+{# writes the ax-theme cookie; without JavaScript the form posts the next choice.       #}
+<form method="post" action="{% url 'marketing:theme' %}" class="flex" data-theme-form>
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+  <button type="submit" id="theme-toggle" class="nav-icon" name="choice" value="{{ theme_next }}"
+          aria-label="Theme: {{ theme_label }}. Switch to {{ theme_next_label }}" title="Theme: {{ theme_label }}">
+    <span class="scheme-icon" data-scheme-icon="system">{% include "partials/icon.html" with name="monitor" size=18 %}</span>
+    <span class="scheme-icon" data-scheme-icon="light">{% include "partials/icon.html" with name="sun" size=18 %}</span>
+    <span class="scheme-icon" data-scheme-icon="dark">{% include "partials/icon.html" with name="moon" size=18 %}</span>
+  </button>
+</form>

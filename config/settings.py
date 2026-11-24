@@ -1,13 +1,18 @@
 """Django settings for Axcenity Hub.
 
 Development defaults live here. Secrets and anything that differs in
-production come from environment variables only (Phase 8 hardens the
-production settings). Never put a real secret in this file.
+production come from environment variables only. Production is DEBUG off
+(`DJANGO_DEBUG=false`): it refuses to start without a real secret key and
+allowed hosts, and turns on HTTPS, HSTS and a shared cache (see
+docs/architecture/accounts.md). Never put a real secret in this file.
 """
 
 import mimetypes
 import os
+from datetime import timedelta
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -20,18 +25,32 @@ def env_bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def env_list(name: str, default: str = "") -> list[str]:
+    """Read a comma-separated environment variable as a list, skipping blanks."""
+    return [item.strip() for item in os.environ.get(name, default).split(",") if item.strip()]
+
+
 DEBUG = env_bool("DJANGO_DEBUG", True)
+PRODUCTION = not DEBUG
 
-# The fallback key is for local development only; production must set it.
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY", "django-insecure-axcenity-hub-development-key-not-for-production"
-)
+# The fallback key is for local development only; production must set its own.
+DEVELOPMENT_SECRET_KEY = "django-insecure-axcenity-hub-development-key-not-for-production"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "" if PRODUCTION else DEVELOPMENT_SECRET_KEY)
 
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-    if host.strip()
-]
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "" if PRODUCTION else "localhost,127.0.0.1")
+
+if PRODUCTION:
+    # The same rules as `check --deploy`'s security.W009: long, varied, not a default.
+    if (
+        len(SECRET_KEY) < 50
+        or len(set(SECRET_KEY)) < 5
+        or SECRET_KEY.startswith("django-insecure-")
+    ):
+        raise ImproperlyConfigured(
+            "DJANGO_SECRET_KEY must be set to a random value of 50+ characters in production"
+        )
+    if not ALLOWED_HOSTS:
+        raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS must be set in production")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -41,8 +60,12 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_tailwind_cli",
+    "allauth",
+    "allauth.account",
+    "allauth.mfa",
     "marketing",
     "documentation",
+    "accounts",
 ]
 
 MIDDLEWARE = [
@@ -51,8 +74,10 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "accounts.middleware.SessionAgeMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -82,12 +107,31 @@ DATABASES = {
     }
 }
 
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "axcenity-hub",
+# Local memory in development. Production shares one cache between every process, so the
+# release list, its backoff and allauth's rate limits are the same for every worker: the
+# database cache by default (run `manage.py createcachetable` once), or Redis when
+# DJANGO_REDIS_URL is set (needs the redis package).
+if not PRODUCTION:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "axcenity-hub",
+        }
     }
-}
+elif os.environ.get("DJANGO_REDIS_URL"):
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": os.environ["DJANGO_REDIS_URL"],
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+            "LOCATION": "axcenity_cache",
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -101,13 +145,135 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-# Cookies: Lax everywhere; Secure whenever DEBUG is off (production is HTTPS).
+# ---------- Sessions and cookies ----------
+# Lax everywhere; Secure whenever DEBUG is off (production is HTTPS only). The session
+# cookie is HttpOnly. A session ends after a day without a request (idle) and two weeks
+# after sign-in whatever happens (absolute): accounts.middleware.SessionAgeMiddleware.
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = PRODUCTION
+CSRF_COOKIE_SECURE = PRODUCTION
+SESSION_IDLE_TIMEOUT = timedelta(hours=24)
+SESSION_ABSOLUTE_TIMEOUT = timedelta(days=14)
+SESSION_COOKIE_AGE = int(SESSION_ABSOLUTE_TIMEOUT.total_seconds())
 # The colour-scheme cookie (config/theme.py) follows the same rule.
-THEME_COOKIE_SECURE = not DEBUG
+THEME_COOKIE_SECURE = PRODUCTION
+
+# ---------- HTTPS and headers ----------
+# Django's defaults, written out so they're documented and tested: no framing, no MIME
+# sniffing, the referrer only to this site, and the opener isolated.
+X_FRAME_OPTIONS = "DENY"
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+if PRODUCTION:
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 365 * 24 * 60 * 60
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+    # Behind a TLS-terminating proxy that sets X-Forwarded-Proto (and only then).
+    if env_bool("DJANGO_BEHIND_PROXY", False):
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+        ALLAUTH_TRUSTED_PROXY_COUNT = int(os.environ.get("DJANGO_TRUSTED_PROXY_COUNT", "1"))
+
+# ---------- Sign-in (django-allauth) ----------
+# The policy and the reasons behind each setting: docs/architecture/accounts.md.
+AUTHENTICATION_BACKENDS = [
+    # The admin's own login form (username and password).
+    "django.contrib.auth.backends.ModelBackend",
+    # The Hub's sign-in (email and password, then two-factor when enrolled).
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+LOGIN_URL = "account_login"
+LOGIN_REDIRECT_URL = "accounts:profile"
+ACCOUNT_LOGOUT_REDIRECT_URL = "marketing:home"
+
+ACCOUNT_ADAPTER = "accounts.adapter.AccountAdapter"
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
+# Mandatory at signup (enumeration-safe and email-unique); a password login by an
+# unverified account is allowed (accounts.stages), and accounts.access gates contributions.
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_PREVENT_ENUMERATION = True
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_LOGIN_ON_PASSWORD_RESET = False
+ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = False
+ACCOUNT_EMAIL_SUBJECT_PREFIX = "[Axcenity Hub] "
+ACCOUNT_USERNAME_MIN_LENGTH = 3
+ACCOUNT_USERNAME_VALIDATORS = "accounts.validators.USERNAME_VALIDATORS"
+ACCOUNT_USERNAME_BLACKLIST = [
+    "admin", "administrator", "axcenity", "hub", "mod", "moderator", "root", "staff",
+    "support", "system",
+]  # fmt: skip
+ACCOUNT_SIGNUP_FORM_HONEYPOT_FIELD = "website"
+ACCOUNT_FORMS = {
+    "login": "accounts.forms.LoginForm",
+    "signup": "accounts.forms.SignupForm",
+    "reset_password": "accounts.forms.ResetPasswordForm",
+}
+# The cache layer of the rate limits ("ip" per address, "key" per account, "user" per
+# signed-in member). The database backstop behind it: accounts.throttle.LIMITS.
+ACCOUNT_RATE_LIMITS = {
+    "login": "30/m/ip",
+    "login_failed": "10/m/ip,5/5m/key",
+    "signup": "10/h/ip",
+    "reset_password": "10/h/ip,3/h/key",
+    "reset_password_from_key": "20/m/ip",
+    "change_password": "5/m/user",
+    "reauthenticate": "10/m/user",
+    "manage_email": "10/m/user",
+    "confirm_email": "1/3m/key",
+}
+# Password reset links last an hour, and die with any password change (Django's tokens).
+PASSWORD_RESET_TIMEOUT = 60 * 60
+
+# Two-factor sign-in: an authenticator app (TOTP) and one-time recovery codes.
+MFA_ADAPTER = "accounts.adapter.MFAAdapter"
+MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
+MFA_TOTP_ISSUER = "Axcenity Hub"
+MFA_RECOVERY_CODE_COUNT = 10
+MFA_FORMS = {
+    "authenticate": "accounts.forms.MFAAuthenticateForm",
+    "reauthenticate": "accounts.forms.MFAReauthenticateForm",
+}
+
+# Cloudflare Turnstile on sign-up and the reset request (accounts.turnstile): on only when
+# both keys are set. Cloudflare's test keys work on localhost (docs/architecture/accounts.md).
+TURNSTILE_SITE_KEY = os.environ.get("TURNSTILE_SITE_KEY", "")
+TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY", "")
+
+# ---------- Email ----------
+# The console in development (emails print where runserver runs); Django's test runner
+# swaps every mailer for locmem. Production sends through SMTP, configured from the
+# environment, until a provider (django-anymail) arrives with the domain.
+if PRODUCTION:
+    MAILERS = {
+        "default": {
+            "BACKEND": os.environ.get(
+                "DJANGO_EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend"
+            ),
+            "OPTIONS": {
+                "host": os.environ.get("DJANGO_EMAIL_HOST", "localhost"),
+                "port": int(os.environ.get("DJANGO_EMAIL_PORT", "587")),
+                "username": os.environ.get("DJANGO_EMAIL_HOST_USER", ""),
+                "password": os.environ.get("DJANGO_EMAIL_HOST_PASSWORD", ""),
+                "use_tls": env_bool("DJANGO_EMAIL_USE_TLS", True),
+                "timeout": 10,
+            },
+        }
+    }
+else:
+    MAILERS = {
+        "default": {
+            "BACKEND": os.environ.get(
+                "DJANGO_EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+            )
+        }
+    }
+DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_DEFAULT_FROM_EMAIL", "Axcenity Hub <noreply@localhost>")
 
 STATIC_URL = "static/"
 # The docs snapshot's diagrams are served from /static/docs/images/ straight from the

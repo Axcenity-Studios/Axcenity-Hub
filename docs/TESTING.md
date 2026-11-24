@@ -31,6 +31,11 @@ is on, so an unregistered marker fails.
 | `test_documentation_api.py` | The API reference: parsing each page shape and its refusals, type names and linked signatures, every API page's member table and anchors, type links on every page, the class layout (lead, tables, inherited group, rail), the API home without JavaScript, search ranking and query handling, the fixed queries' first results, pagination, messages, escaping, the form, the index |
 | `test_documentation_browser.py` | `browser`: the longest class page at 375 px has no sideways scroll (its summary tables and inherited group included), its sidebar is a closed disclosure, and the copy button copies a block's exact text; the API home's filter narrows its lists |
 | `test_hero_browser.py` | `browser` (Playwright): the film plays its AV1 source with no console errors; the button pauses and plays it; reduced motion shows the poster, followed live; off-screen and hidden-tab pausing; it covers the hero at 360 to 2560 px with its caption above its button |
+| `test_accounts.py` | Accounts: the contribution gate (TDD), case-insensitive uniqueness (TDD) and the index migration's duplicate check, the verification policy end to end through allauth's real signup, confirm and login views (`tests/gate_urls.py` adds a stand-in contribution view), registration rules, the admin's forms, the profile, the email and verify pages, the app shell and entrance markup |
+| `test_accounts_security.py` | Sessions and cookies (rotation, idle and absolute limits, server-side sign-out), CSRF on every URL (HTMX header too) and no `csrf_exempt`, password-reset tokens, rate limits on the dev and production caches and the database backstop, enumeration and hash counts, every members-only URL refusing an anonymous visitor, the honeypots, Turnstile (mocked siteverify, fail closed, never the only check) |
+| `test_accounts_mfa.py` | Two-factor: enrolling (real TOTP codes from the secret), recovery codes once each, the code step that can't be skipped, rate limits on codes (cache and database), re-authentication before turning it off, session rotation |
+| `test_settings_production.py` | Production settings in a subprocess: `check --deploy --fail-level WARNING`, every security value, proxy and Redis options, refusal to start without a real secret key and hosts; development's security headers |
+| `test_accounts_browser.py` | `browser`: a member signs in through the form; the app shell's rail and account menu at 360 and 1280 px, dark and light, with no sideways scroll; sign-out returns Home |
 
 Add a row when you create a file.
 
@@ -56,8 +61,12 @@ instead of `live_server`:
 - Everything else stays blocked: `localhost` by name, other ports, and the
   internet. `NetworkGuard.allow()` refuses hostnames, non-loopback IPs and
   invalid ports.
-- It loads `transactional_db` before the live server, since pytest-django
-  only does that itself when `live_server` is a declared fixture.
+- Every `browser` test is marked `django_db(transaction=True)` at
+  collection (`pytest_collection_modifyitems`), so pytest-django sets up
+  the **test** database for it. (Asked for lazily from inside the fixture,
+  it came too late: a browser test run alone reached `db.sqlite3`.)
+  `browser_server` also fails the test if the connection is ever the
+  development database, and `test_browser_server.py` pins that.
 
 ### Playwright
 
@@ -113,8 +122,29 @@ call a live API: the guard fails the test, and its error is a
 - Untrusted input: test the hostile values too (wrong case, unknown
   values, markup), and check that they're refused or ignored and never
   echoed.
-- Members-only and object-access tests (redirect to login; 404, never 403)
-  start in Phase 8.
+- Members-only access: `test_every_members_only_url_sends_an_anonymous_visitor_to_sign_in`
+  walks every URL; a new public page must be added to its `PUBLIC` set.
+  Object URLs (later phases) must give a 404, never a 403.
+- CSRF everywhere: `test_every_post_without_a_csrf_token_is_refused_htmx_included`
+  posts to every URL without a token, signed out and in.
+- Contribution views: test the gate with an unverified member (see
+  `tests/gate_urls.py` and `make_member(verified=False)` in `test_accounts.py`).
+
+## Accounts in tests
+
+- Make members with `User.objects.create_user` plus a verified (or not)
+  `EmailAddress`; sign in through `reverse("account_login")` with the
+  email when the flow matters, `client.force_login` otherwise.
+- Email goes to locmem (`django.core.mail.outbox`). allauth's per-address
+  verification cooldown lives in the cache: `cache.clear()` stands for
+  minutes passing.
+- allauth announces new authenticators `on_commit`: a test that needs that
+  signal uses `django_db(transaction=True)`.
+- Turnstile: set Cloudflare's test keys in `settings`, and mock
+  `turnstile.SITEVERIFY_URL` with `responses`.
+- Rate limits: the `any_cache` fixture repeats a test on the database
+  cache (production's); `tight_limits` shrinks `throttle.LIMITS` so the
+  database backstop is reached with the cache cleared before each try.
 
 ## Before finishing a phase
 

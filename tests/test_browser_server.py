@@ -28,3 +28,10 @@ def test_nothing_else_opens_for_a_browser_test(browser_server):
         socket.create_connection(("127.0.0.1", port + 1), timeout=1)
     with pytest.raises(NetworkBlockedError):
         urllib.request.urlopen("https://example.com", timeout=1)
+
+
+def test_the_live_server_uses_the_test_database_never_the_development_one(browser_server, settings):
+    from django.db import connection
+
+    assert str(connection.settings_dict["NAME"]) != str(settings.BASE_DIR / "db.sqlite3")
+    assert "memorydb" in str(connection.settings_dict["NAME"])
