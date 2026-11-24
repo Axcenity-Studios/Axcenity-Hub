@@ -25,6 +25,13 @@ GETTING_STARTED_URL = f"{ENGINE_REPO_URL}/blob/main/documentation/learn/getting-
 # The engine's newest release tag (Cargo.toml's workspace version). Phase 7 reads it from GitHub.
 ENGINE_VERSION = "v0.3.0-alpha.1"
 
+# The Axcenity Toolbox: its own repository for now (it moves into the Hub in a later phase).
+TOOLBOX_REPO_URL = "https://github.com/pj1163928/project-two-building-with-apis"
+# The commit the /toolbox/ page's commands and screenshots were taken from.
+TOOLBOX_COMMIT = "5b17c1d9146201ef2bb4fa7abf68f3f909d695e8"
+# How the Toolbox screenshots were made and what each showed (beside them, in media_sources/).
+TOOLBOX_CAPTURE_RECORD = "marketing/media_sources/toolbox-capture.json"
+
 
 @dataclass(frozen=True)
 class Link:
@@ -74,6 +81,9 @@ class FooterColumn:
 # (static/reel/loops/), with a static drawing as its fallback.
 
 MEDIA_KINDS = {"capture": "Engine capture", "illustrative": "Illustrative"}
+# What a capture shows, and the caption it must start with: a frame of the engine, or a
+# screenshot of the Toolbox (a real capture, but never of the engine).
+CAPTURE_SUBJECTS = {"engine": "Engine capture", "toolbox": "Toolbox screenshot"}
 # The canvas loops (static/reel/loops/<name>.js) a media item may run.
 LOOPS = ("editor", "terrain", "logic", "toolbox", "wipe", "animation")
 
@@ -155,12 +165,20 @@ class Media:
     code: str = ""
     # A capture a loop draws (the wipe's lit end): its WebP derivatives go to the canvas.
     capture: "Media | None" = None
+    # What a capture shows (CAPTURE_SUBJECTS): the engine, or the Toolbox.
+    subject: str = "engine"
+    # The same capture in light colours, shown instead whenever the site is light.
+    light: "Media | None" = None
 
     def __post_init__(self) -> None:
         if self.kind not in MEDIA_KINDS:
             raise ValueError(f"{self.key}: kind must be one of {sorted(MEDIA_KINDS)}")
-        if not self.caption.startswith(MEDIA_KINDS[self.kind]):
-            raise ValueError(f"{self.key}: a {self.kind} caption starts {MEDIA_KINDS[self.kind]!r}")
+        if self.subject not in CAPTURE_SUBJECTS:
+            raise ValueError(f"{self.key}: subject must be one of {sorted(CAPTURE_SUBJECTS)}")
+        if self.kind == "illustrative" and self.subject != "engine":
+            raise ValueError(f"{self.key}: only a capture has a subject")
+        if not self.caption.startswith(self.label):
+            raise ValueError(f"{self.key}: a {self.kind} caption starts {self.label!r}")
         if bool(self.source) == bool(self.drawn):
             raise ValueError(f"{self.key}: give exactly one of source or drawn")
         if self.kind == "capture" and not self.source:
@@ -171,6 +189,27 @@ class Media:
             raise ValueError(f"{self.key}: a loop is one of {LOOPS}, with a described fallback")
         if not self.display:
             raise ValueError(f"{self.key}: record where it's displayed and how large")
+        if self.light and not self.light.is_light_twin_of(self):
+            raise ValueError(f"{self.key}: its light twin is the same capture, framed the same")
+
+    def is_light_twin_of(self, dark: "Media") -> bool:
+        """Whether this is `dark` in light colours: a capture of the same subject, size,
+        caption and display, with no twin of its own."""
+        return (
+            self.kind == dark.kind == "capture"
+            and self.subject == dark.subject
+            and self.source_size == dark.source_size
+            and self.caption == dark.caption
+            and self.display == dark.display
+            and self.light is None
+            and self.key != dark.key
+        )
+
+    @property
+    def label(self) -> str:
+        """What its caption must start with: "Engine capture", "Toolbox screenshot" or
+        "Illustrative"."""
+        return CAPTURE_SUBJECTS[self.subject] if self.kind == "capture" else MEDIA_KINDS[self.kind]
 
     @property
     def derivatives(self) -> tuple[media.Derivative, ...]:
@@ -495,6 +534,76 @@ RENDERER = Media(
     display=COVER_DISPLAY,
 )
 
+# The Toolbox page's screenshots: real captures of the running Toolbox, never of the engine,
+# each in the Toolbox's dark theme with its light-theme twin (shown when the site is light).
+# TOOLBOX_CAPTURE_RECORD holds how they were made and what each one showed.
+
+
+def _toolbox_screenshot(screen: str, caption: str, alt: str, shows: str, scroll: int) -> Media:
+    """One screen of the Toolbox, dark, with its `light` twin: the same capture settings and
+    content, in the Toolbox's light theme. `alt` has a {theme} slot."""
+    shots = {}
+    for scheme in ("light", "dark"):
+        suffix = "-light" if scheme == "light" else ""
+        scrolled = f", work area scrolled {scroll} px" if scroll else ""
+        shots[scheme] = Media(
+            key=f"toolbox-{screen}{suffix}",
+            kind="capture",
+            subject="toolbox",
+            caption=caption,
+            alt=alt.format(theme=f"in its {scheme} theme"),
+            provenance=(
+                f"The Axcenity Toolbox ({TOOLBOX_REPO_URL}) at commit {TOOLBOX_COMMIT[:7]}, run "
+                f"locally after seed_demo and signed in as the demo member demo_mira. {shows} "
+                "Captured 2026-11-24 in headless Chromium 159 at 1280×800 and a 2× pixel ratio, "
+                f"{scheme} scheme, reduced motion{scrolled}. Not edited, cropped or rescaled. "
+                f'Full record (screen "{screen}{suffix}"): {TOOLBOX_CAPTURE_RECORD}.'
+            ),
+            source=f"toolbox-{screen}{suffix}-2560x1600.png",
+            source_size=(2560, 1600),
+            display=SECTION_DISPLAY,
+            light=shots.get("light"),
+        )
+    return shots["dark"]
+
+
+TOOLBOX_SCREENS = [
+    _toolbox_screenshot(
+        "discover",
+        "Toolbox screenshot · Discover",
+        "The Axcenity Toolbox's Discover page {theme}, signed in as a demo member. The search "
+        "box holds rock, the Textures tile is chosen beside HDRIs, Models and Sounds, and the "
+        "ambientCG shelf shows 12 results, the first row Ground 111, Rock 064, Rock 063 and "
+        "Rock 058 as material spheres, each marked CC0 with buttons to save, add to a pack, "
+        "open and show details. The side panel lists Discover, Library, Packs and Attribution "
+        "above the licence filters.",
+        "/discover/?type=textures&q=rock with live ambientCG and Poly Haven results (12 each).",
+        225,
+    ),
+    _toolbox_screenshot(
+        "library",
+        "Toolbox screenshot · Library",
+        "The Toolbox's Library page {theme}, Your library, showing 1 to 12 of 17 entries "
+        "newest first: the Goegap HDRI marked Testing, a birds forest sound marked Approved, "
+        "the Metal Plates 006 texture marked Approved with four stars, and a forge blacksmith "
+        "sound marked To review, each with its community rating, then a row of sky HDRIs. The "
+        "side panel filters by type, provider and status.",
+        "/library/ (the seeded entries; thumbnails from the providers' CDNs).",
+        0,
+    ),
+    _toolbox_screenshot(
+        "packs",
+        "Toolbox screenshot · Packs",
+        "The Toolbox's pack builder {theme}, for the Medieval Village pack. Its Items list "
+        "shows Cobblestone Floor 03, Church Bricks 03 and Planks 037 A, each with a file "
+        "variant such as 2K JPG, 9 files, 12.0 MB, and an import path such as "
+        "textures/cobblestone_floor_03/. Beside it, Add from my library lists saved HDRIs, "
+        "sounds and textures, each with an Add button.",
+        "/packs/1/edit/ (the seeded Medieval Village pack).",
+        700,
+    ),
+]
+
 MEDIA = {
     "renderer": RENDERER,
     "terrain": Media(
@@ -698,6 +807,7 @@ MEDIA = {
         display=SECTION_DISPLAY,
         labels={"tabs": EDITOR_DOCK, "animation": EDITOR_ANIMATION},
     ),
+    **{shot.key: shot for screen in TOOLBOX_SCREENS for shot in (screen, screen.light)},
 }
 
 # ---------- Shell: nav and footer ----------
@@ -705,7 +815,7 @@ MEDIA = {
 NAV_LINKS = [
     Link("Engine", url_name="marketing:home"),
     Link("Features", url_name="marketing:home", fragment="features"),
-    Link("Toolbox", soon=True),
+    Link("Toolbox", url_name="marketing:toolbox"),
     Link("Docs", external=DOCS_URL),
     Link("Community", soon=True),
 ]
@@ -724,7 +834,7 @@ FOOTER_COLUMNS = [
         [
             Link("Docs", external=DOCS_URL),
             Link("Getting started", external=GETTING_STARTED_URL),
-            Link("Toolbox", soon=True),
+            Link("Toolbox", url_name="marketing:toolbox"),
         ],
     ),
     FooterColumn(
@@ -875,8 +985,7 @@ HOME_TOOLBOX = {
         Item("Library", "Save assets with your notes, ratings and tags."),
         Item("Packs", "Group assets for a project, with credits, ready to import."),
     ],
-    # The Toolbox page arrives in Phase 6.
-    "cta": Link("Explore the Toolbox", soon=True),
+    "cta": Link("Explore the Toolbox", url_name="marketing:toolbox"),
     "media": MEDIA["toolbox"],
     "loop_controls": LOOP_CONTROLS,
 }
@@ -910,9 +1019,154 @@ HOME_FINAL = {
 }
 
 
+# ---------- Toolbox page (/toolbox/) ----------
+
+
+@dataclass(frozen=True)
+class ToolboxFeature:
+    """One of the Toolbox's three core features, beside its screenshot."""
+
+    number: str
+    label: str
+    title: str
+    body: str
+    points: list[str]
+    media: Media
+
+
+@dataclass(frozen=True)
+class Provider:
+    """A provider Discover searches: what it offers and under which licence."""
+
+    name: str
+    offers: str
+    licence: str
+
+
+@dataclass(frozen=True)
+class Command:
+    """A shell command and what it does (rendered as a trailing # comment)."""
+
+    line: str
+    note: str = ""
+
+
+TOOLBOX_PAGE = {
+    "title": "Axcenity Toolbox",
+    "description": (
+        "Axcenity Toolbox: find free game assets from ambientCG, Poly Haven and Openverse, "
+        "save them to a library and build packs the engine imports. Run it locally with uv."
+    ),
+    "eyebrow": "Companion tool",
+    "lede": (
+        "Find free game assets from ambientCG, Poly Haven and Openverse, save them to your "
+        "own library, and build packs the engine imports."
+    ),
+    "note": (
+        "A Django app styled like the editor. For now it runs on your own machine, and no "
+        "provider needs an API key."
+    ),
+    "primary": Link("View on GitHub", external=TOOLBOX_REPO_URL),
+    "secondary": Link("Run it locally", url_name="marketing:toolbox", fragment="run"),
+    "features": [
+        ToolboxFeature(
+            "01",
+            "Discover",
+            "Search every provider at once.",
+            "Pick Textures, HDRIs, Models or Sounds and search. Each provider gets its own "
+            "shelf, with Load more and Shuffle. If one provider is down, its shelf shows an "
+            "error and a Retry button, and the others keep working.",
+            [
+                "Filter results by licence and commercial use",
+                "Save a result, or add it straight to a pack",
+                "Open details, or play a sound before you save it",
+            ],
+            MEDIA["toolbox-discover"],
+        ),
+        ToolboxFeature(
+            "02",
+            "Library",
+            "Your assets, with your notes.",
+            "Every asset you save keeps your notes, a 1–5 rating, tags and a review status: "
+            "To review, Testing, Approved or Rejected. Search, filter, sort and page through "
+            "it, even when every provider is offline.",
+            [
+                "A status history for every change",
+                "Community ratings where other members rated the same asset",
+                "Download bundles at the resolution and format you choose",
+            ],
+            MEDIA["toolbox-library"],
+        ),
+        ToolboxFeature(
+            "03",
+            "Packs",
+            "Packs the engine imports.",
+            "Group saved assets for one project. Choose each item's file variant and import "
+            "path, then export the pack as a JSON manifest or a zip of its files, with "
+            "CREDITS.txt and the licence notice written for you.",
+            [
+                "Private, unlisted (shared by link) or public",
+                "A warning when an item isn't cleared for commercial use",
+                "A gallery of public packs on the Toolbox's main page",
+            ],
+            MEDIA["toolbox-packs"],
+        ),
+    ],
+    "providers_title": "Where Discover searches",
+    "providers": [
+        Provider("ambientCG", "PBR materials, HDRIs and 3D models", "CC0"),
+        Provider("Poly Haven", "Textures, HDRIs and models", "CC0"),
+        Provider("Openverse Audio", "Sound effects and music", "Per item: CC0, CC BY and others"),
+    ],
+    "run": {
+        "eyebrow": "Run it locally",
+        "title": "Clone it, run four commands, open your browser.",
+        "body": (
+            "All you need is uv: it installs Python 3.13 if it's missing, and SQLite comes "
+            "with Python. No pip and no Node."
+        ),
+        "terminal": "Terminal",
+        # The Toolbox README's Setup and Running blocks, at TOOLBOX_COMMIT.
+        "commands": [
+            Command(f"git clone {TOOLBOX_REPO_URL}"),
+            Command("cd project-two-building-with-apis"),
+            Command("uv sync", "install the dependencies"),
+            Command("uv run python manage.py migrate", "create db.sqlite3"),
+            Command(
+                "uv run python manage.py seed_demo", "load the demo members, libraries and packs"
+            ),
+            Command(
+                "uv run python manage.py tailwind runserver",
+                "starts Django and the Tailwind watcher",
+            ),
+        ],
+        "open_label": "Then open",
+        "open_url": "http://127.0.0.1:8000/",
+        "offline": (
+            "Discover needs the internet to reach the providers. Everything else works "
+            "offline on the demo data: the library, packs, the gallery, exports and the API."
+        ),
+        "demo": {
+            "title": "Demo credentials",
+            "body": (
+                "For your local copy only. seed_demo creates three demo members, demo_mira, "
+                "demo_otto and demo_juno, with the password the README publishes:"
+            ),
+            "password": "toolbox-demo",
+            "privileges": (
+                "They're regular members with no staff or admin rights. Never run seed_demo "
+                "on a server other people can reach, and never give a demo account more."
+            ),
+        },
+        "readme": Link("Read the README", external=f"{TOOLBOX_REPO_URL}#readme"),
+    },
+}
+
+
 def all_links() -> list[Link]:
     """Every link in this module, for the link checks in the tests."""
     links = [*NAV_LINKS, SIGN_IN, DOWNLOAD, HOME_TOOLBOX["cta"]]
+    links += [TOOLBOX_PAGE["primary"], TOOLBOX_PAGE["secondary"], TOOLBOX_PAGE["run"]["readme"]]
     for block in (HOME_HERO, HOME_FINAL):
         links += [block["primary"], block["secondary"]]
     for column in FOOTER_COLUMNS:

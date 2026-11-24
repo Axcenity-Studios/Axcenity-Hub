@@ -141,7 +141,8 @@ def test_every_content_link_resolves_or_is_well_formed(link):
     else:
         parts = urlsplit(link.href)
         assert parts.scheme == "https" and parts.netloc == "github.com", link.href
-        assert parts.path.startswith("/Axcenity-Studios/Axcenity-Engine")
+        repos = [urlsplit(url).path for url in (content.ENGINE_REPO_URL, content.TOOLBOX_REPO_URL)]
+        assert any(parts.path == r or parts.path.startswith(r + "/") for r in repos), link.href
         assert " " not in link.href
 
 

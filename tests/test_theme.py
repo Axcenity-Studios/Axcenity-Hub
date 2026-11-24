@@ -391,9 +391,10 @@ TESTED_TEXT_TOKENS = {pair[1] for pair in TEXT_PAIRS if pair[2] in {"app", "pane
 
 
 @pytest.mark.django_db
-def test_pages_use_only_tested_text_colours(client):
+@pytest.mark.parametrize("url_name", ["marketing:home", "marketing:toolbox"])
+def test_pages_use_only_tested_text_colours(client, url_name):
     """fg-muted, for one, is under 4.5:1 on the app background, so no text may use it."""
-    html = client.get(reverse("marketing:home")).content.decode()
+    html = client.get(reverse(url_name)).content.decode()
     classes = " ".join(re.findall(r'class="([^"]*)"', html))
     used = set(
         re.findall(r"(?<![\w-])(?:[\w-]+:)?text-((?:fg|ink|on-ink|accent|primary)[\w-]*)", classes)

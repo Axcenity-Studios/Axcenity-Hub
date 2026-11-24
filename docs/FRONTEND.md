@@ -13,6 +13,7 @@ its code).
 | [frontend/theme.md](frontend/theme.md) | colours, the accent, light and dark, contrast, fonts, the logo, buttons, focus, the hover gate, motion primitives, reduced motion |
 | [frontend/home.md](frontend/home.md) | the Home's sections, copy as data, the media manifest and drawn media, the rotating headline, reveals, the pillars' sticky stage |
 | [frontend/media.md](frontend/media.md) | the media manifest, captures and `make_media`'s derivatives, `<picture>`, the hero's film (its cut, encodes and playback), where each animated loop sits, their playback, fallbacks and the screenshot test |
+| [frontend/toolbox.md](frontend/toolbox.md) | the Toolbox page (`/toolbox/`): its sections, the `.tb-*` panel classes, the commands and demo credentials, its screenshots and their capture record |
 | [frontend/canvas.md](frontend/canvas.md) | the loops' canvas kit (`static/reel/`): the loop contract, its context, the determinism and seamless-wrap rules, the drawing modules, fidelity to the editor |
 
 Later phases add topic files for each area they build.
@@ -64,7 +65,7 @@ Later phases add topic files for each area they build.
 - Copy and links live in `marketing/content.py`, not in templates
   (screen-reader-only labels and attributes may be written in place).
 - Every image or drawing is in the media manifest (`content.MEDIA`) and
-  captioned "Engine capture" or "Illustrative"; a capture is served only as
+  captioned "Engine capture", "Toolbox screenshot" or "Illustrative"; a capture is served only as
   `make_media`'s derivatives, through `picture.html` ([media.md](frontend/media.md)).
 - Every `:hover` style sits behind the hover gate
   (`html[data-pointer] …`); keyboard focus never waits for it.

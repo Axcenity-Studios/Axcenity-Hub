@@ -163,11 +163,22 @@ def built_stylesheet():
 
 @pytest.fixture
 def open_home(browser, browser_server, built_stylesheet):
-    """Opens Home in a fresh context; returns (page, errors). Only the live server is reachable.
-    `scheme` ("light" or "dark") sets the theme cookie first."""
+    """Opens Home (or the page at `path`) in a fresh context; returns (page, errors). Only the
+    live server is reachable. `scheme` ("light" or "dark") sets the theme cookie first;
+    `wait_ready` waits for Home's scripts and loops (Home only)."""
     contexts = []
 
-    def open_(*, width=1280, height=800, scale=1, init="", wait_ready=True, scheme=None, **options):
+    def open_(
+        *,
+        path="/",
+        width=1280,
+        height=800,
+        scale=1,
+        init="",
+        wait_ready=True,
+        scheme=None,
+        **options,
+    ):
         context = browser.new_context(
             viewport={"width": width, "height": height}, device_scale_factor=scale, **options
         )
@@ -187,8 +198,8 @@ def open_home(browser, browser_server, built_stylesheet):
         page.on("console", lambda message: message.type == "error" and errors.append(message.text))
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.add_init_script(COUNT_FRAMES + init)
-        page.goto(browser_server.url + "/")
-        if wait_ready:
+        page.goto(browser_server.url + path)
+        if wait_ready and path == "/":
             page.wait_for_selector("[data-film][data-state]")  # home.js has run
             page.wait_for_function(  # and every loop has mounted
                 "[...document.querySelectorAll('[data-loop]')].every(f => 'live' in f.dataset)"

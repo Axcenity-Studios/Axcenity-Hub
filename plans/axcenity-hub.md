@@ -223,10 +223,10 @@ None: a content page that reuses Phase 5's media checks.
 
 ### Acceptance criteria
 
-- [ ] Toolbox appears in the main nav and the Home banner links to it
-- [ ] The screenshots are real captures of the running Toolbox with manifest entries; they meet every Phase 5 media criterion
-- [ ] The run-locally commands match the Toolbox README; the GitHub link resolves
-- [ ] Tests: 200, links resolve, media manifest checks pass
+- [x] Toolbox appears in the main nav and the Home banner links to it
+- [x] The screenshots are real captures of the running Toolbox with manifest entries; they meet every Phase 5 media criterion
+- [x] The run-locally commands match the Toolbox README; the GitHub link resolves
+- [x] Tests: 200, links resolve, media manifest checks pass
 
 ---
 
@@ -682,3 +682,4 @@ Built test-first with the `tdd` skill; the rest of the phase is built and tested
 - [ ] **No regressions in the standalone Toolbox** while the migration runs: its repository and test suite stay green, and both run side by side until cut-over is signed off
 - [ ] **API:** `/api/v1/` gains asset endpoints (library and packs) under Phase 16's token auth and permission rules, with tests
 - [ ] The marketing `/toolbox/` overview page becomes the entry point to the live tool
+- [ ] **Demo accounts:** the Toolbox's `seed_demo` members (published demo password) are never created by migrations or in a production release; wherever they are seeded they stay regular members with no staff, superuser, group or permission (tested)

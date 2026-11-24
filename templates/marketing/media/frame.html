@@ -1,10 +1,12 @@
 {% load home_tags %}
 {# One item from content.MEDIA in a 16:10 frame with its caption ("Engine capture" or "Illustrative").        #}
 {# A capture is a <picture> of its derivatives. A loop draws on a canvas (static/reel/loops/); its static     #}
-{# drawing shows until the loop is live, and for good where it can't run.                                    #}
+{# drawing shows until the loop is live, and for good where it can't run. A capture with a light twin gets     #}
+{# one <picture> per scheme; CSS shows the one matching html[data-scheme] (the other, lazy, never loads).      #}
 {# Usage: {% include "marketing/media/frame.html" with media=pillar.media slot="inline" controls=… class="…" %} #}
 <figure class="media {{ class }}"{% if media.loop %} data-loop="{{ media.loop }}" data-labels="{{ media.labels_json }}"{% if media.capture %} data-capture="{{ media.capture_srcset }}"{% endif %}{% endif %}>
-  {% if media.source %}{% include "marketing/media/picture.html" with media=media sizes=media|display_sizes:slot %}
+  {% if media.source and media.light %}{% include "marketing/media/picture.html" with media=media sizes=media|display_sizes:slot variant="dark" %}{% include "marketing/media/picture.html" with media=media.light sizes=media|display_sizes:slot variant="light" %}
+  {% elif media.source %}{% include "marketing/media/picture.html" with media=media sizes=media|display_sizes:slot %}
   {% elif media.loop %}<p class="sr-only loop-description">{{ media.alt }}</p>
   <canvas class="loop-canvas" aria-hidden="true"></canvas>
   <div class="loop-fallback">{% include media.drawn with media=media %}</div>

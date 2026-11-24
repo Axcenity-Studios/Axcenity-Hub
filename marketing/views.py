@@ -46,6 +46,17 @@ class HomeView(MarketingPageMixin, TemplateView):
         return context
 
 
+class ToolboxView(MarketingPageMixin, TemplateView):
+    """The Toolbox overview at /toolbox/: what it does, its screenshots, how to run it."""
+
+    template_name = "marketing/toolbox.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["toolbox"] = content.TOOLBOX_PAGE
+        return context
+
+
 class ThemeView(View):
     """Set the colour scheme without JavaScript: POST `choice`, with CSRF.
 

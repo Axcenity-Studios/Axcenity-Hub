@@ -302,7 +302,9 @@ def _pixel_size(path) -> tuple[int, int]:
 
 @pytest.mark.parametrize("item", content.MEDIA.values(), ids=lambda item: item.key)
 def test_every_media_item_exists_and_is_labelled_for_what_it_is(item):
-    assert item.caption.startswith(content.MEDIA_KINDS[item.kind])
+    assert item.caption.startswith(item.label)
+    expected = content.CAPTURE_SUBJECTS[item.subject] if item.kind == "capture" else "Illustrative"
+    assert item.label == expected
     assert item.alt and item.provenance
     if item.source:
         path = media.SOURCES_DIR / item.source
@@ -367,6 +369,15 @@ def test_the_media_manifest_refuses_mislabelled_items():
         content.Media(kind="capture", caption="Engine capture", source="a.png", **drawn)
     with pytest.raises(ValueError):  # where it's displayed is recorded
         content.Media(**{**base, "display": {}}, kind="capture", caption="Engine capture")
+    # A Toolbox screenshot is a real capture, but never captioned as the engine's, and the
+    # engine's never as the Toolbox's.
+    with pytest.raises(ValueError):
+        content.Media(kind="capture", subject="toolbox", caption="Engine capture", **base)
+    with pytest.raises(ValueError):
+        content.Media(kind="capture", caption="Toolbox screenshot", **base)
+    with pytest.raises(ValueError):
+        content.Media(kind="capture", subject="editor", caption="Engine capture", **base)
+    content.Media(kind="capture", subject="toolbox", caption="Toolbox screenshot · x", **base)
     loop = dict(kind="illustrative", caption="Illustrative", drawn="t", **drawn)
     with pytest.raises(ValueError):  # a loop is a known one
         content.Media(loop="x", fallback_alt="f", **loop)

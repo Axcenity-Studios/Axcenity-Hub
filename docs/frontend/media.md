@@ -2,8 +2,11 @@
 
 Every image or animation on the marketing pages is an entry in the media
 manifest, `content.MEDIA` (`marketing/content.py`). It is either a
-**capture** (a real, unretouched engine frame) or **illustrative** (drawn
-or recreated), and its caption says which. `tests/test_home.py` checks the
+**capture** (a real, unretouched frame) or **illustrative** (drawn or
+recreated), and its caption says which. A capture's `subject` says what
+it shows: the engine ("Engine capture", the default) or the Toolbox
+("Toolbox screenshot", `CAPTURE_SUBJECTS`), so a Toolbox screenshot is
+never presented as the engine's. `tests/test_home.py` checks the
 manifest and the files, `tests/test_media.py` the pipeline and the loops,
 and `tests/test_media_browser.py` both in Chromium. The hero's film is
 checked by `tests/test_hero.py` and `tests/test_hero_browser.py`.
@@ -12,7 +15,8 @@ checked by `tests/test_hero.py` and `tests/test_hero_browser.py`.
 
 `content.Media` records:
 
-- `kind`, `caption` (starting "Engine capture" or "Illustrative"), `alt`
+- `kind`, `subject` (captures), `caption` (starting with `label`: "Engine
+  capture", "Toolbox screenshot" or "Illustrative"), `alt`
   and `provenance` (the project, command and settings it was made with,
   or the engine source a recreation follows)
 - `source` and `source_size` for a capture, or `drawn` (a template) for a
@@ -22,6 +26,9 @@ checked by `tests/test_hero.py` and `tests/test_hero_browser.py`.
   `sizes` attribute and its largest CSS size in each range of viewport
   widths. For a capture this is the picture's drawn size: a 16:9 picture
   covering a 16:10 frame is 10/9 as wide as the frame (`COVER_DISPLAY`).
+- `light`: a capture's light-theme twin, shown instead when the site is
+  light (`frame.html` renders a `<picture>` per scheme; see
+  [toolbox.md](toolbox.md))
 - `capture`: for a loop that draws a capture (the wipe), that `Media`;
   its WebP `srcset` goes to the canvas as `data-capture`
 
@@ -38,6 +45,7 @@ sizes.
 | `toolbox` | illustrative | Loop (Toolbox banner): search "rock", drag Rock 030 onto the Pad |
 | `wipe` | illustrative | Loop (Community): a grey room wiped into the `renderer` capture |
 | `animation` | illustrative | Loop (Start building): key a Wave clip, play it back |
+| `toolbox-discover`, `toolbox-library`, `toolbox-packs` (+ `-light`) | capture (Toolbox) | The Toolbox page's screenshots, 2560×1600, each with a light-theme twin shown when the site is light; recorded in `toolbox-capture.json` ([toolbox.md](toolbox.md)) |
 
 The Showcase's terrain capture is deliberately not used (its trees and
 ground don't represent the terrain toolkit), and the engine's 480×270
@@ -62,9 +70,11 @@ test references never are.
   source, and a derivative at least that wide exists. In the browser test,
   the file Chromium picks is at least as wide as the picture is drawn, in
   device pixels.
-**Adding a capture (Phase 6's Toolbox screenshots):** copy the file into
-`marketing/media_sources/`, add a `Media` with its `source_size`,
-`display` and provenance, run `make_media`, and commit the derivatives.
+**Adding a capture:** copy the file into `marketing/media_sources/`, add
+a `Media` with its `source_size`, `display` and provenance, run
+`make_media`, and commit the derivatives. Sources are committed static
+assets: the tests only read them and never run `make_media` on them
+(the pipeline's tests use a fake source in `tmp_path`).
 
 ## The hero's film
 
@@ -145,4 +155,6 @@ opens Home at 360, 768, 1280, 1440 and 2560 px, dark and light, 1× and 2×.
 It checks each pillar's and section's frame (16:10, a sharp enough file or a canvas at
 the full pixel ratio, no sideways scroll) and saves
 `screenshots/media/<width>-<scheme>-<scale>x-<key>.png` (git-ignored) for
-review by eye. These aren't pixel comparisons.
+review by eye. These aren't pixel comparisons. The Toolbox page's
+screenshots get the same check in
+`test_toolbox_screenshots_are_sharp_and_framed_at_every_width`.

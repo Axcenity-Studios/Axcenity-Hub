@@ -209,3 +209,67 @@ def test_each_loop_is_a_pure_function_of_time_and_wraps_seamlessly(open_home, la
     snapshot(page, selector, "end")
     assert changed_share(page, "start", "end") < 0.002
     assert not errors, errors
+
+
+# ---------- The Toolbox page's screenshots ----------
+
+TOOLBOX_SHOTS = [(f.label.lower(), f.media) for f in content.TOOLBOX_PAGE["features"]]
+
+
+def _shown_screenshot(page, selector: str) -> dict:
+    """The screenshot visible in a frame (its scheme's <picture>), once it has loaded."""
+    script = """s => { const i = [...document.querySelectorAll(s + ' img')].find(i => i.offsetParent);
+        return i && i.complete && i.naturalWidth
+          ? { width: i.clientWidth, height: i.clientHeight, src: i.currentSrc } : null; }"""
+    page.wait_for_function(script, arg=selector)
+    return page.evaluate(script, selector)
+
+
+@pytest.mark.parametrize("scale", [1, 2])
+@pytest.mark.parametrize("scheme", ["dark", "light"])
+@pytest.mark.parametrize("width", [360, 768, 1280, 1440, 2560])
+def test_toolbox_screenshots_are_sharp_and_framed_at_every_width(open_home, width, scheme, scale):
+    """Each screenshot is the one for the site's scheme, fills its 16:10 frame uncropped from a
+    file at least as wide as it's drawn in device pixels, and its twin for the other scheme is
+    never fetched; the commands scroll inside their own box, never the page."""
+    page, errors = open_home(path="/toolbox/", width=width, height=900, scale=scale, scheme=scheme)
+    SCREENSHOTS.mkdir(parents=True, exist_ok=True)
+    for section, item in TOOLBOX_SHOTS:
+        shot = item.light if scheme == "light" else item
+        selector = f"#{section} .media"
+        page.evaluate(f"document.querySelector('{selector}').scrollIntoView({{block: 'center'}})")
+        image = _shown_screenshot(page, selector)
+        box = page.locator(selector).bounding_box()
+        assert abs(box["width"] / box["height"] - 1.6) < 0.02, (section, box)
+        # The screenshot is 16:10 like its frame: drawn whole, never cropped by the cover.
+        assert abs(image["width"] / image["height"] - 1.6) < 0.01, (section, image)
+        chosen = int(re.search(r"-(\d+)\.avif$", image["src"]).group(1))
+        assert chosen >= image["width"] * scale - 1, (section, image)
+        assert f"/{shot.key}/" in image["src"], image["src"]
+        page.locator(selector).screenshot(
+            path=SCREENSHOTS / f"{width}-{scheme}-{scale}x-{shot.key}.png"
+        )
+    # The other scheme's twins stay unfetched (lazy and display: none). [a-z]+ stops at the
+    # hyphen, so "toolbox-[a-z]+/" matches only the dark folders.
+    other = r"/toolbox-[a-z]+/" if scheme == "light" else r"/toolbox-[a-z]+-light/"
+    fetched = page.evaluate("performance.getEntriesByType('resource').map(e => e.name)")
+    wrong = [name for name in fetched if re.search(other, name)]
+    assert not wrong, wrong
+    terminal = page.evaluate(
+        "() => { const t = document.querySelector('.tb-terminal'); return [t.scrollWidth, t.clientWidth]; }"
+    )
+    assert terminal[1] > 0
+    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+    assert not errors, errors
+
+
+def test_toolbox_screenshots_follow_a_live_switch_to_light(open_home):
+    page, errors = open_home(path="/toolbox/", width=1280, height=900, scheme="dark")
+    selector = "#discover .media"
+    page.evaluate(f"document.querySelector('{selector}').scrollIntoView({{block: 'center'}})")
+    assert "/toolbox-discover/" in _shown_screenshot(page, selector)["src"]
+    page.evaluate(
+        "document.documentElement.dataset.schemeChoice = 'light'; window.axScheme.apply()"
+    )
+    assert "/toolbox-discover-light/" in _shown_screenshot(page, selector)["src"]
+    assert not errors, errors

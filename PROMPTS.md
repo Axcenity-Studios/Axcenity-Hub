@@ -28,6 +28,111 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-24 — Axcenity Hub: Phase 6/17, Toolbox page
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub.md phase 6`.
+2. "Looks good just make sure that these are known to be demo credentials
+   and in production releases they should have not priveleges. Use live
+   provider contetn and record the actual capture data and source state,
+   make sure that the screenshots remain usable if provider result or
+   thumbnails change later. Commited screnshots should be treated as
+   static assets not to be regenerated during tests. Other than that move
+   to development"
+3. At the commit question: "Commit and push but make one change for the
+   editor I would like when the light mode is switched for the light mode
+   images of the toolbox to also be updated so the site still looks
+   cohesive"
+
+### Summary
+
+- **Outcome:** `/toolbox/` (`marketing:toolbox`) in the marketing shell:
+  a hero with View on GitHub and Run it locally; Discover, Library and
+  Packs, each a split panel beside a real 2560×1600 screenshot of the
+  running Toolbox, with the three providers and their licences under
+  Discover; then a terminal panel with the README's uv commands, what
+  works offline, the labelled demo credentials and a README link. The
+  nav, the footer and Home's "Explore the Toolbox" link to it. The
+  screenshots were captured from a `git archive` copy of the Toolbox at
+  `5b17c1d` with live ambientCG and Poly Haven content, and
+  `toolbox-capture.json` records the source state, the capture settings
+  and every result and thumbnail URL each one showed, with each file's
+  SHA-256. Each screenshot has a light-theme twin, captured from the same
+  copy in the Toolbox's light theme with the same results, shown instead
+  whenever the site is light (a `<picture>` per scheme; CSS follows
+  `html[data-scheme]`, live, and the hidden twin is never fetched). 541
+  fast and 66 browser tests pass; Ruff is clean.
+- **Changes:**
+  - `marketing/content.py` — `TOOLBOX_REPO_URL`, `TOOLBOX_COMMIT`,
+    `TOOLBOX_CAPTURE_RECORD`; `Media.subject` and `label` (captures of
+    the Toolbox must be captioned "Toolbox screenshot", never "Engine
+    capture"); three capture entries; `TOOLBOX_PAGE` (`ToolboxFeature`,
+    `Provider`, `Command`); Toolbox links no longer "Soon"; `Media.light`
+    and `is_light_twin_of`, with `_toolbox_screenshot()` building each
+    dark screenshot and its light twin.
+  - `templates/marketing/media/frame.html`, `picture.html` — a
+    `<picture class="when-dark|when-light">` per scheme when a capture
+    has a light twin.
+  - `marketing/views.py`, `marketing/urls.py` — `ToolboxView` at
+    `toolbox/`.
+  - `templates/marketing/toolbox.html` — the page.
+  - `styles/source.css` — `.tb-*` classes porting the Toolbox's shelf
+    heads, title-bar chips and terminal, in the monochrome tokens.
+  - `marketing/media_sources/toolbox-*-2560x1600.png` (dark and
+    `-light`), `toolbox-capture.json` — the six screenshots and their
+    record, each screen with its scheme.
+  - `static/marketing/media/toolbox-*/` — 90 derivatives from
+    `make_media`.
+  - `tests/test_toolbox.py` (new) — URL, sections, links, copy as data,
+    commands (and against the Toolbox README when its checkout exists),
+    demo-credential labels, screenshots, the record's SHA-256s and the
+    demo accounts' lack of privileges.
+  - `tests/test_media_browser.py`, `tests/conftest.py` — the
+    screenshots at 360–2560 px, dark and light, 1× and 2× (each scheme
+    shows its own twin and never fetches the other), a live switch to
+    light; `open_home` takes a `path`.
+  - `tests/test_home.py`, `tests/test_shell.py`, `tests/test_theme.py` —
+    caption prefixes by subject, the Toolbox repo allowed in link checks,
+    the text-colour check over `/toolbox/` too.
+  - `docs/frontend/toolbox.md` (new), `FRONTEND.md`, `ARCHITECTURE.md`,
+    `TESTING.md`, `frontend/media.md`, `frontend/home.md` — the page,
+    the record, how to capture again, the new URL and tests.
+  - `plans/axcenity-hub.md` — Phase 6 ticked; Phase 17 gains a
+    demo-accounts criterion (never seeded in production, never
+    privileged).
+- **TDD:** Skipped, as the plan says: a content page reusing Phase 5's
+  media checks, with no new rule to drive.
+- **Decisions:** A capture's `subject` sets its caption prefix, keeping
+  the plan's two kinds. The screenshots are 1280×800 at 2×, the frames'
+  own 16:10, so they're never cropped or upscaled; dark scheme, reduced
+  motion, signed in as `demo_mira`. The capture script stayed in the
+  scratchpad; the record and `docs/frontend/toolbox.md` give every
+  setting needed to capture again. The README comparison test reads the
+  local Toolbox checkout and skips where it's absent. The page shows only
+  the README's public demo password, labelled local-only and
+  unprivileged, never the README's personal test account.
+- **Deviations:** At the commit question the user asked for light-mode
+  screenshots too, so the page stays cohesive when the theme switches;
+  they were captured, wired in and tested before committing. At the user's request, the demo credentials are
+  labelled as demo, local-only and unprivileged on the page; the record
+  proves the demo members had no staff, superuser, group or permission;
+  and the plan's Phase 17 now requires that in any release. The
+  screenshots are committed static sources checked by SHA-256, never
+  regenerated by tests.
+- **Sideways:** The first capture's sign-in clicked the Toolbox title
+  bar's theme form (also a POST form), which left it signed out and
+  switched to System; the selector now targets `.auth-form`. The Toolbox
+  scrolls inside `main#content`, not the page, so full-page captures
+  showed only the top; the work area is scrolled instead. The pack
+  rows' titles weren't read into the record at first, and the run was
+  redone so images and record come from one capture. On the page,
+  `pt-16` overrode `.under-nav`'s padding and put the eyebrow under the
+  nav; the terminal's background hid the panel's 1px outline; long
+  captions wrapped over the phone screenshots (shortened). The test
+  fixture named `page` collided with pytest-playwright's own fixture
+  and was renamed.
+
 ## 2026-11-24 — The Logic loop shows the Scratch-style Blocks view as well as the Graph
 
 ### Prompts

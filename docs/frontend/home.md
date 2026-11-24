@@ -44,7 +44,7 @@ link is never marked as the current page). Every `[id]` in `<main>` has
   from `sm`, or `.panel-list-stack`, one under another). The loop
   alternates sides: right, left, right.
 - **Toolbox banner:** the copy and its three features beside the Toolbox
-  loop.
+  loop; Explore the Toolbox links to `/toolbox/` ([toolbox.md](toolbox.md)).
 - **Community:** the heading, then the renderer wipe beside Forums,
   Showcases and Projects, each tagged Coming soon.
 - **Final CTA:** "Start building." across the page, then the pitch,
@@ -69,7 +69,6 @@ lifts open (Free), the cog turns into place (Rust), three windows stack
 in (3 OS) and bubbles rise in the flask (Alpha). All hiding and every
 animation is behind `html[data-motifs]` (tested), so without JavaScript
 or under reduced motion they're simply drawn.
-- The Toolbox banner's call to action is `soon` until Phase 6.
 
 ## Copy is data
 

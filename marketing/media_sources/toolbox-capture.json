@@ -1,0 +1,519 @@
+{
+  "about": "How the Toolbox screenshots on /toolbox/ were made, and what they showed. Each screen was captured in the Toolbox's dark and light themes, in two runs 12 minutes apart that showed the same results and thumbnails. The PNGs beside this file are committed static sources: nothing regenerates them, and tests only read them (their sha256 must match).",
+  "source": {
+    "repository": "https://github.com/pj1163928/project-two-building-with-apis",
+    "commit": "5b17c1d9146201ef2bb4fa7abf68f3f909d695e8",
+    "commit_date": "2026-11-06T20:39:44-06:00",
+    "working_tree": "clean; exported with `git archive HEAD` into a throwaway directory, so the Toolbox repository itself was never touched",
+    "django": "6.1.2",
+    "commands": [
+      "uv sync",
+      "uv run python manage.py migrate",
+      "uv run python manage.py seed_demo",
+      "uv run python manage.py tailwind build",
+      "uv run python manage.py runserver 127.0.0.1:8765 --noreload"
+    ],
+    "seeded": {
+      "users": 3,
+      "assets": 43,
+      "library_entries": 53,
+      "packs": 7
+    },
+    "demo_accounts": {
+      "note": "seed_demo's demo members, with the README's published demo password. Regular members only: no staff, superuser, group or permission. For a local copy; never seeded on a public server.",
+      "users": [
+        {
+          "username": "demo_juno",
+          "is_staff": false,
+          "is_superuser": false,
+          "groups": 0,
+          "permissions": 0
+        },
+        {
+          "username": "demo_mira",
+          "is_staff": false,
+          "is_superuser": false,
+          "groups": 0,
+          "permissions": 0
+        },
+        {
+          "username": "demo_otto",
+          "is_staff": false,
+          "is_superuser": false,
+          "groups": 0,
+          "permissions": 0
+        }
+      ]
+    },
+    "live_content": "Discover's results and every thumbnail came live from ambientCG and Poly Haven at capture time (library and pack thumbnails are the providers' CDN URLs from the seeded snapshot). They are recorded below; later changes at the providers don't affect the committed screenshots."
+  },
+  "capture": {
+    "browser": "Chromium 159.0.8154.6 (Playwright, headless)",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "device_scale_factor": 2,
+    "color_scheme": "per screen (`scheme`): the ax-theme cookie and prefers-color-scheme both set to it",
+    "reduced_motion": "reduce (every reveal and the ambient background at rest)",
+    "signed_in_as": "demo_mira"
+  },
+  "screens": {
+    "discover": {
+      "scheme": "dark",
+      "file": "toolbox-discover-2560x1600.png",
+      "sha256": "0b04f79c168311ac320e44a70e3d8d9b080f83cbc053dbf9dcf7151317dac0b5",
+      "url": "/discover/?type=textures&q=rock",
+      "work_area_scroll": 225,
+      "captured_at": "2026-11-24T06:31:46+00:00",
+      "shelves": [
+        "01 AMBIENTCG 12 RESULTS",
+        "02 POLY HAVEN 12 RESULTS"
+      ],
+      "shown": [
+        {
+          "title": "Ground 111",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Ground111.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Rock 064",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Rock064.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Rock 063",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Rock063.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Rock 058",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Rock058.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Ground 068",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Ground068.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Rock 051",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Rock051.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Rock 060",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Rock060.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Rock 035",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Rock035.png",
+          "natural": [
+            256,
+            256
+          ]
+        }
+      ]
+    },
+    "library": {
+      "scheme": "dark",
+      "file": "toolbox-library-2560x1600.png",
+      "sha256": "777f7c87969633923f120b92abe16c49888bbb6c2f4e0671f610192b4703ac85",
+      "url": "/library/",
+      "work_area_scroll": 0,
+      "captured_at": "2026-11-24T06:31:51+00:00",
+      "shelves": [],
+      "shown": [
+        {
+          "title": "Goegap",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/goegap.png?width=256&height=256&format=webp&v=fc1866ea",
+          "natural": [
+            256,
+            192
+          ]
+        },
+        {
+          "title": "Metal Plates 006",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/MetalPlates006.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Day Sky HDRI 069 A",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/DaySkyHDRI069A.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Evening Sky HDRI 048 B",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/EveningSkyHDRI048B.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Belfast Sunset",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/belfast_sunset.png?width=256&height=256&format=webp&v=b1753ac0",
+          "natural": [
+            256,
+            192
+          ]
+        },
+        {
+          "title": "Kiara 8 Sunset",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/kiara_8_sunset.png?width=256&height=256&format=webp&v=608f2ee1",
+          "natural": [
+            256,
+            192
+          ]
+        }
+      ]
+    },
+    "packs": {
+      "scheme": "dark",
+      "file": "toolbox-packs-2560x1600.png",
+      "sha256": "09a39e9e5eeff5ca2afe8c86d70386f21eebf21d6172623e20efc8cbd09f5f5b",
+      "url": "/packs/1/edit/",
+      "work_area_scroll": 700,
+      "captured_at": "2026-11-24T06:31:56+00:00",
+      "shelves": [],
+      "shown": [
+        {
+          "title": "Cobblestone Floor 03",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/cobblestone_floor_03.png?width=256&height=256&format=webp&v=88f6eb6a",
+          "natural": [
+            256,
+            255
+          ]
+        },
+        {
+          "title": "Church Bricks 03",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/church_bricks_03.png?width=256&height=256&format=webp&v=5787fc62",
+          "natural": [
+            254,
+            256
+          ]
+        },
+        {
+          "title": "Planks 037 A",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Planks037A.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Goegap",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/goegap.png?width=256&height=256&format=webp&v=fc1866ea",
+          "natural": [
+            256,
+            192
+          ]
+        },
+        {
+          "title": "Metal Plates 006",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/MetalPlates006.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Day Sky HDRI 069 A",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/DaySkyHDRI069A.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Evening Sky HDRI 048 B",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/EveningSkyHDRI048B.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Belfast Sunset",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/belfast_sunset.png?width=256&height=256&format=webp&v=b1753ac0",
+          "natural": [
+            256,
+            192
+          ]
+        },
+        {
+          "title": "Kiara 8 Sunset",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/kiara_8_sunset.png?width=256&height=256&format=webp&v=608f2ee1",
+          "natural": [
+            256,
+            192
+          ]
+        },
+        {
+          "title": "Rogland Sunset",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/rogland_sunset.png?width=256&height=256&format=webp&v=93790fee",
+          "natural": [
+            256,
+            192
+          ]
+        }
+      ]
+    },
+    "discover-light": {
+      "scheme": "light",
+      "file": "toolbox-discover-light-2560x1600.png",
+      "sha256": "85485f27d19ff92fa64a61ade929b3aed008b8b54c3909aac4fa98b27b1386c5",
+      "url": "/discover/?type=textures&q=rock",
+      "work_area_scroll": 225,
+      "captured_at": "2026-11-24T06:43:17+00:00",
+      "shelves": [
+        "01 AMBIENTCG 12 RESULTS",
+        "02 POLY HAVEN 12 RESULTS"
+      ],
+      "shown": [
+        {
+          "title": "Ground 111",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Ground111.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Rock 064",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Rock064.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Rock 063",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Rock063.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Rock 058",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Rock058.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Ground 068",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Ground068.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Rock 051",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Rock051.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Rock 060",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Rock060.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Rock 035",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Rock035.png",
+          "natural": [
+            256,
+            256
+          ]
+        }
+      ]
+    },
+    "library-light": {
+      "scheme": "light",
+      "file": "toolbox-library-light-2560x1600.png",
+      "sha256": "dda823c71124a9dca1487885b3104740c41be355992ab0327f250c4d0253c6af",
+      "url": "/library/",
+      "work_area_scroll": 0,
+      "captured_at": "2026-11-24T06:43:21+00:00",
+      "shelves": [],
+      "shown": [
+        {
+          "title": "Goegap",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/goegap.png?width=256&height=256&format=webp&v=fc1866ea",
+          "natural": [
+            256,
+            192
+          ]
+        },
+        {
+          "title": "Metal Plates 006",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/MetalPlates006.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Day Sky HDRI 069 A",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/DaySkyHDRI069A.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Evening Sky HDRI 048 B",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/EveningSkyHDRI048B.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Belfast Sunset",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/belfast_sunset.png?width=256&height=256&format=webp&v=b1753ac0",
+          "natural": [
+            256,
+            192
+          ]
+        },
+        {
+          "title": "Kiara 8 Sunset",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/kiara_8_sunset.png?width=256&height=256&format=webp&v=608f2ee1",
+          "natural": [
+            256,
+            192
+          ]
+        }
+      ]
+    },
+    "packs-light": {
+      "scheme": "light",
+      "file": "toolbox-packs-light-2560x1600.png",
+      "sha256": "767088e85952f41e9e325aa36ecc2422215fe1bc6f24e0e97d912fa3aa591040",
+      "url": "/packs/1/edit/",
+      "work_area_scroll": 700,
+      "captured_at": "2026-11-24T06:43:26+00:00",
+      "shelves": [],
+      "shown": [
+        {
+          "title": "Cobblestone Floor 03",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/cobblestone_floor_03.png?width=256&height=256&format=webp&v=88f6eb6a",
+          "natural": [
+            256,
+            255
+          ]
+        },
+        {
+          "title": "Church Bricks 03",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/church_bricks_03.png?width=256&height=256&format=webp&v=5787fc62",
+          "natural": [
+            254,
+            256
+          ]
+        },
+        {
+          "title": "Planks 037 A",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/Planks037A.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Goegap",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/goegap.png?width=256&height=256&format=webp&v=fc1866ea",
+          "natural": [
+            256,
+            192
+          ]
+        },
+        {
+          "title": "Metal Plates 006",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/MetalPlates006.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Day Sky HDRI 069 A",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/DaySkyHDRI069A.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Evening Sky HDRI 048 B",
+          "src": "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/EveningSkyHDRI048B.png",
+          "natural": [
+            256,
+            256
+          ]
+        },
+        {
+          "title": "Belfast Sunset",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/belfast_sunset.png?width=256&height=256&format=webp&v=b1753ac0",
+          "natural": [
+            256,
+            192
+          ]
+        },
+        {
+          "title": "Kiara 8 Sunset",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/kiara_8_sunset.png?width=256&height=256&format=webp&v=608f2ee1",
+          "natural": [
+            256,
+            192
+          ]
+        },
+        {
+          "title": "Rogland Sunset",
+          "src": "https://cdn.polyhaven.com/asset_img/thumbs/rogland_sunset.png?width=256&height=256&format=webp&v=93790fee",
+          "natural": [
+            256,
+            192
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,5 +1,5 @@
 {% load static %}
 {# A capture as a <picture> of its derivatives (marketing/media.py): AVIF, then WebP, then the JPEG <img>. #}
 {# The <img> carries the source's own width and height, so the frame never shifts as it loads.        #}
-{# Usage: {% include "marketing/media/picture.html" with media=… sizes=… %}                            #}
-<picture>{% for mime, srcset in media.sources %}<source type="{{ mime }}" srcset="{{ srcset }}" sizes="{{ sizes }}">{% endfor %}<img src="{% static media.fallback.path %}" srcset="{{ media.fallback_srcset }}" sizes="{{ sizes }}" alt="{{ media.alt }}" width="{{ media.source_size.0 }}" height="{{ media.source_size.1 }}" loading="lazy" decoding="async"></picture>
+{# Usage: {% include "marketing/media/picture.html" with media=… sizes=… [variant="dark"|"light"] %}     #}
+<picture{% if variant %} class="when-{{ variant }}"{% endif %}>{% for mime, srcset in media.sources %}<source type="{{ mime }}" srcset="{{ srcset }}" sizes="{{ sizes }}">{% endfor %}<img src="{% static media.fallback.path %}" srcset="{{ media.fallback_srcset }}" sizes="{{ sizes }}" alt="{{ media.alt }}" width="{{ media.source_size.0 }}" height="{{ media.source_size.1 }}" loading="lazy" decoding="async"></picture>

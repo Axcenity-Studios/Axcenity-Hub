@@ -24,7 +24,8 @@ is on, so an unregistered marker fails.
 | `test_canvas.py` | The canvas kit as written: only the loops and their helpers remain, the determinism rules (loops and drawing helpers), tokens only, the accent only on the scan line, preloaded fonts, fidelity to the editor's default dock, Properties, Console, Toolbox and Animation words and Dark theme |
 | `test_media.py` | The media pipeline (`media.build` against a fake source in `tmp_path`: widths, formats, sizes, idempotence, size mismatch), the loops as written (registration, contract, playback rules), their markup and fallbacks, and their fidelity to the engine's words |
 | `test_home_browser.py` | `browser`: the workflow and stat motifs play in view, reset once fully off screen and play again on return; rest drawn under reduced motion; sit beside their numerals and titles with no overflow from 360 to 1280 px |
-| `test_media_browser.py` | `browser`: every pillar's and section's media at 360, 768, 1280, 1440 and 2560 px, dark and light, 1× and 2× (16:10, a file or canvas sharp for the pixel ratio, no sideways scroll), saved to `screenshots/media/` for review by eye; loops play only on screen and pause with their button; reduced motion shows the still; each loop is a pure function of time and wraps seamlessly; the wipe's capture is never upscaled |
+| `test_media_browser.py` | `browser`: the Toolbox page's screenshots at the same widths, schemes and ratios (the scheme's own twin, 16:10, drawn whole, sharp, the other twin never fetched, no sideways scroll) and a live switch to light; every pillar's and section's media at 360, 768, 1280, 1440 and 2560 px, dark and light, 1× and 2× (16:10, a file or canvas sharp for the pixel ratio, no sideways scroll), saved to `screenshots/media/` for review by eye; loops play only on screen and pause with their button; reduced motion shows the still; each loop is a pure function of time and wraps seamlessly; the wipe's capture is never upscaled |
+| `test_toolbox.py` | The Toolbox page: its URL, sections and links (nav, footer, the Home banner, the GitHub repo), copy as data, the commands (uv only; equal to the Toolbox README when its checkout is on this machine, skipped otherwise), the demo credentials' labels, the screenshots (Toolbox captions, derivatives, a `<picture>` per scheme, light twins that match their capture) and their capture record (SHA-256 of each committed file, the source commit, the demo accounts' lack of privileges) |
 | `test_hero_browser.py` | `browser` (Playwright): the film plays its AV1 source with no console errors; the button pauses and plays it; reduced motion shows the poster, followed live; off-screen and hidden-tab pausing; it covers the hero at 360 to 2560 px with its caption above its button |
 
 Add a row when you create a file.
@@ -60,7 +61,8 @@ instead of `live_server`:
 - Build the stylesheet first (`uv run python manage.py tailwind build`);
   the browser tests fail with that instruction if it's missing or older
   than `styles/source.css`.
-- `open_home` (in `conftest.py`) opens Home in a fresh context whose
+- `open_home` (in `conftest.py`) opens Home (or `path=`, such as
+  `"/toolbox/"`) in a fresh context whose
   requests to anything but the live server are **aborted**, and collects
   console errors. Its init script counts `requestAnimationFrame` calls
   (`window.__frames`); `scheme="light"` or `"dark"` sets the theme cookie

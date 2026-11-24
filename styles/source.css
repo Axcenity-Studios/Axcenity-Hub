@@ -309,6 +309,10 @@ html[data-reveals] [data-reveal]:not([data-in]) { opacity: 0; transform: transla
 .media::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 0 1px var(--color-line); }
 .media > picture, .media > svg { display: block; width: 100%; height: 100%; }
 .media > picture > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* A capture with a light twin (the Toolbox screenshots): the picture matching the site's scheme.
+   The hidden one is display: none and lazy, so it isn't fetched until the scheme switches. */
+.media > picture.when-light, html[data-scheme="light"] .media > picture.when-dark { display: none; }
+html[data-scheme="light"] .media > picture.when-light { display: block; }
 .media-cap { color: var(--color-fg-secondary); background: var(--color-app); box-shadow: inset 0 0 0 1px var(--color-line);
   position: absolute; bottom: 0.5rem; left: 0.5rem; z-index: 1; padding: 0.25rem 0.45rem; border-radius: 0.2rem; }
 
@@ -427,6 +431,30 @@ html[data-motifs] .motif[data-on] .m-bubble + .m-bubble { animation-delay: calc(
   .panel-list:not(.panel-list-stack) > li + li { border-top: 0; border-left: 1px solid var(--color-line); } }
 .panel-list-stack { height: 100%; border-top: 0; grid-auto-rows: 1fr; }
 @media (min-width: 48rem) { .panel-list-stack > li { padding: 2rem 2.5rem; } }
+
+/* ---------- The Toolbox page (/toolbox/) ----------
+   The Toolbox's own panel language, inside the marketing shell: its shelf head (number,
+   label, a 1px rule), its title-bar chips (uppercase mono, the current one on a surface)
+   and its panels. Monochrome tokens only. */
+.tb-shelf-head { display: flex; align-items: center; gap: 1rem; }
+.tb-shelf-rule { flex: 1; height: 1px; background: var(--color-line); }
+.tb-points { display: grid; gap: 0.625rem; padding: 0; list-style: none; color: var(--color-fg); }
+.tb-points > li { position: relative; padding-left: 1.25rem; }
+.tb-points > li::before { content: ""; position: absolute; left: 0; top: 0.6em; width: 0.5rem; height: 1px; background: var(--color-fg-weak); }
+.tb-list-title { padding: 0 1.75rem 0.75rem; }
+.tb-bar { display: flex; align-items: center; gap: 0.25rem; height: 2.75rem; padding-inline: 0.5rem; border-bottom: 1px solid var(--color-line); background: var(--color-app); }
+.tb-chip { display: inline-flex; align-items: center; height: 2rem; padding: 4px 0.625rem 0; font-family: var(--font-mono); font-size: 10.5px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-fg-weak); }
+.tb-chip-current { color: var(--color-fg-strong); background: var(--color-surface); box-shadow: inset 0 -2px 0 var(--color-ink); }
+/* The crumb separator, drawn between chips (never read out). */
+.tb-chip + .tb-chip::before { content: "/" / ""; margin: 0 0.625rem 0 -0.375rem; color: var(--color-fg-weak); }
+/* The commands scroll inside their own box, never the page. */
+.tb-terminal { margin: 0; padding: 1.5rem 1.75rem; overflow-x: auto; background: var(--color-inset); color: var(--color-fg-strong);
+  font-family: var(--font-mono); font-size: 0.8125rem; line-height: 2; white-space: pre; }
+.tb-prompt, .tb-note { color: var(--color-fg-weak); }
+.tb-code { padding: 0.1rem 0.35rem; font-family: var(--font-mono); font-size: 0.875em; color: var(--color-fg-strong); background: var(--color-inset);
+  box-shadow: inset 0 0 0 1px var(--color-line); overflow-wrap: anywhere; }
+.tb-demo { padding: 1.25rem 1.25rem 1.375rem; background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--color-line-strong); }
 
 /* Drawn media: coloured only by the tokens, so they follow light and dark. */
 .drawn-terrain { background: var(--color-inset); }
