@@ -1,0 +1,11 @@
+{# The Animation loop's fallback: the Wave clip's dope sheet, a key on each bone at each key time. #}
+{# Every word comes from the manifest's labels (content.MEDIA["animation"]).                     #}
+{% with pane=media.labels.animation %}
+<div class="drawn-animation" role="img" aria-label="{{ media.fallback_alt }}">
+  <div class="ed-tabs">{% for name in pane.views %}<span class="ed-tab"{% if forloop.counter == 2 %} data-on{% endif %}>{{ name }}</span>{% endfor %}</div>
+  <div class="an-tools"><span class="tb-button">{{ pane.record }}</span><span class="tb-button" data-on>{{ pane.bones }}</span><span class="an-clip">{{ pane.clip }}</span></div>
+  <dl class="an-sheet">
+    {% for row in pane.rows %}<dt>{{ row }}</dt><dd><i></i><i></i><i></i><i></i><i></i></dd>{% endfor %}
+  </dl>
+</div>
+{% endwith %}

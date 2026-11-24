@@ -1,12 +1,61 @@
-// The Home's motion: the rotating headline, scroll reveals, the motifs and the
-// feature pillars' sticky stage. Without this script every section shows at rest, the
-// headline shows its first phrase and the stage shows the first pillar.
+// The Home's motion: the hero's film, the rotating headline, scroll reveals, the motifs
+// and the feature pillars' sticky stage. Without this script every section shows at rest,
+// the film shows its poster, the headline shows its first phrase and the stage shows the
+// first pillar.
 // Under reduced motion nothing rotates, reveals or plays; the stage still follows the
 // pillars, instantly (the stylesheet turns every transition off).
 (function () {
   var root = document.documentElement;
   var reduce = matchMedia("(prefers-reduced-motion: reduce)");
   var observes = "IntersectionObserver" in window;
+
+  // ---------- The hero's film ----------
+  // It plays only while the visitor hasn't paused it, at least 30% of it is on
+  // screen and the tab is visible; otherwise it's paused. Under reduced motion it
+  // doesn't autoplay (the poster shows) and its button plays it. The setting is
+  // followed live.
+  var film = document.querySelector("[data-film]");
+  var filmToggle = document.querySelector("[data-film-toggle]");
+  if (film && filmToggle) {
+    var video = film.querySelector("video");
+    var filmPaused = reduce.matches;
+    var filmOnScreen = !observes;
+
+    var updateFilm = function () {
+      var running = !filmPaused && filmOnScreen && document.visibilityState === "visible";
+      if (running) {
+        var playing = video.play();
+        if (playing) playing.catch(function () {}); // a refused autoplay leaves the poster
+      } else {
+        video.pause();
+      }
+      film.dataset.state = running ? "playing" : "paused";
+      filmToggle.dataset.intent = filmPaused ? "paused" : "playing";
+      filmToggle.setAttribute("aria-label", filmPaused ? filmToggle.dataset.playLabel : filmToggle.dataset.pauseLabel);
+    };
+
+    filmToggle.addEventListener("click", function () {
+      filmPaused = !filmPaused;
+      updateFilm();
+    });
+    if (observes) {
+      new IntersectionObserver(
+        function (entries) {
+          var entry = entries[entries.length - 1];
+          filmOnScreen = entry.isIntersecting && entry.intersectionRatio >= 0.3 - 0.001;
+          updateFilm();
+        },
+        { threshold: [0, 0.3] }
+      ).observe(film);
+    }
+    document.addEventListener("visibilitychange", updateFilm);
+    reduce.addEventListener("change", function () {
+      filmPaused = reduce.matches;
+      updateFilm();
+    });
+    filmToggle.hidden = false;
+    updateFilm();
+  }
 
   // ---------- Scroll reveals ----------
   // Whatever is already on screen is marked shown first, so turning reveals on

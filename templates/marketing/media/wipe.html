@@ -1,0 +1,3 @@
+{% load home_tags %}
+{# The wipe loop's fallback: its lit end, the renderer capture itself, sized for the section's frame. #}
+{% include "marketing/media/picture.html" with media=media.capture sizes=media.capture|display_sizes:"section" %}

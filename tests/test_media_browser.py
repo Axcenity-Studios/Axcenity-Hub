@@ -1,7 +1,7 @@
-"""Browser checks for the feature pillars' media, in headless Chromium.
+"""Browser checks for the Home's media frames, in headless Chromium.
 
 One parametrised test opens Home at each width, scheme and pixel ratio, checks that every
-pillar's media is sharp and framed, and saves a screenshot of each to screenshots/media/
+pillar's and section's media is sharp and framed, and saves a screenshot of each to screenshots/media/
 (git-ignored) for review by eye: they're not compared pixel by pixel. The rest check how
 the animated recreations play. They need the built stylesheet
 (`uv run python manage.py tailwind build`).
@@ -15,15 +15,21 @@ from django.conf import settings
 
 from marketing import content
 
-# Playwright's sync API runs an event loop in this thread; see test_reel_browser.py.
+# Playwright's sync API runs an event loop in this thread; see test_hero_browser.py.
 os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
 
 pytestmark = pytest.mark.browser
 
 SCREENSHOTS = settings.BASE_DIR / "screenshots" / "media"
 PILLARS = [(pillar.label.lower(), pillar.media) for pillar in content.HOME_FEATURES["pillars"]]
-STILLS = {"editor": 6.5, "terrain": 9.6, "logic": 9.5}
-DURATIONS = {"editor": 12, "terrain": 12, "logic": 12}
+# The section loops, by the section they sit in.
+SECTIONS = [
+    ("toolbox", content.MEDIA["toolbox"]),
+    ("community", content.MEDIA["wipe"]),
+    ("start", content.MEDIA["animation"]),
+]
+STILLS = {"editor": 6.5, "terrain": 9.6, "logic": 6.5, "toolbox": 7, "wipe": 4.5, "animation": 4.5}
+DURATIONS = {"editor": 12, "terrain": 12, "logic": 16, "toolbox": 12, "wipe": 10, "animation": 10}
 
 
 def show_pillar(page, label: str) -> str:
@@ -36,6 +42,19 @@ def show_pillar(page, label: str) -> str:
         return f'[data-stage-item="{index}"] .media'
     page.wait_for_timeout(200)
     return f"#feature-{label} .media"
+
+
+def show_section(page, section: str) -> str:
+    """Scrolls a section's loop to the middle and returns its frame's selector."""
+    selector = f"#{section} .media"
+    page.evaluate(f"document.querySelector('{selector}').scrollIntoView({{block: 'center'}})")
+    page.wait_for_timeout(200)
+    return selector
+
+
+def show(page, where: str) -> str:
+    """A pillar's frame (by label) or a section's (by id)."""
+    return show_section(page, where) if where in dict(SECTIONS) else show_pillar(page, where)
 
 
 def seek(page, selector: str, time: float) -> None:
@@ -78,8 +97,8 @@ def pause_loop(page, selector: str) -> None:
 def test_media_is_sharp_and_framed_at_every_width(open_home, width, scheme, scale):
     page, errors = open_home(width=width, height=900, scale=scale, scheme=scheme)
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
-    for label, item in PILLARS:
-        selector = show_pillar(page, label)
+    for label, item in PILLARS + SECTIONS:
+        selector = show(page, label)
         frame = page.locator(selector)
         box = frame.bounding_box()
         assert abs(box["width"] / box["height"] - 1.6) < 0.02, (label, box)
@@ -108,6 +127,16 @@ def test_media_is_sharp_and_framed_at_every_width(open_home, width, scheme, scal
                 selector,
             )
             assert canvas[0] == round(canvas[1] * min(scale, 2)), (label, canvas)
+            if item.capture:
+                # The wipe's lit end: the derivative the player picked covers the frame, pushed in.
+                files = page.evaluate(
+                    "performance.getEntriesByType('resource').map(e => e.name)"
+                    ".filter(n => /renderer-\\d+\\.webp/.test(n))"
+                )
+                assert len(files) == 1, files
+                chosen = int(re.search(r"-(\d+)\.webp", files[0]).group(1))
+                drawn = box["width"] * 1.2 * min(scale, 2)
+                assert chosen >= min(drawn, 2560) - 1, (chosen, drawn)
         frame.screenshot(path=SCREENSHOTS / f"{width}-{scheme}-{scale}x-{item.key}.png")
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     assert not errors, errors
@@ -131,7 +160,7 @@ def test_loops_play_only_on_screen_and_pause_with_their_button(open_home):
     page.click(button)
     assert page.get_attribute(selector, "data-state") == "paused"
     assert page.get_attribute(button, "aria-label") == content.LOOP_CONTROLS["play"]
-    # With the reel off screen too, nothing on the page asks for frames.
+    # With the other loops paused or off screen, nothing on the page asks for frames.
     before = page.evaluate("window.__frames")
     page.wait_for_timeout(300)
     assert page.evaluate("window.__frames") == before
@@ -160,10 +189,10 @@ def test_reduced_motion_shows_each_loops_still_without_autoplay(open_home):
     assert not errors, errors
 
 
-@pytest.mark.parametrize("label", ["editor", "world", "logic"])
+@pytest.mark.parametrize("label", ["editor", "world", "logic", "toolbox", "community", "start"])
 def test_each_loop_is_a_pure_function_of_time_and_wraps_seamlessly(open_home, label):
     page, errors = open_home(width=1280, height=900)
-    selector = show_pillar(page, label)
+    selector = show(page, label)
     page.wait_for_selector(f"{selector}[data-ready]")
     pause_loop(page, selector)
     loop = page.get_attribute(selector, "data-loop")

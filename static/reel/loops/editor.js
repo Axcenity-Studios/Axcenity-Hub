@@ -8,8 +8,8 @@
 // 4. It opens View and chooses Reset Layout: every panel springs back, and
 //    the last frame is the first.
 //
-// Below 480 px wide there's one monitor: the split and the reset only. Like a
-// reel scene it holds no state: a frame comes from (context, time, size) alone.
+// Below 480 px wide there's one monitor: the split and the reset only. Like every
+// loop it holds no state: a frame comes from (context, time, size) alone.
 
 import { clamp, easeInOut, expoOut, lerp, lerpRect, progress, rect, spring } from "../easing.js";
 import * as ui from "../drawing/editor.js";

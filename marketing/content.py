@@ -75,7 +75,7 @@ class FooterColumn:
 
 MEDIA_KINDS = {"capture": "Engine capture", "illustrative": "Illustrative"}
 # The canvas loops (static/reel/loops/<name>.js) a media item may run.
-LOOPS = ("editor", "terrain", "logic")
+LOOPS = ("editor", "terrain", "logic", "toolbox", "wipe", "animation")
 
 
 @dataclass(frozen=True)
@@ -96,6 +96,13 @@ FRAME_SIZES = {
     "inline": "(min-width: 768px) calc(100vw - 64px), calc(100vw - 32px)",
     "stage": "calc((min(100vw, 1400px) - 128px) * 0.5556)",
 }
+# The frames beside the Toolbox banner's, Community's and the closing section's copy (16:10):
+# full width below 1024 px, then half the page ((min(100vw, 1400) − 64) / 2).
+FRAME_SECTION = {"360–767 px": (735, 459), "768–1023 px": (959, 599), "1024 px and up": (668, 418)}
+SECTION_SIZES = (
+    "(min-width: 1024px) calc((min(100vw, 1400px) - 64px) / 2), "
+    "(min-width: 768px) calc(100vw - 64px), calc(100vw - 32px)"
+)
 # A 16:9 picture covering a 16:10 frame is drawn 10/9 as wide as the frame.
 COVER_16_9 = 10 / 9
 
@@ -108,14 +115,19 @@ FRAME_DISPLAY = {
     "inline": Display(FRAME_SIZES["inline"], FRAME_INLINE),
     "stage": Display(FRAME_SIZES["stage"], FRAME_STAGE),
 }
+SECTION_DISPLAY = {"section": Display(SECTION_SIZES, FRAME_SECTION)}
 COVER_DISPLAY = {
     "inline": Display(
         "(min-width: 768px) calc((100vw - 64px) * 1.112), calc((100vw - 32px) * 1.112)",
         _covered(FRAME_INLINE),
     ),
     "stage": Display("calc((min(100vw, 1400px) - 128px) * 0.6173)", _covered(FRAME_STAGE)),
-    # The reel's fallback: 16:9, at most 1280 px wide (half the capture, so 2× screens stay sharp).
-    "hero": Display("min(100vw - 32px, 1280px)", {"every width": (1280, 720)}),
+    # The wipe's still, without JavaScript (Community).
+    "section": Display(
+        "(min-width: 1024px) calc((min(100vw, 1400px) - 64px) * 0.5556), "
+        "(min-width: 768px) calc((100vw - 64px) * 1.112), calc((100vw - 32px) * 1.112)",
+        _covered(FRAME_SECTION),
+    ),
 }
 
 
@@ -136,11 +148,13 @@ class Media:
     loop: str = ""
     # Pixel size of the source file (captures only).
     source_size: tuple[int, int] | None = None
-    # Where it shows, by slot ("inline", "stage", "hero").
+    # Where it shows, by slot ("inline", "stage", "section").
     display: dict[str, Display] = field(default_factory=dict)
     # Words drawn inside a recreation (panel names and the like), or its code.
     labels: dict = field(default_factory=dict)
     code: str = ""
+    # A capture a loop draws (the wipe's lit end): its WebP derivatives go to the canvas.
+    capture: "Media | None" = None
 
     def __post_init__(self) -> None:
         if self.kind not in MEDIA_KINDS:
@@ -188,6 +202,11 @@ class Media:
         return self.srcset(media.FALLBACK.extension)
 
     @property
+    def capture_srcset(self) -> str:
+        """The WebP derivatives of the capture this loop draws, for its player to pick from."""
+        return self.capture.srcset("webp") if self.capture else ""
+
+    @property
     def labels_json(self) -> str:
         """The drawn words as JSON, for a loop's canvas (escaped into an attribute)."""
         return json.dumps(self.labels, ensure_ascii=False)
@@ -197,32 +216,49 @@ VIDEO_TYPES = {".mp4": "video/mp4", ".webm": "video/webm"}
 
 
 @dataclass(frozen=True)
-class BackdropVideo:
-    """A demo video looping full bleed behind the hero's reel. `file` and `poster` are paths
-    under static/; the poster shows while it loads and under reduced motion."""
+class VideoSource:
+    """One encoding of a video: a path under static/ and its RFC 6381 codecs string. The
+    codecs go in the `<source>`'s type, so a browser that can't decode them (Safari
+    without AV1) skips to the next source instead of failing on this one."""
 
     file: str
+    codecs: str
+
+    def __post_init__(self) -> None:
+        if not any(self.file.endswith(ext) for ext in VIDEO_TYPES):
+            raise ValueError(f"{self.file}: a video is one of {sorted(VIDEO_TYPES)}")
+        if not self.codecs:
+            raise ValueError(f"{self.file}: give its codecs string")
+
+    @property
+    def mime(self) -> str:
+        container = next(t for ext, t in VIDEO_TYPES.items() if self.file.endswith(ext))
+        return f'{container}; codecs="{self.codecs}"'
+
+
+@dataclass(frozen=True)
+class BackdropVideo:
+    """A film looping full bleed behind the hero's copy. `sources` are tried in order
+    (the smallest first, then what every browser plays); `poster` is a path under static/
+    that shows while it loads and under reduced motion."""
+
+    sources: tuple[VideoSource, ...]
     kind: str
     caption: str
     provenance: str
     poster: str = ""
 
     def __post_init__(self) -> None:
+        if not self.sources:
+            raise ValueError("a backdrop video needs at least one source")
+        name = self.sources[0].file
         if self.kind not in MEDIA_KINDS:
-            raise ValueError(f"{self.file}: kind must be one of {sorted(MEDIA_KINDS)}")
+            raise ValueError(f"{name}: kind must be one of {sorted(MEDIA_KINDS)}")
         if not self.caption.startswith(MEDIA_KINDS[self.kind]):
-            raise ValueError(
-                f"{self.file}: a {self.kind} caption starts {MEDIA_KINDS[self.kind]!r}"
-            )
-        if self.mime is None:
-            raise ValueError(f"{self.file}: a video is one of {sorted(VIDEO_TYPES)}")
-
-    @property
-    def mime(self) -> str | None:
-        return next((t for ext, t in VIDEO_TYPES.items() if self.file.endswith(ext)), None)
+            raise ValueError(f"{name}: a {self.kind} caption starts {MEDIA_KINDS[self.kind]!r}")
 
 
-# The editor's words, shared by the reel and the Editor pillar's loop.
+# The editor's words, shared by the loops.
 # The default dock (crates/editor/src/layout.rs default_dock), each place's tabs in order.
 EDITOR_DOCK = {
     "scene": ["Scene View", "Animation", "UI Designer"],
@@ -280,10 +316,10 @@ EDITOR_CONSOLE = {
 EDITOR_TERRAIN = {"tabs": ["Sculpt", "Materials"], "tools": ["Raise / Lower", "Smooth", "Flatten"]}
 EDITOR_ASSETS = ["scorch.png", "grass.png", "rock.png", "Pad.glb", "theme.ogg"]
 
-# The reel's Toolbox (crates/editor-toolbox/src/lib.rs): its kind tabs, toolbar, source
+# The Toolbox (crates/editor-toolbox/src/lib.rs): its kind tabs, toolbar, source
 # chips, cards ("Source · category · maps") and the messages a drop onto the Scene View
 # prints (app/toolbox.rs, install.rs). The cards' names are illustrative search results.
-REEL_TOOLBOX = {
+EDITOR_TOOLBOX = {
     "button": "Toolbox",  # the Assets pane's button that opens it
     "kinds": ["Textures", "Skies", "Models", "Sounds"],
     "toolbar": ["Search", "Packs", "All sources"],
@@ -308,16 +344,10 @@ REEL_TOOLBOX = {
     "downloading": "Downloading Rock 030…",
     "cancel": "Cancel",
 }
-# What the Console prints for that drop, with the clock's time.
-REEL_TOOLBOX_LOG = [
-    ("12:05:02", "Downloading Rock 030…", "info"),
-    ("12:05:03", "Saved Rock 030 (CC0) in assets/textures/Rock030.", "info"),
-]
-
-# The reel's Animation pane (crates/editor/src/animation/: chrome.rs, clip_ui.rs,
+# The Animation pane (crates/editor/src/animation/: chrome.rs, clip_ui.rs,
 # property_editor/dope_sheet.rs, transport.rs), keying a Wave clip on the default
 # humanoid's bones (assets/characters/humanoid/rig.py) at 30 fps.
-REEL_ANIMATION = {
+EDITOR_ANIMATION = {
     "views": ["Logic", "Clips & Rigging", "Sequencer"],
     "new": "+ New",
     "record": "Record",
@@ -329,9 +359,6 @@ REEL_ANIMATION = {
     "clip": "Wave",
     "fps": 30,
 }
-
-# A script tab opens beside the Scene View (layout.rs sync_scripts), showing Blocks as a Graph.
-REEL_SCRIPT = {"tab": "Script", "views": ["Code", "Blocks", "Graph"]}
 
 # The Luau a "When touched → Spawn decal" block script becomes. The shape follows the
 # engine's translator (crates/blocks-runtime/src/translate.rs, WhenTouched and SpawnDecal)
@@ -348,7 +375,7 @@ end)"""
 # Phones show the part from the Connect call down (no comment, no lookup line).
 LUAU_COMPACT_FROM = 3
 
-# The Terrain Studio's and Scatter pane's words, drawn by the World pillar's loop and the reel.
+# The Terrain Studio's and Scatter pane's words, drawn by the World pillar's loop.
 TERRAIN_LABELS = {
     "viewport": "Scene View",
     "panes": ["Terrain", "Scatter"],
@@ -368,10 +395,57 @@ TERRAIN_LABELS = {
     "items": [("Tree", "25%"), ("Bush", "25%"), ("Flower", "25%"), ("Grass", "25%")],
 }
 
-# The block graph's and its Luau's words, drawn by the Logic pillar's loop and the reel.
+# The block graph's and its Luau's words, drawn by the Logic pillar's loop.
 LOGIC_LABELS = {
     "graph": "Graph",
     "code": "Luau",
+    # The script's tab (layout.rs sync_scripts) and the bar above it that switches it between
+    # Code, Blocks and Graph, with its hint (scripts.rs mode_bar).
+    "script": "Script",
+    "views": ["Code", "Blocks", "Graph"],
+    "switch_hint": "Switch any time: the script runs the same either way.",
+    # The same script in the Blocks view (block_editor.rs sections()): an Events hat and a
+    # Looks block under it, the position a Sensing reporter (Position of touching part).
+    # Each part: ["label", words], ["menu", choice], ["text" | "number", value],
+    # ["vector", [x, y, z]] or ["reporter", category, parts].
+    "stack": [
+        {
+            "category": "events",
+            "icon": "hand",
+            "rows": [
+                [["label", "when"], ["menu", "Pad"], ["label", "is touched"], ["menu", "Any Part"]],
+            ],
+        },
+        {
+            "category": "looks",
+            "icon": "sparkle",
+            "rows": [
+                [
+                    ["label", "spawn decal"],
+                    ["text", "assets/textures/scorch.png"],
+                    ["label", "at"],
+                    [
+                        "reporter",
+                        "sensing",
+                        [
+                            ["menu", "Position"],
+                            ["label", "of"],
+                            ["reporter", "sensing", [["label", "touching part"]]],
+                        ],
+                    ],
+                    ["label", "facing"],
+                    ["vector", ["0", "1", "0"]],
+                ],
+                [
+                    ["label", "size"],
+                    ["number", "2.5"],
+                    ["label", "fading after"],
+                    ["number", "4"],
+                    ["label", "seconds"],
+                ],
+            ],
+        },
+    ],
     # Each node: title, header hue, then its rows as (label, value, pin type, side).
     "nodes": [
         {
@@ -402,25 +476,27 @@ LOGIC_LABELS = {
     "compact_from": LUAU_COMPACT_FROM,
 }
 
-MEDIA = {
-    "renderer": Media(
-        key="renderer",
-        kind="capture",
-        caption="Engine capture · ray traced",
-        alt=(
-            "A gallery interior rendered by Axcenity Engine with hardware ray tracing: "
-            "reflections on the floor and spheres, soft shadows and bounced light."
-        ),
-        provenance=(
-            "Showcase-Renderer project, axcenity-player v0.3.0-alpha.1 run fullscreen at "
-            "2560×1440 with --graphics settings/rt-ultra.json, captured after 15 s with "
-            "tools/capture.sh (import -window); not painted over, cropped or rescaled "
-            "(Showcase/README.md)."
-        ),
-        source="renderer-2560x1440.png",
-        source_size=(2560, 1440),
-        display=COVER_DISPLAY,
+RENDERER = Media(
+    key="renderer",
+    kind="capture",
+    caption="Engine capture · ray traced",
+    alt=(
+        "A gallery interior rendered by Axcenity Engine with hardware ray tracing: "
+        "reflections on the floor and spheres, soft shadows and bounced light."
     ),
+    provenance=(
+        "Showcase-Renderer project, axcenity-player v0.3.0-alpha.1 run fullscreen at "
+        "2560×1440 with --graphics settings/rt-ultra.json, captured after 15 s with "
+        "tools/capture.sh (import -window); not painted over, cropped or rescaled "
+        "(Showcase/README.md)."
+    ),
+    source="renderer-2560x1440.png",
+    source_size=(2560, 1440),
+    display=COVER_DISPLAY,
+)
+
+MEDIA = {
+    "renderer": RENDERER,
     "terrain": Media(
         key="terrain",
         kind="illustrative",
@@ -455,20 +531,29 @@ MEDIA = {
         kind="illustrative",
         caption="Illustrative · blocks as Luau",
         alt=(
-            "An animated recreation of the block editor's Graph view. A When Touched node for "
-            "the Pad and a Spawn Decal node appear, a wire joins them, and beside them the Luau "
-            "they become types out: when the part is touched, spawn a scorch decal where it "
-            "was hit. A pulse then runs along the wire, as when the Pad is touched."
+            "An animated recreation of a script in the block editor, with its Luau below. In "
+            "the Blocks view an amber When touched block for the Pad appears, and a violet Spawn "
+            "decal block snaps on under it: spawn the scorch texture at the position of the "
+            "touching part, facing up, size 2.5, fading after 4 seconds. The Luau they become "
+            "types out below. The bar above the script then switches from Blocks to Graph, which "
+            "shows the same script as a When Touched node and a Spawn Decal node; a wire joins "
+            "them and a pulse runs along it, as when the Pad is touched. It switches back to "
+            "Blocks before the blocks and the code fade away."
         ),
         provenance=(
-            "Drawn live on a canvas by static/reel/loops/logic.js. Nodes follow the block "
-            "editor's Graph view (crates/editor/src/block_editor/graph.rs and graph/nodes.rs: "
-            "titles, rows, pin types and colours, the Events and Looks hues) and the shared "
-            "canvas (crates/editor-node-graph/src/canvas.rs: grid, exec and value pins, "
-            "wires). The Luau is the translator's output (crates/blocks-runtime/src/"
-            "translate.rs), coloured as crates/editor-kit/src/lua_syntax.rs colours it, its "
-            "light colours darkened to 4.5:1 on the site's light grey. Without JavaScript: "
-            "the same code, highlighted."
+            "Drawn live on a canvas by static/reel/loops/logic.js. The bar follows the script "
+            "tab's mode bar (crates/editor/src/scripts.rs mode_bar: Code, Blocks, Graph and its "
+            "hint). The Blocks view follows crates/editor/src/block_editor.rs (each block's "
+            "sections, its sizes, categories and icons) and block_editor/painter.rs and "
+            "canvas.rs (hats, statements, menus, typed fields, reporters, the dot grid), in the "
+            "editor's category colours with Increase contrast, drawn icons standing in for its "
+            "icon font. The Graph view follows block_editor/graph.rs and graph/nodes.rs "
+            "(titles, rows, pin types and colours, the Events and Looks hues) and the shared "
+            "canvas (crates/editor-node-graph/src/canvas.rs: grid, exec and value pins, wires). "
+            "The Luau is the translator's output (crates/blocks-runtime/src/translate.rs), "
+            "coloured as crates/editor-kit/src/lua_syntax.rs colours it, its light colours "
+            "darkened to 4.5:1 on the site's light grey. Without JavaScript: the same code, "
+            "highlighted."
         ),
         fallback_alt="Luau code: when the part is touched, spawn a scorch decal where it was hit.",
         drawn="marketing/media/luau.html",
@@ -489,7 +574,7 @@ MEDIA = {
             "View, Reset Layout, and every panel springs back to where it started."
         ),
         provenance=(
-            "Drawn live on a canvas by static/reel/loops/editor.js with the reel's editor pieces "
+            "Drawn live on a canvas by static/reel/loops/editor.js with the editor pieces "
             "(static/reel/drawing/editor.js). The dock, its tabs and the floating window follow "
             "crates/editor/src/layout.rs (default_dock, Pane::label), the menu bar and Reset "
             "Layout follow crates/editor/src/app/chrome/menus.rs, and the drop preview follows "
@@ -509,7 +594,7 @@ MEDIA = {
             # The View menu (menus.rs): its "Panels" section, then Reset Layout.
             "panels": "Panels",
             "reset": "Reset Layout",
-            # The floating window's title, as the reel names its monitors.
+            # The floating window's title.
             "monitor": "Monitor 2",
             "tabs": EDITOR_DOCK,
             "tree": EDITOR_TREE,
@@ -524,95 +609,96 @@ MEDIA = {
             "console_line": "Press Play (F5) to test.",
         },
     ),
-    # The hero's showcase reel, drawn live on a canvas by static/reel/ (docs/frontend/reel.md).
-    # Its labels go to the page as JSON; the alt text is the reel's screen-reader description.
-    "reel": Media(
-        key="reel",
+    "toolbox": Media(
+        key="toolbox",
         kind="illustrative",
-        caption="Illustrative · editor recreation",
+        caption="Illustrative · Toolbox",
         alt=(
-            "A looping film, about 26 seconds long, recreating the Axcenity editor. The words "
-            "Scene View, Explorer and Properties appear in large type, then shrink into the tabs "
-            "of panels that spring together into the editor's default layout: the 3D Scene View "
-            "with the Console docked below it, and beside them the Explorer's tree of Workspace, "
-            "Arena and Pad above the Properties. A pointer drags the Properties tab out of "
-            "the window onto a second monitor to the right, where it shows the selected Pad's "
-            "Data, Appearance, Behavior and Part settings, and drags the Console onto a third "
-            "monitor to the left. The Terrain and Assets tabs that shared their places take "
-            "over. Next the pointer opens the Toolbox, searches its textures for rock, and "
-            "drags a rock texture from the results onto the Pad, which takes it on while the "
-            "Console reports the download. In the Animation tab it records a Wave clip on a "
-            "character, keying its arm, spine and head bones in the dope sheet, then plays it "
-            "back as the character waves. The Scene View then shows a blocked-out gallery in "
-            "grey that a scan line wipes into the ray-traced render of the same room. In the "
-            "Terrain pane the pointer picks Raise / Lower and brushes hills up from flat ground, "
-            "then paints trees, bushes, flowers and grass over them with Scatter. Last, a "
-            "script tab opens a When Touched node for the Pad and a Spawn Decal node, a wire "
-            "joins them, the Luau they become types out below, and a pulse runs along the "
-            "wire. The workspace then gives way to the Axcenity logo before the film starts "
-            "again. On narrow screens it shows the Scene View beside the Explorer, and the "
-            "Scene View then widens to show each step on its own."
+            "An animated recreation of the Axcenity editor's Toolbox. Above the Assets pane the "
+            "Scene View shows a grey block, the Pad, turning slowly. A pointer presses the Toolbox "
+            "button, which opens the Toolbox as a tab beside Assets. It types rock into the search "
+            "field and presses Search, and texture cards from ambientCG and Poly Haven pop in. It "
+            "drags the first, Rock 030, onto the Pad: the Toolbox reports the download and the Pad "
+            "takes on the rock texture. Then the Toolbox closes and the texture fades away."
         ),
         provenance=(
-            "Drawn live on a canvas by static/reel/ in the site's colour tokens, whose dark values "
-            "are the editor's Dark theme (crates/editor-kit/src/theme.rs ThemeTokens). The dock "
-            "and its tabs follow crates/editor/src/layout.rs (default_dock, style, Pane::label); "
-            "the Properties pane follows crates/editor/src/properties.rs and Part's defaults in "
-            "crates/core/src/class.rs; the Console follows output.rs, console.rs and the "
-            "project-opened message in app/session.rs; the window title follows the editor's "
-            '"<project> - Axcenity Editor". The Toolbox follows crates/editor-toolbox/src/lib.rs '
-            "and app/toolbox.rs; the Animation pane follows crates/editor/src/animation/ "
-            "(chrome.rs, clip_ui.rs, property_editor/dope_sheet.rs, transport.rs) and the "
-            "humanoid's bone names in assets/characters/humanoid/rig.py, with the character "
-            "drawn as a simple mannequin; the renderer wipe's lit end is the Showcase-Renderer "
-            "capture (its 1920 px WebP derivative) and its grey end is drawn over the same "
-            "layout; the terrain and the blocks reuse the World and Logic loops' drawings."
+            "Drawn live on a canvas by static/reel/loops/toolbox.js with the editor pieces in "
+            "static/reel/drawing/ (editor.js, toolbox.js). The Toolbox's kind tabs, toolbar, "
+            "source chips and cards follow crates/editor-toolbox/src/lib.rs, the drop onto the "
+            "Scene View and its download follow app/toolbox.rs and install.rs, and the Assets "
+            "pane's Toolbox button follows asset_browser/panel.rs. The cards' names are "
+            "illustrative search results and their pictures are drawn stand-ins. Without "
+            "JavaScript: the drawn results in templates/marketing/media/toolbox.html."
         ),
-        drawn="marketing/media/reel.html",
-        display={
-            "hero": Display(
-                "100vw", {"360–639 px (compact)": (639, 900), "640 px and up": (2560, 1440)}
-            )
-        },
+        fallback_alt=(
+            "A drawing of the Toolbox's search for rock: a grid of texture cards from ambientCG "
+            "and Poly Haven, each with Get."
+        ),
+        drawn="marketing/media/toolbox.html",
+        loop="toolbox",
+        display=SECTION_DISPLAY,
         labels={
             "tabs": EDITOR_DOCK,
-            "window": EDITOR_WINDOW,
-            "monitors": {"properties": "Monitor 2", "console": "Monitor 3"},
-            "tree": EDITOR_TREE,
-            "selected": "Pad",
-            "properties": EDITOR_PROPERTIES,
-            "console": EDITOR_CONSOLE,
-            "terrain": EDITOR_TERRAIN,
             "assets": EDITOR_ASSETS,
-            "toolbox": REEL_TOOLBOX,
-            "toolbox_log": REEL_TOOLBOX_LOG,
-            "animation": REEL_ANIMATION,
-            "script": REEL_SCRIPT,
-            "terrain_studio": TERRAIN_LABELS,
-            "logic": LOGIC_LABELS,
-            # Each segment of the timeline by its module id, for the scrubber's spoken position.
-            "segments": {
-                "workspace": "Scene 1, Workspace",
-                "toolbox": "Scene 2, Toolbox",
-                "animation": "Scene 3, Animation",
-                "renderer": "Scene 4, Renderer",
-                "world": "Scene 5, World",
-                "logic": "Scene 6, Logic",
-                "lockup": "Logo",
-            },
+            "toolbox": EDITOR_TOOLBOX,
         },
     ),
+    "wipe": Media(
+        key="wipe",
+        kind="illustrative",
+        caption="Illustrative · renderer wipe",
+        alt=(
+            "An animated recreation of the editor's Scene View. A gallery room is blocked out in "
+            "plain grey shapes: walls, plinths, a tall slab, a cylinder and a sphere rising from "
+            "the floor. A scan line sweeps across and leaves behind the ray-traced render of the "
+            "same room, with reflections on the floor and spheres, soft shadows and bounced "
+            "light, as the camera pushes slowly in. The lit room then dissolves back to grey."
+        ),
+        provenance=(
+            "Drawn live on a canvas by static/reel/loops/wipe.js with static/reel/drawing/"
+            "renderer.js. The lit end is the Showcase-Renderer engine capture (one "
+            "of its WebP derivatives, never upscaled); the grey room is drawn "
+            "over the capture's own layout, as no graybox capture of that camera exists. "
+            "Without JavaScript: the capture itself."
+        ),
+        # Its fallback is the capture's own <picture>, described by the capture's alt.
+        fallback_alt=RENDERER.alt,
+        drawn="marketing/media/wipe.html",
+        loop="wipe",
+        display=SECTION_DISPLAY,
+        labels={"tabs": EDITOR_DOCK},
+        capture=RENDERER,
+    ),
+    "animation": Media(
+        key="animation",
+        kind="illustrative",
+        caption="Illustrative · Animation pane",
+        alt=(
+            "An animated recreation of the editor's Animation pane, in its Clips & Rigging view. "
+            "A character stands in the preview beside an empty Wave clip. A pointer turns Record "
+            "on and poses the character's arm by its hand; at each step a column of diamond keys "
+            "appears in the dope sheet for the RightUpperArm, RightLowerArm, Spine and Head "
+            "bones. It presses Play, and the character waves as the playhead runs the clip. "
+            "Then the keys fade, leaving the empty clip."
+        ),
+        provenance=(
+            "Drawn live on a canvas by static/reel/loops/animation.js with static/reel/drawing/"
+            "animation.js. The pane follows crates/editor/src/animation/ (chrome.rs, clip_ui.rs, "
+            "property_editor/dope_sheet.rs, transport.rs) and the humanoid's bone names in "
+            "assets/characters/humanoid/rig.py, with the character drawn as a simple mannequin "
+            "and the playhead in ink rather than the editor's red. Without JavaScript: the drawn "
+            "dope sheet in templates/marketing/media/animation.html."
+        ),
+        fallback_alt=(
+            "A drawing of the Animation pane's dope sheet: a Wave clip with keys on the "
+            "RightUpperArm, RightLowerArm, Spine and Head bones."
+        ),
+        drawn="marketing/media/animation.html",
+        loop="animation",
+        display=SECTION_DISPLAY,
+        labels={"tabs": EDITOR_DOCK, "animation": EDITOR_ANIMATION},
+    ),
 }
-
-# The reel's control labels (screen-reader names; the controls show icons).
-REEL_CONTROLS = {
-    "group": "Reel controls",
-    "play": "Play reel",
-    "pause": "Pause reel",
-    "scrub": "Reel position",
-    "of": "of",
-}
-
 
 # ---------- Shell: nav and footer ----------
 
@@ -691,14 +777,26 @@ HOME_HERO = {
     ),
     "primary": Link("Download alpha", external=RELEASES_URL),
     "secondary": Link("Read the docs", external=DOCS_URL),
-    # The full-bleed reel behind the hero, and what shows when it can't run (no JavaScript,
-    # no ES modules or no canvas).
-    "reel": MEDIA["reel"],
-    "reel_controls": REEL_CONTROLS,
-    "fallback": MEDIA["renderer"],
-    # The demo video behind the reel: None until the file is in static/, then e.g.
-    # BackdropVideo("marketing/media/demo.mp4", "capture", "Engine capture · Demo", "…").
-    "backdrop": None,
+    # The film filling the hero (docs/frontend/media.md has its cut list), and its button's
+    # screen-reader names.
+    "backdrop": BackdropVideo(
+        sources=(
+            VideoSource("marketing/media/homestead/homestead-1920.webm", "av01.0.08M.08"),
+            VideoSource("marketing/media/homestead/homestead-1280.mp4", "avc1.64001F"),
+        ),
+        kind="capture",
+        caption="Engine capture · Desert Homestead film",
+        provenance=(
+            "The engine's examples/desert-homestead project, filmed by its authoring/film "
+            "tool: the engine's own renderer at 1920×804, frame by frame at a fixed step, "
+            "hardware ray tracing on a Radeon RX 9070 XT (desert-homestead-cinematic-1080p-v3"
+            ".mp4). Cut to 53 s for the hero: the picture only (no title, captions or end "
+            "card), eleven of its shots cross-dissolved, no lightning, no grading, opening "
+            "and closing on the same frame so it loops. AV1, and H.264 at 1280×536."
+        ),
+        poster="marketing/media/homestead/homestead-poster.webp",
+    ),
+    "video_controls": {"play": "Play video", "pause": "Pause video"},
 }
 
 # The pause button on each animated recreation (screen-reader names; it shows icons).
@@ -779,6 +877,8 @@ HOME_TOOLBOX = {
     ],
     # The Toolbox page arrives in Phase 6.
     "cta": Link("Explore the Toolbox", soon=True),
+    "media": MEDIA["toolbox"],
+    "loop_controls": LOOP_CONTROLS,
 }
 
 HOME_COMMUNITY = {
@@ -790,6 +890,8 @@ HOME_COMMUNITY = {
         Item("Showcases", "Publish what you've built with Axcenity."),
         Item("Projects", "Connect GitHub repositories and organise your team."),
     ],
+    "media": MEDIA["wipe"],
+    "loop_controls": LOOP_CONTROLS,
 }
 
 HOME_FINAL = {
@@ -797,6 +899,14 @@ HOME_FINAL = {
     "body": "Download the alpha for Windows, macOS or Linux, then follow the getting-started guide.",
     "primary": Link("Download alpha", external=RELEASES_URL),
     "secondary": Link("Getting started", external=GETTING_STARTED_URL),
+    # The getting-started guide's first steps (documentation/learn/getting-started.md).
+    "steps": [
+        Item("Install", "A Windows setup wizard, a macOS disk image or a Linux package.", "01"),
+        Item("New Project", "Start from Baseplate, Empty or a playable genre template.", "02"),
+        Item("Play", "Press F5 to run it, and Shift+F5 to put the world back.", "03"),
+    ],
+    "media": MEDIA["animation"],
+    "loop_controls": LOOP_CONTROLS,
 }
 
 

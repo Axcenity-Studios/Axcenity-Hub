@@ -28,6 +28,140 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-24 — The Logic loop shows the Scratch-style Blocks view as well as the Graph
+
+### Prompts
+
+1. "Ok one other thing that I noticed was the the blocks or lua section
+   only included lua and the graph axcenity has an actual scretch style
+   block editor as well can you includ e that in the animation as well."
+2. "Go ahead and add it to PROMPTS.md"
+
+### Summary
+
+- **Outcome:** The Logic pillar's loop now runs 16 s and starts in the
+  block editor's Blocks view. Above it is the script's real mode bar
+  (`scripts.rs` `mode_bar`: Code, Blocks, Graph and its hint "Switch any
+  time: the script runs the same either way."). An amber "when [Pad] is
+  touched [Any Part]" hat pops in, and a violet "spawn decal
+  [assets/textures/scorch.png] at (Position of (touching part)) facing
+  [0 1 0]" / "size [2.5] fading after [4] seconds" block springs up and
+  snaps on under it. The rows, reporter and values follow
+  `block_editor.rs` `sections()`, and the values are the Graph's and the
+  Luau's. The Luau types out below. The bar then slides to Graph, the
+  nodes wire up and the pulse runs, and it slides back to Blocks before
+  everything fades to the empty first frame. Phones show one view at a
+  time: Blocks (panning across the wide block), Graph, then Code. New
+  `static/reel/drawing/stacks.js` draws the Blocks view at the editor's
+  sizes (40-point rows, 12-point padding, the hat's 14-point top and
+  band, the tab under each block, 24-point fields, reporters, the dot
+  grid). Nine new content tokens hold the editor's category fills with
+  Increase contrast (Events, Looks, Sensing), their edges (the hue at
+  78 %), its typed field colours and the black its menus are shaded
+  with. Tests derive each fill and edge from the `Hue` bases, check the
+  block words against the editor's, and add the contrast pairs. The
+  manifest's alt text and provenance, `canvas.md`, `media.md`,
+  `theme.md` and `home.md` are updated. 480 fast and 45 browser tests
+  pass (including the 16 s loop's seamless wrap); Ruff is clean. Not
+  committed.
+- **Deviations:** None asked. Two judgement calls: the editor's base
+  hues give white text under 4.5:1 (Amber is about 3:1), so the blocks
+  use the editor's own Increase contrast fills; and the block icons
+  (pointing hand, sparkle) are drawn stand-ins, since the engine's icon
+  font isn't on the site (the provenance says so).
+- **Sideways:** At first the empty end state drew its dot grid at the
+  frame's unit and the Blocks view at the stack's zoom, which would have
+  shown a jump at the wrap; both now use the frame's unit. Moving
+  "facing" onto the block's second row to save width was undone, since
+  the engine has it on the first. The taller script panel pushed the
+  last Luau line under the frame's caption, so the split went from 60 %
+  to 55 %. On phones the mode bar's hint was cut mid-sentence; it now
+  shows only where it fits whole. The test palette rejected Violet's
+  base until #7658E0 was allowed (it already reads at 4.95:1, so
+  Increase contrast leaves it unchanged).
+
+## 2026-11-24 — Hero becomes the Desert Homestead film; the reel's scenes move into the lower sections
+
+### Prompts
+
+1. "Alright I have a video I would like for you to use on the site page
+   behind all of the other animations it is stored at
+   /home/pauljanota/Videos/Axcenity/desert-homestead-cinematic-1080p-v3.mp4.
+   Choose the best shots for the video make it flow cohesively with the
+   theme. Crop the video to not include the text unless you feel it can
+   add to the design in some way."
+2. (Sent while the first was in progress) "Ok I am starting to think the
+   video can speak for it self lets go ahead and remove the window
+   animations and place them on other parts of the front page that may
+   look sparse."
+3. Answer to a question (where the reel's animations should go): "Split
+   into sections (Recommended)": the Toolbox scene to the Toolbox
+   banner, the renderer wipe to Community, the Animation scene to
+   "Start building.", dropping the scenes the pillars already show.
+4. "Ok the home page overall looks good but we got to do something about
+   these two bottom secions and how they are setup, they look a little
+   out of place an incomplete/ Can we style these a bit differently and
+   make it look more cohesive with the rest of the site. Also go ahead
+   and append the conversations to PROMPTS.md according to source
+   formatting." (with screenshots of Community and "Start building.")
+
+### Summary
+
+- **Outcome:** The hero is now the Desert Homestead film alone, with no
+  reel. The film is a 53 s seamless loop cut from the engine's own film
+  (its end card: every frame drawn by the Axcenity Engine renderer, so
+  it's captioned "Engine capture · Desert Homestead film"). Only the
+  2.39:1 picture is kept, so there's no title, captions or end card.
+  Eleven shots run spring → porch → drapes → truck → windmill → storm →
+  rain → lamplight → snow → lit door → dawn thaw, back into spring. The
+  five lightning strikes are left out, the 1–1.5 s dissolves are the
+  only change, and there's no grading. It ships as AV1 (8.2 MB) plus an
+  H.264 fallback at 1280×536 (11.4 MB) and a poster. `home.js` plays it
+  only when the visitor hasn't paused it, it's on screen and the tab is
+  visible; reduced motion shows the poster. The scrim covers only where
+  text sits, and the version badge sits on the page colour.
+  `BackdropVideo` now takes ordered `VideoSource`s with codecs. The
+  reel's player, timeline, scenes, template, `MEDIA["reel"]`, tests and
+  docs are deleted. Three new loops built from its drawing modules are
+  `toolbox` (Toolbox banner), `wipe` (Community) and `animation` (Start
+  building), each with a phone layout, a fallback drawing and a
+  seamless wrap. The loop player can now load a capture and picks the
+  smallest WebP that covers its frame. After the follow-up, all three
+  sections share one split panel (`.split`, `.section-media`,
+  `.panel-list`) with the loop alternating sides. Community sets the
+  wipe beside the three cards, and Start building sets the pitch,
+  buttons and the guide's first three steps (Install, New Project, Play)
+  beside the Animation loop. The wipe now holds the built grey room,
+  wipes to the capture and sweeps back, so its frame is never empty.
+  New `tests/test_canvas.py`, `test_hero.py` and `test_hero_browser.py`
+  replace `test_reel.py` and `test_reel_browser.py`; new
+  `docs/frontend/canvas.md` replaces `reel.md` and `reel-scenes.md`. 463
+  fast and 45 browser tests pass; Ruff is clean. Not committed.
+- **Deviations:** The second prompt changed the plan mid-task, from the
+  video behind the reel to the video alone. A question settled where
+  the animations go, and the user took the recommended split. The
+  reel's World, Logic and docking scenes and its logo outro were
+  dropped rather than moved, since the pillars already show them. The
+  plan and PRD still describe the hero reel; they were left as history.
+- **Sideways:** The first screenshots showed the backdrop's caption
+  stuck under the reel's: an equally specific `.reel .media-cap` rule
+  later in the file overrode its offset, a latent bug from the slot
+  commit, fixed then made moot. The light-mode headline was hard to read
+  over the truck. This machine's FFmpeg has no libx264 and its VAAPI
+  H.264 encoder fails, so the fallback is OpenH264 at 1280 wide. The
+  wipe's wrap first failed the seamless test (0.27 % of pixels) because
+  its last frame went through `layer()`; it now draws the start state
+  directly. `open_home` had to wait for the loops to mount, since it had
+  relied on the reel loading after them. Seeking the film in screenshots
+  didn't work: Django's dev server answers range requests with a plain
+  200, so the video can't seek. Safari won't play `<video>` without range
+  support, so production static serving must provide it (noted in
+  `media.md`). The user's Community screenshot showed a stale caption
+  and an empty wipe frame, because the loop began before the grey room
+  had built. In the restyle, `.panel-list { margin: 0 }` overrode
+  Tailwind's `mt-auto` and left a 48 px gap under Start building's
+  steps; measuring the boxes in Chromium found it.
+
 ## 2026-11-23 — Reel outro: centred logo, and a backdrop-video slot behind the hero
 
 ### Prompts

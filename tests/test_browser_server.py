@@ -1,6 +1,6 @@
 """The browser tests' live server is reachable at its own address and nowhere else.
 
-Phase 3 adds the Playwright reel smoke tests on top of `browser_server`.
+The Playwright tests (the hero's film, the loops) run on top of `browser_server`.
 """
 
 import socket

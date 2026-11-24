@@ -20,6 +20,28 @@ function deepFreeze(value) {
   return value;
 }
 
+/**
+ * The smallest file in `srcset` ("url 640w, url 960w, …") at least `width` device pixels
+ * wide, or the widest there is. A capture covering a 16:10 frame, pushed in, is drawn
+ * about 1.2 times the frame's width.
+ */
+function pick(srcset, width) {
+  const files = srcset
+    .split(",")
+    .map((entry) => entry.trim().split(/\s+/))
+    .map(([url, w]) => ({ url, width: parseInt(w, 10) }))
+    .sort((a, b) => a.width - b.width);
+  return (files.find((file) => file.width >= width) || files[files.length - 1]).url;
+}
+
+/** A picture, decoded, or null if it can't load (the loop draws without it). */
+function loadImage(url) {
+  const image = new Image();
+  image.decoding = "async";
+  image.src = url;
+  return image.decode().then(() => image, () => null);
+}
+
 /** Mounts `loop` (a loop module's default export) on `figure`, drawing with `g` on `canvas`. */
 export function mount(figure, canvas, g, loop) {
   const root = document.documentElement;
@@ -42,8 +64,10 @@ export function mount(figure, canvas, g, loop) {
   function layer(alpha, draw) {
     drawLayer(context, alpha, draw);
   }
+  // Pictures a loop draws (data-capture: the renderer capture, for the wipe), each null until loaded.
+  let images = Object.freeze({ capture: null });
   function rebuildContext() {
-    context = Object.freeze({ g, colors: palette, labels, layer });
+    context = Object.freeze({ g, colors: palette, labels, images, layer });
   }
 
   function draw() {
@@ -86,7 +110,8 @@ export function mount(figure, canvas, g, loop) {
       draw();
     }
     figure.dataset.state = running ? "playing" : "paused";
-    // Reading `reduce` here keeps the MediaQueryList reachable (see docs/frontend/reel.md).
+    // Reading `reduce` here keeps the MediaQueryList reachable: one held only by its own
+    // listener can be garbage-collected, and its change event never fires.
     figure.dataset.motion = reduce.matches ? "reduced" : "full";
     toggle.dataset.intent = userPaused ? "paused" : "playing";
     toggle.setAttribute("aria-label", userPaused ? toggle.dataset.playLabel : toggle.dataset.pauseLabel);
@@ -144,7 +169,12 @@ export function mount(figure, canvas, g, loop) {
   resize();
   update();
 
-  Promise.all(FONTS.map((spec) => document.fonts.load(spec).catch(() => null))).then(() => {
+  const capture = figure.dataset.capture
+    ? loadImage(pick(figure.dataset.capture, size.width * pixelRatio() * 1.2))
+    : Promise.resolve(null);
+  Promise.all([capture, ...FONTS.map((spec) => document.fonts.load(spec).catch(() => null))]).then(([picture]) => {
+    images = Object.freeze({ capture: picture });
+    rebuildContext();
     draw();
     figure.dataset.ready = "";
   });

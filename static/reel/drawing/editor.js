@@ -6,7 +6,7 @@
 // timed log (crates/editor/src/output.rs). Colours are the site's tokens only.
 //
 // Every function draws from its arguments alone (no state, no clock), in
-// logical pixels; `u` is the size unit from layout.js.
+// logical pixels; `u` is the loop's size unit.
 
 import { rect } from "../easing.js";
 import { hash } from "./terrain.js";

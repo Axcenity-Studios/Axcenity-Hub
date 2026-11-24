@@ -1,9 +1,27 @@
-{# The final call to action. #}
+{# The final call to action: the title across the page, then the shared split panel: the pitch, the  #}
+{# buttons and the getting-started guide's first steps beside the Animation loop.                    #}
 <section id="start" class="mx-auto max-w-[1400px] px-4 pt-8 pb-28 md:px-8 md:pt-16 md:pb-36">
   <h2 class="display text-6xl text-fg-strong sm:text-7xl md:text-[10rem]" data-reveal>{{ final.title }}</h2>
-  <p class="mt-6 max-w-xl text-lg text-fg-secondary" data-reveal>{{ final.body }}</p>
-  <div class="mt-8 flex flex-wrap gap-3">
-    <a href="{{ final.primary.href }}" rel="noopener" class="btn btn-primary">{{ final.primary.label }}</a>
-    <a href="{{ final.secondary.href }}" rel="noopener" class="btn btn-quiet">{{ final.secondary.label }}</a>
+  <div class="panel split mt-10 grid md:mt-16 lg:grid-cols-2" data-reveal>
+    <div class="flex flex-col">
+      <div class="p-7 md:p-12">
+        <p class="max-w-xl text-lg text-fg-secondary">{{ final.body }}</p>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a href="{{ final.primary.href }}" rel="noopener" class="btn btn-primary">{{ final.primary.label }}</a>
+          <a href="{{ final.secondary.href }}" rel="noopener" class="btn btn-quiet">{{ final.secondary.label }}</a>
+        </div>
+      </div>
+      <ol class="panel-list mt-auto">
+        {% for step in final.steps %}
+          <li>
+            <p class="micro flex gap-3 text-fg-weak"><span>{{ step.number }}</span><span class="text-fg-strong">{{ step.title }}</span></p>
+            <p class="text-fg-secondary">{{ step.body }}</p>
+          </li>
+        {% endfor %}
+      </ol>
+    </div>
+    <div class="section-media">
+      {% include "marketing/media/frame.html" with media=final.media slot="section" controls=final.loop_controls %}
+    </div>
   </div>
 </section>

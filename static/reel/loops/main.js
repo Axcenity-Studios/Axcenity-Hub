@@ -1,5 +1,5 @@
-// The animated recreations' entry point (loaded as a module by
-// templates/marketing/home/features.html). Each [data-loop] figure names its
+// The animated recreations' entry point (loaded as a module at the end of
+// templates/marketing/home.html). Each [data-loop] figure names its
 // loop; this loads the player and that loop, and mounts it. Where a loop can't
 // run (no 2D canvas, or a module fails to load or mount) its static drawing
 // simply stays, as it does without JavaScript.
@@ -8,6 +8,9 @@ const LOOPS = Object.freeze({
   editor: () => import("./editor.js"),
   terrain: () => import("./terrain.js"),
   logic: () => import("./logic.js"),
+  toolbox: () => import("./toolbox.js"),
+  wipe: () => import("./wipe.js"),
+  animation: () => import("./animation.js"),
 });
 
 for (const figure of document.querySelectorAll("[data-loop]")) {

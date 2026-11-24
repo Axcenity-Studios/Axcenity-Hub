@@ -42,6 +42,9 @@ NOT_COPY = {
     "fragment",
     "code",
     "icon",
+    "capture",
+    "sources",
+    "poster",
 }
 # Shared shell labels rendered by partials, not by the Home's own content.
 SHELL_LABELS = {"Soon"}
@@ -150,12 +153,9 @@ def test_features_is_in_the_nav_and_points_at_the_section(home):
 
 def test_every_section_renders_from_the_content_module(home):
     for text in HOME_COPY:
-        # The reel's words reach the page as JSON for its canvas (json_script, which also
-        # escapes <, > and & as <, > and &), not as HTML.
-        as_json = json.dumps(text)[1:-1]
-        for char, code in (("&", "\\u0026"), ("<", "\\u003C"), (">", "\\u003E")):
-            as_json = as_json.replace(char, code)
-        assert escape(text) in home or as_json in home, text
+        # A loop's words reach the page as JSON in its data-labels attribute, not as HTML.
+        in_attribute = escape(json.dumps(text, ensure_ascii=False)[1:-1])
+        assert escape(text) in home or in_attribute in home, text
 
 
 def test_the_visible_prose_and_labels_come_from_the_content_module(home):
@@ -384,6 +384,7 @@ def test_every_image_and_caption_on_the_page_is_in_the_manifest(home):
         for candidate in srcset.split(", "):
             assert candidate.split(" ")[0] in files, candidate
     captions = {escape(item.caption) for item in content.MEDIA.values()}
+    captions.add(escape(content.HOME_HERO["backdrop"].caption))
     for caption in re.findall(r'<figcaption class="media-cap micro">([^<]+)<', home):
         assert caption in captions, caption
 
@@ -391,8 +392,8 @@ def test_every_image_and_caption_on_the_page_is_in_the_manifest(home):
 def test_captures_are_pictures_of_avif_webp_and_jpeg_sized_for_their_slot(home):
     renderer = content.MEDIA["renderer"]
     pictures = re.findall(r"<picture>(.*?)</picture>", _part_main(home), re.S)
-    assert len(pictures) == 3  # the hero's fallback, then inline and on the stage
-    for picture, slot in zip(pictures, ["hero", "inline", "stage"], strict=True):
+    assert len(pictures) == 3  # inline and on the stage, then the wipe's still in Community
+    for picture, slot in zip(pictures, ["inline", "stage", "section"], strict=True):
         sizes = escape(renderer.display[slot].sizes)
         types = re.findall(r'<source type="([^"]+)" srcset="[^"]+" sizes="([^"]+)">', picture)
         assert types == [("image/avif", sizes), ("image/webp", sizes)], slot
@@ -404,11 +405,9 @@ def test_images_carry_intrinsic_size_and_below_the_fold_ones_lazy_load(home):
     main = _part_main(home)
     for img in re.findall(r"<img [^>]+>", main):
         assert re.search(r'width="\d+" height="\d+"', img), img
-    # The hero's capture is only the reel's fallback: lazy, so a browser running the reel
-    # never downloads it (an inline script hides it before layout).
-    hero_img = re.search(r"<img [^>]+>", _section(home, "hero")).group()
-    assert 'loading="lazy"' in hero_img
-    for img in re.findall(r"<img [^>]+>", _section(home, "features")):
+    # Nothing in the hero is an image (its film has a poster); everything below is lazy.
+    assert "<img" not in _section(home, "hero")
+    for img in re.findall(r"<img [^>]+>", main):
         assert 'loading="lazy"' in img
 
 
@@ -470,7 +469,7 @@ def test_the_terrain_drawing_is_deterministic():
 
 
 def test_drawn_media_uses_only_the_tokens(home):
-    for name in ("terrain", "luau", "editor", "reel", "frame", "picture"):
+    for name in ("terrain", "luau", "editor", "toolbox", "animation", "wipe", "frame", "picture"):
         source = (
             settings.BASE_DIR / "templates" / "marketing" / "media" / f"{name}.html"
         ).read_text()

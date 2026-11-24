@@ -13,7 +13,7 @@ index:** the rules below apply everywhere; topic files under
 | `marketing/media_sources/` | Captures as copied in (never served, never edited): the sources `make_media` reads |
 | `templates/` | `base.html` (shared by every shell), `marketing/` (the marketing shell and its pages), `partials/` |
 | `styles/source.css` | The Tailwind source; built into `static/css/tailwind.css` (git-ignored) |
-| `static/` | `js/`, `reel/` (the showcase reel's ES modules, and `reel/loops/`, the pillars' animated recreations), `fonts/`, `brand/`, `marketing/media/` (the captures' derivatives, written by `make_media`) |
+| `static/` | `js/`, `reel/` (the canvas kit and `reel/loops/`, the Home's animated recreations), `fonts/`, `brand/`, `marketing/media/` (the captures' derivatives, written by `make_media`, and the hero's film in `homestead/`) |
 | `tests/` | Every test (see [TESTING.md](TESTING.md)) |
 
 Later phases add `accounts`, `projects`, `forums`, `showcases`, `reports`,

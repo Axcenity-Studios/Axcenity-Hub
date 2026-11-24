@@ -36,6 +36,12 @@ only by the `.luau-*` rules (the Luau fallback) and on the canvas by
 - **`node-events`, `node-looks`, `node-title`:** block category headers
   (`theme.rs` `Hue` Amber and Violet), darkened as `Canvas::header` does
   until the white title reads at 4.5:1; the same in both schemes.
+- **`block-events`, `-looks`, `-sensing` and their `-edge`s:** the Blocks
+  view's category fills with the editor's Increase contrast (the `Hue`
+  base mixed toward black until white reads at 4.5:1) and edges (the base
+  at 78 %, the same way); **`block-field`, `block-field-text`,
+  `block-shade`:** its typed fields (`INPUT_FIELD`, `INPUT_TEXT`) and the
+  black its menus are shaded with. The same in both schemes.
 - **`pin-object`, `-any`, `-text`, `-vector`, `-number`:** the block
   Graph view's pin colours, unchanged in light mode as in the editor. A
   pin is never the only sign of its meaning (its row is labelled), so
@@ -51,8 +57,8 @@ DaisyUI's `primary` and `accent` role and has exactly these uses:
 
 - the primary button (`btn btn-primary`): Download, Download alpha
 - the version badge's dot (`.badge-dot`, the only `var(--color-accent)`)
-- the reel's progress fill (`.reel-fill`) and the scan line of its
-  renderer wipe (`colors.accent`, drawn only by `drawing/renderer.js`)
+- the renderer wipe's scan line (`colors.accent`, drawn only by
+  `drawing/renderer.js`)
 
 Its hex values appear only on the token lines (tested). On dark the
 primary button's text is `#171717`: white on `#19A0FF` is 2.8:1 and fails
@@ -102,7 +108,7 @@ means adding its row to `TEXT_PAIRS` or `NON_TEXT_PAIRS`.**
   That view rejects unknown values with a 400 and only follows a
   same-site `next`.
 - **Dark** is the default (the `@theme static` values; `static` emits every
-  token as a variable, used or not, because the reel's canvas reads them). **Light** is
+  token as a variable, used or not, because the loops' canvas reads them). **Light** is
   `html[data-scheme="light"] { … }`: the Toolbox's storm grey (app
   `#BEC0C2`, panel `#CACCCE`), darker text, lines and status colours, the
   darker accent, and `--logo-filter: invert(1)` for the white wordmark.

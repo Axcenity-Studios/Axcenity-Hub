@@ -133,7 +133,7 @@ def _fast_password_hashing(settings):
 
 # ---------- Browser tests (Playwright) ----------
 
-# Counts requestAnimationFrame calls, so a test can see that a paused reel does no work.
+# Counts requestAnimationFrame calls, so a test can see that a paused loop does no work.
 COUNT_FRAMES = """
 window.__frames = 0;
 const request = window.requestAnimationFrame.bind(window);
@@ -189,7 +189,10 @@ def open_home(browser, browser_server, built_stylesheet):
         page.add_init_script(COUNT_FRAMES + init)
         page.goto(browser_server.url + "/")
         if wait_ready:
-            page.wait_for_selector("#reel[data-ready]")
+            page.wait_for_selector("[data-film][data-state]")  # home.js has run
+            page.wait_for_function(  # and every loop has mounted
+                "[...document.querySelectorAll('[data-loop]')].every(f => 'live' in f.dataset)"
+            )
         return page, errors
 
     yield open_

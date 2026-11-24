@@ -71,6 +71,10 @@ LUAU_EDITOR = {
 # theme.rs Hue::base for the block categories (Events: Amber; Looks: Violet), and the block
 # Graph view's pin colours (block_editor/graph/nodes.rs), the same in both schemes.
 NODE_HUES = {"events": "#BE8012", "looks": "#7658E0"}
+# The Blocks view's categories (theme.rs Hue: Events Amber, Looks Violet, Sensing Cyan) and its
+# typed fields (block_editor.rs INPUT_FIELD, INPUT_TEXT).
+BLOCK_HUES = {"events": "#BE8012", "looks": "#7658E0", "sensing": "#1282A8"}
+BLOCK_FIELD = {"block-field": "#FAFAFC", "block-field-text": "#222634", "block-shade": "#000000"}
 PIN_COLOURS = {
     "object": "#41C3DC",
     "any": "#AAAAB2",
@@ -103,6 +107,8 @@ ALLOWED = (
     | set(ACCENT.values())
     | set(PIN_COLOURS.values())
     | {dark for dark, _ in LUAU_EDITOR.values()}
+    | {"#A06C0F", "#94640E", "#7658E0", "#5C45AF", "#117DA1", "#0E6583"}
+    | set(BLOCK_FIELD.values())
 )
 
 
@@ -193,12 +199,12 @@ def test_the_accent_hex_appears_only_on_its_token_lines(css):
             assert re.match(r"\s*--color-(primary|accent): #", line), line
 
 
-def test_the_accent_is_used_only_by_the_badge_dot_and_the_reel_progress(css):
-    """The primary button reads it through DaisyUI; Phase 4's scan line is drawn on the canvas."""
+def test_the_accent_is_used_only_by_the_badge_dot(css):
+    """The primary button reads it through DaisyUI; the wipe's scan line is drawn on the canvas."""
     users = [
         line.strip().split(" {", 1)[0] for line in css.splitlines() if "var(--color-accent)" in line
     ]
-    assert users == [".badge-dot", ".reel-fill"]
+    assert users == [".badge-dot"]
     assert "var(--color-primary)" not in css
 
 
@@ -274,6 +280,10 @@ TEXT_PAIRS = [
     # The Logic loop's Graph view (static/reel/drawing/blocks.js).
     ("node titles: Events", "node-title", "node-events"),
     ("node titles: Looks", "node-title", "node-looks"),
+    ("block words: Events", "node-title", "block-events"),
+    ("block words: Looks", "node-title", "block-looks"),
+    ("block words: Sensing", "node-title", "block-sensing"),
+    ("block typed values", "block-field-text", "block-field"),
     ("node rows and values", "fg", "surface"),
     ("node value boxes", "fg", "inset"),
     # The Editor and Terrain loops (static/reel/loops/).
@@ -285,16 +295,20 @@ TEXT_PAIRS = [
     ("drawn editor: panel text", "fg", "panel"),
     ("drawn editor: active tab", "fg-strong", "surface"),
     ("drawn editor: selected row", "fg-strong", "control-active"),
-    # The reel's canvas (static/reel/scenes) draws only these pairs, plus ones above.
-    ("reel: Explorer rows, Properties names and section titles", "fg-secondary", "panel"),
-    ("reel: Terrain tool buttons", "fg-secondary", "control"),
-    ("reel: Terrain's chosen tab", "fg-strong", "control-active"),
-    ("reel: field values and the Console log", "fg", "inset"),
-    ("reel: field placeholders", "fg-weak", "inset"),
-    ("reel: Properties names", "fg-weak", "panel"),
-    ("reel: window titles", "fg-weak", "app"),
-    ("reel: play and pause button", "fg-strong", "app"),
-    ("reel: button hovered", "on-ink", "ink"),
+    # The editor pieces the loops draw with (static/reel/drawing/editor.js, toolbox.js,
+    # animation.js), and the Toolbox and Animation loops' drawings.
+    ("editor: Explorer rows, Properties names, section titles", "fg-secondary", "panel"),
+    ("editor: buttons and Terrain tools", "fg-secondary", "control"),
+    ("editor: chosen tab or button", "fg-strong", "control-active"),
+    ("editor: field values, the Console log", "fg", "inset"),
+    ("editor: field placeholders, dope sheet rows", "fg-weak", "inset"),
+    ("editor: Properties names", "fg-weak", "panel"),
+    ("editor: window titles", "fg-weak", "app"),
+    ("editor: Toolbox card names", "fg-strong", "surface"),
+    ("editor: Toolbox card details", "fg-weak", "surface"),
+    # The hero film's pause button.
+    ("film button", "fg-strong", "app"),
+    ("film button hovered", "on-ink", "ink"),
 ]
 NON_TEXT_PAIRS = [
     ("focus ring on the page", "ink", "app"),
@@ -306,11 +320,10 @@ NON_TEXT_PAIRS = [
     ("theme switch and menu icons", "fg-secondary", "app"),
     ("workflow numeral outline", "fg-weak", "app"),
     ("drawn terrain lines", "fg-weak", "inset"),
-    ("reel progress", "accent", "app"),
-    ("reel scene markers", "fg-weak", "app"),
-    ("reel scrubber thumb", "ink", "app"),
-    ("reel viewport grid", "fg-weak", "inset"),
-    ("reel viewport block", "fg-strong", "inset"),
+    ("renderer wipe's scan line", "accent", "inset"),
+    ("viewport grid", "fg-weak", "inset"),
+    ("viewport block", "fg-strong", "inset"),
+    ("drawn dope sheet keys", "fg-secondary", "inset"),
     ("node wire and exec pins", "fg-secondary", "inset"),
     ("terrain brush ring", "fg-strong", "surface"),
     ("loop pause button edge", "fg-strong", "app"),
@@ -348,12 +361,11 @@ RULES = {
     ".drawn-grid {": "stroke: var(--color-fg-weak);",
     ".ed-tab[data-on] {": "background: var(--color-surface); color: var(--color-fg-strong);",
     ".ed-tree li[data-on] {": "background: var(--color-control-active); color: var(--color-fg-strong);",
-    ".reel-fill {": "background: var(--color-accent);",
-    ".reel-marker {": "background: var(--color-fg-weak);",
-    ".reel-button {": "color: var(--color-fg-strong);",
-    "html[data-pointer] .reel-button:hover {": "color: var(--color-on-ink); background: var(--color-ink);",
-    ".reel-controls {": "background: var(--color-app);",
-    ".reel-range::-webkit-slider-thumb {": "background: var(--color-ink);",
+    ".film-button {": "color: var(--color-fg-strong); background: var(--color-app);",
+    "html[data-pointer] .film-button:hover {": "color: var(--color-on-ink); background: var(--color-ink);",
+    ".tb-name {": "color: var(--color-fg-strong);",
+    ".tb-detail {": "color: var(--color-fg-weak);",
+    ".an-sheet dt {": "color: var(--color-fg-weak);",
 }
 
 
@@ -438,6 +450,33 @@ def test_node_headers_are_the_editors_category_hues(palettes, hue):
         assert palettes[mode]["node-title"] == "#FFFFFF", mode
 
 
+def _under_white_text(hex_value: str) -> str:
+    """theme.rs Palette::under_white_text with Increase contrast: mixed toward black 4 % at a
+    time until white reads on it at 4.5:1."""
+    t, fill = 0.0, hex_value
+    while _contrast("#FFFFFF", fill) < 4.5 and t < 1:
+        t += 0.04
+        fill = _mix(hex_value, "#000000", t)
+    return fill
+
+
+@pytest.mark.parametrize("hue", BLOCK_HUES)
+def test_block_fills_and_edges_are_the_editors_with_increase_contrast(palettes, hue):
+    """theme.rs Hue::fill (the base, under white text) and Hue::edge (the base at 78 %, under
+    white text). Content colours: the same in both schemes."""
+    base = BLOCK_HUES[hue]
+    edge = _hex(int(channel * 0.78 + 0.5) for channel in _rgb(base))
+    for mode in ("dark", "light"):
+        assert palettes[mode][f"block-{hue}"] == _under_white_text(base), mode
+        assert palettes[mode][f"block-{hue}-edge"] == _under_white_text(edge), mode
+
+
+@pytest.mark.parametrize(("token", "hex_value"), BLOCK_FIELD.items())
+def test_block_fields_are_the_editors_in_both_schemes(palettes, token, hex_value):
+    for mode in ("dark", "light"):
+        assert palettes[mode][token] == hex_value, mode
+
+
 @pytest.mark.parametrize("pin", PIN_COLOURS)
 def test_pin_colours_are_the_editors_in_both_schemes(palettes, pin):
     """Pin colours are content in the editor too: unchanged in light mode. A pin is never
@@ -450,14 +489,17 @@ def test_content_colours_stay_in_code_and_node_graphs(css):
     """They're never chrome: the stylesheet uses only the Luau ones, in the .luau-* rules, and
     on the canvas only the code and node drawings read them."""
     for line in css.splitlines():
-        if re.search(r"var\(--color-(luau|node|pin)-", line):
+        if re.search(r"var\(--color-(luau|node|pin|block)-", line):
             assert re.match(r"\.luau-(\w+) \{ color: var\(--color-luau-\1\); \}$", line), line
     reel = settings.BASE_DIR / "static" / "reel"
     for path in reel.rglob("*.js"):
-        uses = re.findall(r"colors\.(luau|node|pin)\w*|\"(luau|node|pin)\w+\"", path.read_text())
+        uses = re.findall(
+            r"colors\.(luau|node|pin|block)\w*|\"(luau|node|pin|block)[\w-]+\"", path.read_text()
+        )
         if uses:
             assert path.relative_to(reel).as_posix() in {
                 "canvas.js",
                 "drawing/blocks.js",
+                "drawing/stacks.js",
                 "drawing/code.js",
             }, path

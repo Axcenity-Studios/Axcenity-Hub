@@ -10,7 +10,7 @@
 //    periodically the whole time.
 //
 // Below 480 px wide only the Scene View shows, with the current tool named in
-// a chip. Like a reel scene it holds no state: a frame comes from (context,
+// a chip. Like every loop it holds no state: a frame comes from (context,
 // time, size) alone.
 
 import { clamp, easeInOut, expoOut, lerp, progress, rect, spring } from "../easing.js";

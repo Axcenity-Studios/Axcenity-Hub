@@ -1,6 +1,6 @@
-// Easing and interpolation for the reel's scenes. Every function here is pure:
+// Easing and interpolation for the animated loops. Every function here is pure:
 // the same arguments always give the same answer, with no state between calls,
-// so a scene drawn from them is a pure function of time.
+// so a loop drawn from them is a pure function of time.
 
 /** `value` limited to [low, high]. */
 export function clamp(value, low = 0, high = 1) {

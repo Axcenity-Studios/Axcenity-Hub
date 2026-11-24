@@ -10,4 +10,6 @@
 {% include "marketing/home/toolbox.html" %}
 {% include "marketing/home/community.html" %}
 {% include "marketing/home/final.html" %}
+{# The animated recreations (static/reel/loops/). Without modules or a canvas their drawings stay. #}
+<script type="module" src="{% versioned_static 'reel/loops/main.js' %}"></script>
 {% endblock %}

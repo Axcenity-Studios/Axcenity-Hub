@@ -1,0 +1,13 @@
+{# The Toolbox loop's fallback: its search for "rock" and the first results. #}
+{# Every word comes from the manifest's labels (content.MEDIA["toolbox"]). #}
+{% with pane=media.labels.toolbox %}
+<div class="drawn-toolbox" role="img" aria-label="{{ media.fallback_alt }}">
+  <div class="ed-tabs">{% for name in pane.kinds %}<span class="ed-tab"{% if forloop.first %} data-on{% endif %}>{{ name }}</span>{% endfor %}</div>
+  <div class="tb-bar"><span class="tb-field">{{ pane.query }}</span><span class="tb-button">{{ pane.search }}</span></div>
+  <ul class="tb-cards">
+    {% for name, detail, pattern in pane.cards|slice:":6" %}
+      <li><span class="tb-picture" data-pattern="{{ pattern }}"></span><span class="tb-name">{{ name }}</span><span class="tb-detail">{{ detail }}</span><span class="tb-button">{{ pane.get }}</span></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endwith %}

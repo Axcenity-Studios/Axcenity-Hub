@@ -1,4 +1,4 @@
-"""The media pipeline and the feature pillars' animated recreations, without a browser.
+"""The media pipeline and the animated recreations, without a browser.
 
 The derivatives on disk and the manifest's sizes are checked in tests/test_home.py; the
 loops' behaviour (playing, pausing, reduced motion, sharpness) in
@@ -29,9 +29,12 @@ def _js(name: str) -> str:
 
 
 @pytest.fixture
-def features(client):
-    html = client.get(reverse("marketing:home")).content.decode()
-    return html.split('id="features"', 1)[1].split("</section>", 1)[0]
+def home(client):
+    return client.get(reverse("marketing:home")).content.decode()
+
+
+# The pillars' loops show inline and on the stage; each section's loop once, in its section.
+SECTION_LOOPS = {"toolbox": "toolbox", "wipe": "community", "animation": "start"}
 
 
 # ---------- The pipeline ----------
@@ -134,13 +137,15 @@ def test_the_player_runs_only_when_wanted_on_screen_visible_and_current():
 
 
 @pytest.mark.parametrize("item", ANIMATED, ids=lambda item: item.key)
-def test_each_loop_has_its_canvas_fallback_description_and_button(features, item):
+def test_each_loop_has_its_canvas_fallback_description_and_button(home, item):
+    section = SECTION_LOOPS.get(item.key, "features")
+    html = home.split(f'id="{section}"', 1)[1].split("</section>", 1)[0]
     figures = re.findall(
-        rf'<figure class="media[^"]*" data-loop="{item.loop}" data-labels="([^"]*)">(.*?)</figure>',
-        features,
+        rf'<figure class="media[^"]*" data-loop="{item.loop}" data-labels="([^"]*)"[^>]*>(.*?)</figure>',
+        html,
         re.S,
     )
-    assert len(figures) == 2  # inline and on the stage
+    assert len(figures) == (1 if item.key in SECTION_LOOPS else 2)
     for labels, body in figures:
         assert json.loads(
             labels.replace("&quot;", '"').replace("&#x27;", "'").replace("&amp;", "&")
@@ -205,6 +210,34 @@ def test_the_logic_nodes_are_the_block_editors():
     assert decal["outputs"] == [("", "exec"), ("Decal", "object")]
 
 
+def test_the_logic_blocks_are_the_block_editors():
+    """crates/editor/src/block_editor.rs sections(): When touched's one row and Spawn decal's
+    two, with the touching part's Position as a Sensing reporter; scripts.rs mode_bar."""
+    labels = content.MEDIA["logic"].labels
+    assert labels["views"] == ["Code", "Blocks", "Graph"]
+    assert labels["switch_hint"] == "Switch any time: the script runs the same either way."
+    hat, decal = labels["stack"]
+    assert (hat["category"], decal["category"]) == ("events", "looks")
+    words = lambda row: [part[1] for part in row if part[0] == "label"]  # noqa: E731
+    assert words(hat["rows"][0]) == ["when", "is touched"]
+    assert [words(row) for row in decal["rows"]] == [
+        ["spawn decal", "at", "facing"],
+        ["size", "fading after", "seconds"],
+    ]
+    reporter = next(part for part in decal["rows"][0] if part[0] == "reporter")
+    assert reporter[1] == "sensing" and reporter[2][-1] == [
+        "reporter",
+        "sensing",
+        [["label", "touching part"]],
+    ]
+    # The values are the Graph's and the Luau's.
+    assert ["text", "assets/textures/scorch.png"] in decal["rows"][0]
+    assert ["number", "2.5"] in decal["rows"][1] and ["number", "4"] in decal["rows"][1]
+    assert (
+        '"assets/textures/scorch.png"' in content.LUAU_SAMPLE and "2.5, 4)" in content.LUAU_SAMPLE
+    )
+
+
 def test_the_logic_code_is_the_sample_the_page_shows():
     labels = content.MEDIA["logic"].labels
     assert (
@@ -226,6 +259,6 @@ def test_the_terrain_loop_uses_the_studios_and_scatter_panes_words():
 
 def test_the_editor_loop_uses_the_default_dock_and_reset_layout():
     labels = content.MEDIA["editor"].labels
-    assert labels["tabs"] == content.MEDIA["reel"].labels["tabs"] == content.EDITOR_DOCK
+    assert labels["tabs"] == content.EDITOR_DOCK
     assert labels["menus"] == ["File", "Edit", "View", "Viewport", "Debug", "Help"]
     assert (labels["panels"], labels["reset"]) == ("Panels", "Reset Layout")  # chrome/menus.rs

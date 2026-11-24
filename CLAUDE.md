@@ -15,7 +15,7 @@ showcases and reports in later phases.
 uv sync                                     # uv only: no pip, no Node, no npm
 uv run python manage.py tailwind runserver  # Django + Tailwind watcher
 uv run pytest -m "not browser"              # fast tests; green before every commit
-uv run pytest -m browser                    # Playwright reel and media tests
+uv run pytest -m browser                    # Playwright film and media tests
 uv run python manage.py make_media          # capture derivatives (after adding a capture)
 uv run ruff check . && uv run ruff format .
 ```
@@ -49,8 +49,8 @@ invent their contents.
 |---|---|
 | add models, URLs, views, services | `docs/ARCHITECTURE.md` |
 | touch templates, CSS, theme, motion | `docs/FRONTEND.md` |
-| work on the showcase reel (`static/reel/`) | `docs/frontend/reel.md` |
-| add or change media, captures or the pillars' loops | `docs/frontend/media.md` |
+| work on the animated loops' canvas kit (`static/reel/`) | `docs/frontend/canvas.md` |
+| add or change media, captures, the hero's film or the loops | `docs/frontend/media.md` |
 | write or change tests | `docs/TESTING.md` |
 
 ## Keeping docs lean

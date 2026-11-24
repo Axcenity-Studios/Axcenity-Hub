@@ -1,7 +1,20 @@
-{# Hero: the showcase reel behind the badge, the headline with its rotating line, the pitch and the #}
-{# two calls to action. The reel's controls sit bottom right. It's above the fold: no reveals.      #}
+{% load static %}
+{# Hero: the Desert Homestead film full bleed behind the badge, the headline with its rotating line, the  #}
+{# pitch and the two calls to action. home.js plays the film (never autoplay: Pause, reduced motion, off #}
+{# screen and a hidden tab all stop it); its pause button sits bottom right. It's above the fold: no reveals. #}
 <section id="hero" class="hero under-nav relative flex min-h-[100svh] items-end overflow-hidden">
-  {% include "marketing/media/reel.html" with media=hero.reel fallback=hero.fallback controls=hero.reel_controls backdrop=hero.backdrop %}
+  {% with film=hero.backdrop controls=hero.video_controls %}
+  <figure class="hero-film" data-film>
+    <video class="hero-film-video" muted loop playsinline preload="metadata" aria-hidden="true" poster="{% static film.poster %}">
+      {% for source in film.sources %}<source src="{% static source.file %}" type="{{ source.mime }}">{% endfor %}
+    </video>
+    <figcaption class="media-cap micro">{{ film.caption }}</figcaption>
+  </figure>
+  <button type="button" class="film-button" data-film-toggle aria-label="{{ controls.pause }}" data-play-label="{{ controls.play }}" data-pause-label="{{ controls.pause }}" hidden>
+    <svg class="media-icon media-icon-play" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M3 1.5v11l9.5-5.5z"/></svg>
+    <svg class="media-icon media-icon-pause" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M3 1.5h3v11H3zM8 1.5h3v11H8z"/></svg>
+  </button>
+  {% endwith %}
   <div id="hero-copy" class="hero-copy relative z-10 mx-auto w-full max-w-[1400px] px-4 pt-24 pb-24 md:px-8">
     <p class="badge-pill micro"><span class="badge-dot" aria-hidden="true"></span>{{ hero.badge }}</p>
     <h1 class="display mt-6 text-5xl text-fg-strong sm:text-6xl md:text-8xl">

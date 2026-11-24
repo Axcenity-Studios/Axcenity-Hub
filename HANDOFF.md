@@ -34,7 +34,7 @@ indexes), then continue phase by phase.
   - Fonts and brand images are in `static/fonts` and `static/brand`.
   - Settings show the no-Node Tailwind/DaisyUI setup
     (`TAILWIND_CLI_USE_DAISY_UI`, `TAILWIND_CLI_SRC_CSS`).
-- **Engine** (branding, and the UI the reel recreates):
+- **Engine** (branding, and the UI the loops recreate):
   `~/Documents/VSCode Projects/Axcenity-Engine`.
   - Branding: `assets/branding/`
   - Editor palette: `crates/editor-kit/src/theme.rs`
