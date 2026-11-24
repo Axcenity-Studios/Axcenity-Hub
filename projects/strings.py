@@ -102,7 +102,7 @@ RETRY_AFTER = "Try again after {when}."
 SETUP_TITLE = "Set up your repository"
 SETUP_DONE_TITLE = "Repository connected"
 SETUP_DONE_NOTE = "GitHub tells the Hub about pushes, renames and deletions as they happen."
-SETUP_DONE_NOTE_OFF = "Its details refresh from GitHub when you open the project."
+SETUP_OFF_NOTE = "Live updates aren't available on this Hub yet."
 SETUP_SHOW = "Show steps"
 SETUP_HIDE = "Hide steps"
 STEP_STATES = {
@@ -155,8 +155,13 @@ STEPS = {
         "waiting": "Link a repository first.",
         "done": "Settings shown. You can show them again at any time.",
         "off": (
-            "This Hub has no webhook secret set, so webhooks are off. The repository's details "
-            "refresh when you open the project instead."
+            "Live updates aren't turned on for this Hub yet, so GitHub can't send them. Your "
+            "repository is still linked: its details refresh from GitHub when you open the "
+            "project (at most hourly), or when you press Refresh from GitHub."
+        ),
+        "off_operator": (
+            "Running this Hub yourself? Set GITHUB_WEBHOOK_SECRET in its .env and restart it to "
+            "turn webhooks on. The guide's “Testing on your own computer” has the steps."
         ),
         "show": "Show webhook settings",
         "show_again": "Show settings again",
@@ -171,9 +176,10 @@ STEPS = {
             "linking again gives a new address and secret."
         ),
         "local": (
-            "This Hub is running on your own computer ({host}), so GitHub can't reach this "
-            "address. To try webhooks, put the Hub behind a tunnel first: see the guide's "
-            "“Testing on your own computer”."
+            "GitHub can't reach {host}: it's this computer. Put the Hub behind a tunnel and set "
+            "HUB_PUBLIC_URL in its .env to the tunnel's https:// address, then restart it: the "
+            "payload URL here will use that address. See the guide's “Testing on your own "
+            "computer”."
         ),
     },
     "delivery": {
@@ -185,7 +191,7 @@ STEPS = {
         ),
         "waiting": "Add the webhook first.",
         "done": "First delivery {first}. Latest {last}.",
-        "off": "Needs webhooks, which are off on this Hub.",
+        "off": "Comes after the webhook, once live updates are turned on for this Hub.",
         "trouble": (
             "Nothing yet? On GitHub, open the webhook's Recent Deliveries tab: the guide "
             "explains each response."
@@ -313,12 +319,20 @@ GUIDE_UNLINK = (
 GUIDE_LOCAL_TITLE = "Testing on your own computer"
 GUIDE_LOCAL = [
     "GitHub can only deliver to an address on the internet, not to localhost or 127.0.0.1.",
-    "Start a tunnel to the Hub, for example Cloudflare's (the command below). It prints an "
-    "https://….trycloudflare.com address.",
-    "Allow that address: add .trycloudflare.com to DJANGO_ALLOWED_HOSTS, and set "
-    "GITHUB_WEBHOOK_SECRET, in the Hub's .env, then restart it.",
-    "Use the payload URL the Hub shows with the tunnel's https:// address in place of "
-    "http://127.0.0.1:8000. A new tunnel gets a new address: edit the webhook to match.",
+    "Turn webhooks on: set GITHUB_WEBHOOK_SECRET in the Hub's .env to a long random value "
+    "(the first command below makes one). Keep it: every repository's secret is made from it.",
+    "Start a tunnel to the Hub. A quick tunnel (the second command) needs no account and "
+    "prints a new https://….trycloudflare.com address each time. A named tunnel on a domain "
+    "you have in Cloudflare keeps one address, such as https://hub-dev.example.com.",
+    "Set HUB_PUBLIC_URL in the .env to the tunnel's https:// address (scheme and host only) "
+    "and restart the Hub. Its host is allowed, and the payload URL the project page shows "
+    "uses it.",
+    "A quick tunnel's address changes each time: update HUB_PUBLIC_URL and the webhook's "
+    "payload URL on GitHub to match.",
 ]
-GUIDE_LOCAL_COMMAND = "cloudflared tunnel --url http://127.0.0.1:8000"
+GUIDE_LOCAL_COMMANDS = [
+    'uv run python -c "import secrets; print(secrets.token_hex(32))"',
+    "cloudflared tunnel --url http://127.0.0.1:8000",
+    "uv run --env-file .env python manage.py tailwind runserver",
+]
 GUIDE_LOCAL_NOTE = "Only for running the Hub yourself: members of a hosted Hub never need this."

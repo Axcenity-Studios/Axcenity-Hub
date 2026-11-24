@@ -12,6 +12,7 @@ import os
 import tempfile
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from cryptography.fernet import Fernet
 from django.core.exceptions import ImproperlyConfigured
@@ -40,6 +41,19 @@ DEVELOPMENT_SECRET_KEY = "django-insecure-axcenity-hub-development-key-not-for-p
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "" if PRODUCTION else DEVELOPMENT_SECRET_KEY)
 
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "" if PRODUCTION else "localhost,127.0.0.1")
+
+# The Hub's address on the internet, as GitHub must reach it (https://hub.example.com, or a
+# tunnel's address in development). Webhook payload URLs are built on it, and its host is
+# allowed. Unset, they're built on the address the page was opened at.
+HUB_PUBLIC_URL = os.environ.get("HUB_PUBLIC_URL", "").strip().rstrip("/")
+if HUB_PUBLIC_URL:
+    _public = urlsplit(HUB_PUBLIC_URL)
+    if _public.scheme not in ("http", "https") or not _public.hostname or _public.path:
+        raise ImproperlyConfigured(
+            "HUB_PUBLIC_URL must be a scheme and host only, such as https://hub.example.com"
+        )
+    if _public.hostname not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_public.hostname)
 
 if PRODUCTION:
     # The same rules as `check --deploy`'s security.W009: long, varied, not a default.
@@ -181,12 +195,17 @@ X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+# Origins whose form posts pass the CSRF check besides the page's own. The Hub's public
+# address is one: behind a tunnel or a TLS proxy the browser posts from https://<host> while
+# Django sees plain http, so without it every sign-in through that address is refused.
+CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+if HUB_PUBLIC_URL and HUB_PUBLIC_URL not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(HUB_PUBLIC_URL)
 if PRODUCTION:
     SECURE_SSL_REDIRECT = True
     SECURE_HSTS_SECONDS = 365 * 24 * 60 * 60
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
     # Behind a TLS-terminating proxy that sets X-Forwarded-Proto (and only then).
     if env_bool("DJANGO_BEHIND_PROXY", False):
         SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

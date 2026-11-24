@@ -27,7 +27,11 @@ these pages get theirs as `text`.
 | 03 Add the webhook on GitHub | `webhook_shown_at` is set (or a delivery arrived) | `off` without `GITHUB_WEBHOOK_SECRET` |
 | 04 Wait for GitHub's first delivery | `first_webhook_at` is set | `off` likewise |
 
-Only the first unfinished step is `current`; later ones wait. The view (`step_rows`) adds
+Only the first unfinished step is `current`; later ones wait. Progress is out of four always:
+with webhooks off the setup is never complete ("2 / 4", "Live updates aren't available on this
+Hub yet."), and step 3 tells a member their repository is still linked and refreshes hourly.
+Only a development server (`DEBUG`) adds the operator's hint (set `GITHUB_WEBHOOK_SECRET`);
+members of a hosted Hub never see the server's settings named. The view (`step_rows`) adds
 each step's words and summary ("Linked as octocat.", "First delivery …").
 
 - The checklist is a `<details id="setup">`: open until every available step is done, then
@@ -43,8 +47,10 @@ each step's words and summary ("Linked as octocat.", "First delivery …").
   carrying the secret is never cached (`add_never_cache_headers`). The secret never appears
   without `?webhook=show`.
 - **Open GitHub's Add webhook page** links to `<repository>/settings/hooks/new` in a new tab.
-- On `localhost`, `127.0.0.1` or `[::1]` the step warns that GitHub can't reach the Hub and
-  points at the guide's "Testing on your own computer".
+- The payload URL is built on `HUB_PUBLIC_URL` when set (`views.payload_url`). When the
+  URL's host is `localhost`, `127.0.0.1` or `::1`, the step warns that GitHub can't reach it,
+  says to set `HUB_PUBLIC_URL` to a tunnel's address, and points at the guide's "Testing on
+  your own computer" (which covers quick and named Cloudflare tunnels).
 
 ## Copy buttons
 

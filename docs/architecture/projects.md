@@ -119,8 +119,14 @@ send a token; the signature authenticates instead). Public by necessity.
   `deleted_on_github`; `push` updates `pushed_at` (Unix seconds there). Events about another
   repository id, and other kinds, are 202 and change nothing. A refused delivery rolls back.
 
+**The payload URL** is built on `HUB_PUBLIC_URL` when it's set (the Hub's address on the
+internet: production's origin, or a tunnel's in development; its host is added to
+`ALLOWED_HOSTS`, and settings refuse anything but a scheme and host), else on the address the
+page was opened at.
+
 **Setting one up** (development needs a tunnel for GitHub to reach the Hub): set
-`GITHUB_WEBHOOK_SECRET` (`uv run python -c "import secrets; print(secrets.token_hex(32))"`),
+`GITHUB_WEBHOOK_SECRET` (`uv run python -c "import secrets; print(secrets.token_hex(32))"`)
+and `HUB_PUBLIC_URL` (the tunnel's `https://` address), restart,
 open the project's checklist at step 3 (**Show webhook settings**), and add a webhook in the
 repository's settings with that payload URL, `application/json`, the secret, and the Pushes
 and Repositories events. Members' own walkthrough is the public guide, `/projects/guide/`.

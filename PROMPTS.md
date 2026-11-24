@@ -28,6 +28,63 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-24 — Phase 10 follow-up: webhooks through a Cloudflare Tunnel, honest setup messages, and the README
+
+### Prompts
+
+1. A screenshot of GitHub's Add webhook form: "Ok so I am at this screen what do I put for
+   payload URL and secret"
+2. A screenshot of the project page (steps 3 and 4 "Not available", "Repository connected,
+   2 / 2"): "This is what I have"
+3. A screenshot of Cloudflare's "Add published application" failing for the bare domain:
+   "Ok it seems to not be working on cloudflare tunnels also fix the webhook messages"
+4. "Can you add hub.axcenity.com to allowed hosts"
+5. "Ok I got a 403 forbidden when trying to login to the ada account it was a csrf
+   verification failed"
+6. "Ok I got it to work can you include in the README the information about how to setup a
+   domain in cloudflare tunnels and what information to put in the webhooks etc. go ahead and
+   update PROMPTS.md commit and push"
+
+### Summary
+
+- **Outcome:** The user's repository webhook works through a named Cloudflare Tunnel on their
+  own domain. The setup checklist no longer claims completion when the server has webhooks
+  off; a new `HUB_PUBLIC_URL` setting builds payload URLs on the Hub's public address, allows
+  its host and trusts it for CSRF; the README documents the whole setup. 1135 fast tests and
+  the project browser tests (8) pass; Ruff is clean.
+- **Changes:**
+  - `projects/setup.py`: progress is out of four always; with webhooks off the setup is
+    never complete (`live_updates_off`). `projects/strings.py`, `templates/projects/detail.html`:
+    member-facing wording for webhooks off ("Live updates aren't available on this Hub yet");
+    the operator's hint (set `GITHUB_WEBHOOK_SECRET`) only on a development server; the
+    local-host warning points at `HUB_PUBLIC_URL`; the guide's "Testing on your own computer"
+    covers quick and named tunnels and lists the commands.
+  - `config/settings.py`: `HUB_PUBLIC_URL` (scheme and host only, else settings refuse to
+    load), added to `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS`; `DJANGO_CSRF_TRUSTED_ORIGINS`
+    read in development too. `projects/views.py`: `payload_url` builds on it.
+  - `.env.example`, `README.md` (status table, stack, environment variables, a new
+    "Connecting GitHub repositories" section: the server's settings, a named or quick
+    Cloudflare Tunnel, GitHub's webhook form field by field, troubleshooting), and the docs
+    (ARCHITECTURE, `architecture/projects.md`, `frontend/projects.md`, TESTING).
+  - Tests: `test_projects_setup.py` (webhooks off never complete, the operator hint in
+    development only, the payload URL on the public address), `test_settings_production.py`
+    (the public address allowed and trusted, malformed values refused).
+  - The user's `.env` (git-ignored, never committed or printed): `HUB_PUBLIC_SECRET` renamed
+    to `GITHUB_WEBHOOK_SECRET`, `DJANGO_ALLOWED_HOSTS` and `HUB_PUBLIC_URL` added, at the
+    user's request; only variable names were read.
+- **Decisions:** One setting, `HUB_PUBLIC_URL`, rather than asking members to swap hosts by
+  hand: it's the site's own origin, so allowing it and trusting it for CSRF follows. Settings
+  names appear on member pages only when `DEBUG` is on. The README recommends publishing only
+  the webhook path through the tunnel, since the development server runs with `DEBUG` on.
+- **Deviations:** None.
+- **Sideways:** The webhook steps were "Not available" because the user's `.env` held the
+  secret under a misremembered name (`HUB_PUBLIC_SECRET`), found by checking the value's
+  shape without printing it. The checklist's "Repository connected, 2 / 2" with webhooks off
+  was misleading (the user's screenshot showed it); fixed. Cloudflare refused the bare domain
+  (likely an existing DNS record); a subdomain worked. Signing in through the tunnel failed
+  CSRF's origin check (https at Cloudflare, http at Django); trusting the public origin fixed
+  it. A test edit missed once because Ruff had reformatted the test; reread and reapplied.
+
 ## 2026-11-24 — Phase 10 follow-up: webhook setup help, guided repository setup and a setup guide
 
 ### Prompts

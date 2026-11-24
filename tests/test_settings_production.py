@@ -24,7 +24,7 @@ def run(args: list[str], **env: str) -> subprocess.CompletedProcess:
     clean = {
         k: v
         for k, v in os.environ.items()
-        if not k.startswith(("DJANGO_", "TURNSTILE_", "GITHUB_"))
+        if not k.startswith(("DJANGO_", "TURNSTILE_", "GITHUB_", "HUB_"))
     }
     clean["DJANGO_SETTINGS_MODULE"] = "config.settings"
     return subprocess.run(
@@ -133,6 +133,33 @@ def test_a_malformed_token_key_is_refused_without_echoing_it():
     result = run(["manage.py", "check"], GITHUB_TOKEN_KEYS=bad)
     assert result.returncode != 0
     assert "GITHUB_TOKEN_KEYS" in result.stderr and bad not in result.stderr
+
+
+def test_the_public_url_is_allowed_trusted_for_forms_and_must_be_a_scheme_and_host_only():
+    code = (
+        "import django; django.setup(); from django.conf import settings as s; "
+        "print(s.ALLOWED_HOSTS, s.CSRF_TRUSTED_ORIGINS, s.HUB_PUBLIC_URL)"
+    )
+    result = run(["-c", code], HUB_PUBLIC_URL="https://hub-dev.example.com/")
+    assert result.returncode == 0, result.stderr
+    # Behind a tunnel the browser posts from https://hub-dev.example.com while Django sees
+    # http: trusting the public origin is what lets sign-in through it pass the CSRF check.
+    assert result.stdout.strip() == (
+        "['localhost', '127.0.0.1', 'hub-dev.example.com'] ['https://hub-dev.example.com'] "
+        "https://hub-dev.example.com"
+    )
+    # Development reads DJANGO_CSRF_TRUSTED_ORIGINS too, and trusts nothing extra by default.
+    result = run(["-c", code], DJANGO_CSRF_TRUSTED_ORIGINS="https://other.example.com")
+    assert "['https://other.example.com']" in result.stdout
+    assert run(["-c", code]).stdout.strip() == "['localhost', '127.0.0.1'] []"
+    for bad in [
+        "hub-dev.example.com",
+        "ftp://hub.example.com",
+        "https://hub.example.com/hub",
+        "https://",
+    ]:
+        result = run(["manage.py", "check"], HUB_PUBLIC_URL=bad)
+        assert result.returncode != 0 and "HUB_PUBLIC_URL" in result.stderr, bad
 
 
 def test_env_example_lists_every_variable_settings_reads_and_holds_no_values():

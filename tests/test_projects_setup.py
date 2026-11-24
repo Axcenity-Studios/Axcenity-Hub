@@ -95,11 +95,13 @@ def test_the_steps_follow_the_real_records_one_current_step_at_a_time(settings):
     link.deleted_on_github, link.first_webhook_at, link.webhook_shown_at = True, None, None
     assert states(ada, link) == ["done", "attention", "waiting", "waiting"]
 
-    # Webhooks off on this server: two steps, both off, and complete once linked.
+    # Webhooks off on this server: steps 3 and 4 are off, and the setup never claims to be
+    # complete (the repository is linked, but GitHub can't send live updates).
     settings.GITHUB_WEBHOOK_SECRET = ""
+    RepositoryLink.objects.filter(pk=link.pk).update(deleted_on_github=False)
     setup = setup_for(ada, RepositoryLink.objects.get(pk=link.pk))
-    assert [s.state for s in setup.steps][2:] == [State.OFF, State.OFF]
-    assert (setup.done, setup.total, setup.complete) == (2, 2, True)
+    assert [s.state for s in setup.steps] == [State.DONE, State.DONE, State.OFF, State.OFF]
+    assert (setup.done, setup.total, setup.complete, setup.live_updates_off) == (2, 4, False, True)
 
 
 # ---------- The checklist on the page ----------
@@ -194,7 +196,52 @@ def test_the_webhook_values_come_with_copy_buttons_and_a_local_warning(client, s
         html = client.get(
             project.get_absolute_url() + "?webhook=show", HTTP_HOST="127.0.0.1:8000"
         ).content.decode()
-    assert "data-local-warning" in html and "127.0.0.1:8000" in html
+    assert "data-local-warning" in html and "127.0.0.1:8000" in html and "HUB_PUBLIC_URL" in html
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("debug", [True, False])
+def test_with_webhooks_off_the_page_says_live_updates_are_unavailable_not_done(
+    client, settings, debug
+):
+    settings.GITHUB_WEBHOOK_SECRET = ""
+    settings.DEBUG = debug
+    ada = make_member()
+    client.force_login(ada)
+    project = Project.objects.create(owner=ada, name="Space Game")
+    make_link(project)
+    page = unescape(client.get(project.get_absolute_url()).content.decode())
+    assert 'data-setup="incomplete"' in page and strings.SETUP_DONE_TITLE not in page
+    assert strings.STEPS["webhook"]["off"] in page and strings.SETUP_OFF_NOTE in page
+    assert "2 / 4" in page
+    # The server's own .env is a development hint only: members of a hosted Hub never see it.
+    assert ("data-operator-hint" in page) is debug
+    assert ("GITHUB_WEBHOOK_SECRET" in page) is debug
+
+
+@pytest.mark.django_db
+def test_the_payload_url_uses_the_public_address_when_one_is_set(client, settings):
+    import responses
+
+    settings.HUB_PUBLIC_URL = "https://hub-dev.example.com"
+    settings.ALLOWED_HOSTS = ["127.0.0.1", "hub-dev.example.com"]
+    ada = make_member()
+    client.force_login(ada)
+    project = Project.objects.create(owner=ada, name="Space Game")
+    link = make_link(project)
+    payload = {
+        "id": link.github_id, "full_name": link.full_name, "html_url": link.html_url,
+        "private": False, "archived": False,
+        "permissions": {"admin": True, "push": True, "pull": True},
+    }  # fmt: skip
+    with responses.RequestsMock() as mock:
+        mock.get("https://api.github.com/repos/octocat/Hello-World", json=payload)
+        html = client.get(
+            project.get_absolute_url() + "?webhook=show", HTTP_HOST="127.0.0.1:8000"
+        ).content.decode()
+    assert f"https://hub-dev.example.com/projects/hooks/github/{link.hook_id}/" in html
+    assert "http://127.0.0.1:8000/projects/hooks" not in html
+    assert "data-local-warning" not in html  # GitHub can reach the public address
 
 
 # ---------- The cards ----------

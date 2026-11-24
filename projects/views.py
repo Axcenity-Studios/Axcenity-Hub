@@ -5,6 +5,7 @@ Views are thin; the rules live in projects.services, projects.github and project
 """
 
 from datetime import UTC, datetime
+from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.contrib import messages
@@ -60,7 +61,14 @@ class OwnedProjectMixin(LoginRequiredMixin):
 
 
 # Hosts GitHub can never deliver to: the setup step warns that a tunnel is needed.
-LOCAL_HOSTS = {"localhost", "127.0.0.1", "[::1]"}
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
+def payload_url(request, path: str) -> str:
+    """`path` as GitHub must reach it: on HUB_PUBLIC_URL when set, else this page's address."""
+    if settings.HUB_PUBLIC_URL:
+        return settings.HUB_PUBLIC_URL + path
+    return request.build_absolute_uri(path)
 
 
 def project_setup(user, link: RepositoryLink | None) -> dict:
@@ -227,14 +235,16 @@ class ProjectDetailView(OwnedProjectMixin, DetailView):
         fields = []
         if hook is not None:
             values = {
-                "payload_url": request.build_absolute_uri(hook.path),
+                "payload_url": payload_url(request, hook.path),
                 "secret": hook.secret,
             }
             fields = [
                 {"label": label, "value": value.format(**values), "copy": copyable, "id": i}
                 for i, (label, value, copyable) in enumerate(strings.WEBHOOK_FIELDS)
             ]
-        host = request.get_host().rsplit(":", 1)[0] if hook is not None else ""
+        # The payload URL's host: the public address when one is set, else this page's.
+        public = urlsplit(payload_url(request, "/"))
+        host = (public.hostname or "") if hook is not None else ""
         moments = [m for m in (link.fetched_at, link.webhook_at) if m] if link else []
         context.update(
             text=strings,
@@ -249,10 +259,12 @@ class ProjectDetailView(OwnedProjectMixin, DetailView):
             webhook_new_url=f"{link.html_url}/settings/hooks/new" if link else "",
             updated_at=max(moments) if moments else None,
             local_warning=(
-                strings.STEPS["webhook"]["local"].format(host=request.get_host())
+                strings.STEPS["webhook"]["local"].format(host=public.netloc)
                 if host in LOCAL_HOSTS
                 else ""
             ),
+            # Only a development server's own developer can act on this hint.
+            show_operator_hint=settings.DEBUG,
         )
         return context
 

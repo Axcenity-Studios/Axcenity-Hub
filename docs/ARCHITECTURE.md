@@ -156,7 +156,7 @@ locally, copy it to `.env` (git-ignored) and run `uv run --env-file .env …`.
 | `DJANGO_DEBUG` | `true` | `DEBUG`; off is production: Secure cookies, SSL redirect, HSTS, shared cache, SMTP |
 | `DJANGO_SECRET_KEY` | a development key | Required in production (50+ characters), or settings refuse to load |
 | `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated; required in production |
-| `DJANGO_CSRF_TRUSTED_ORIGINS` | none | Production: comma-separated `https://` origins |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | none | Comma-separated `https://` origins whose form posts pass the CSRF check (`HUB_PUBLIC_URL` is added to them) |
 | `DJANGO_BEHIND_PROXY`, `DJANGO_TRUSTED_PROXY_COUNT` | off, `1` | Production behind a TLS proxy: trust `X-Forwarded-Proto` and that many `X-Forwarded-For` hops |
 | `DJANGO_REDIS_URL` | none | Production: Redis as the shared cache (otherwise the database cache) |
 | `DJANGO_EMAIL_BACKEND` | console (dev), SMTP (production) | The default mailer's backend |
@@ -164,6 +164,7 @@ locally, copy it to `.env` (git-ignored) and run `uv run --env-file .env …`.
 | `DJANGO_DEFAULT_FROM_EMAIL` | `Axcenity Hub <noreply@localhost>` | The sender |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | none | The GitHub OAuth App for account linking; off unless both and a token key are set |
 | `GITHUB_WEBHOOK_SECRET` | none | The root secret for repository webhooks (each link's secret derives from it); webhooks are off (404) unless set |
+| `HUB_PUBLIC_URL` | none | The Hub's address on the internet (scheme and host only): webhook payload URLs are built on it, its host is allowed, and it's a trusted CSRF origin (behind a tunnel or TLS proxy Django sees http while the browser posts from https); in development, a tunnel's address |
 | `GITHUB_TOKEN_KEYS` | none | Comma-separated Fernet keys for GitHub tokens at rest (first encrypts); required in production when the app is set |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | none | Cloudflare Turnstile on signup and reset; off unless both are set |
 | `AXCENITY_ENGINE_DIR` | `~/Documents/VSCode Projects/Axcenity-Engine` | The engine checkout `sync_engine_docs` reads (never at request time) |

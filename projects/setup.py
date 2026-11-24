@@ -8,8 +8,10 @@
    (or a delivery has arrived).
 4. **Wait for GitHub's first delivery**: done when one has arrived (GitHub pings at once).
 
-Steps 3 and 4 are "off" when this server has no webhook secret. A step after an unfinished
-one waits. The project page shows the first step that isn't done as the current one.
+Steps 3 and 4 are "off" when this server has no webhook secret: the repository is linked, but
+GitHub can't send live updates, so the setup isn't complete (it never claims to be). A step
+after an unfinished one waits. The project page shows the first step that isn't done as the
+current one.
 """
 
 from dataclasses import dataclass
@@ -49,11 +51,16 @@ class Setup:
 
     @property
     def total(self) -> int:
-        return sum(step.state is not State.OFF for step in self.steps)
+        return len(self.steps)
 
     @property
     def complete(self) -> bool:
         return self.done == self.total
+
+    @property
+    def live_updates_off(self) -> bool:
+        """The server has webhooks off: steps 3 and 4 can't be done here."""
+        return any(step.state is State.OFF for step in self.steps)
 
     def step(self, key: str) -> Step:
         return next(step for step in self.steps if step.key == key)

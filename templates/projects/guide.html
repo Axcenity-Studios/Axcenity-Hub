@@ -69,7 +69,8 @@
     <div class="pj-section">
       <p class="app-help">{{ text.GUIDE_LOCAL_NOTE }}</p>
       <ul class="pj-guide-list">{% for item in text.GUIDE_LOCAL %}<li>{{ item }}</li>{% endfor %}</ul>
-      <pre class="pj-terminal"><code>{{ text.GUIDE_LOCAL_COMMAND }}</code></pre>
+      <pre class="pj-terminal"><code>{% for command in text.GUIDE_LOCAL_COMMANDS %}{{ command }}{% if not forloop.last %}
+{% endif %}{% endfor %}</code></pre>
     </div>
   </section>
 </div>

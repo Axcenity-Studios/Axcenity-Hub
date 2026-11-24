@@ -55,7 +55,10 @@
             <div class="app-actions"><button type="submit" class="btn btn-primary">{{ text.REPOSITORY_UNLINK }}</button></div>
           </form>
 
-          {% elif step.key == "webhook" and step.state != "off" and step.state != "waiting" %}
+          {% elif step.key == "webhook" and step.state == "off" %}
+          {% if show_operator_hint %}<p class="pj-step-body app-help" data-operator-hint>{{ step.words.off_operator }} <a class="app-link" href="{% url 'projects:guide' %}#local">{{ text.GUIDE_LINK }}</a></p>{% endif %}
+
+          {% elif step.key == "webhook" and step.state != "waiting" %}
           <div class="pj-step-body">
             {% if webhook_error %}<p class="app-notice" role="alert" data-webhook-error>{{ webhook_error }}</p>{% endif %}
             {% if hook %}
@@ -95,7 +98,7 @@
       {% endfor %}
     </ol>
     <p class="pj-foot micro">
-      <span>{% if setup.complete %}{% if setup.total == 4 %}{{ text.SETUP_DONE_NOTE }}{% else %}{{ text.SETUP_DONE_NOTE_OFF }}{% endif %}{% endif %}</span>
+      <span>{% if setup.complete %}{{ text.SETUP_DONE_NOTE }}{% elif setup.live_updates_off %}{{ text.SETUP_OFF_NOTE }}{% endif %}</span>
       <a class="app-link inline-flex items-center gap-2" href="{% url 'projects:guide' %}">{% include "partials/icon.html" with name="guide" size=14 %}{{ text.GUIDE_LINK }}</a>
     </p>
   </details>
