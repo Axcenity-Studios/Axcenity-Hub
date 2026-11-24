@@ -41,9 +41,13 @@ export function mount(reel, canvas, g) {
   const labels = deepFreeze(JSON.parse(document.getElementById(reel.dataset.labels).textContent));
   const reduce = matchMedia("(prefers-reduced-motion: reduce)");
   const clock = timeline.createClock();
+  // The demo video behind the canvas, if the page has one: it runs exactly when the reel does.
+  const backdrop = reel.querySelector("video.reel-backdrop");
   const now = () => performance.now();
 
-  let size = logicalSize(reel);
+  // The hero's copy, whose top the outro keeps its logo above.
+  const copy = document.getElementById(reel.dataset.copy);
+  let size = measure();
   let palette = readPalette(root);
   let wordmark = null;
   let capture = null; // the renderer capture, for Scene 4's wipe
@@ -64,6 +68,14 @@ export function mount(reel, canvas, g) {
   function rebuildContext() {
     const images = Object.freeze({ wordmark: tint(wordmark, palette.fgStrong), capture });
     context = Object.freeze({ g, colors: palette, labels, images, layer });
+  }
+
+  /** The logical size, plus where the hero's copy starts (layout boxes, so transforms don't count). */
+  function measure() {
+    const base = logicalSize(reel);
+    if (!copy) return base;
+    const copyTop = copy.offsetTop - reel.offsetTop + parseFloat(getComputedStyle(copy).paddingTop);
+    return Object.freeze({ ...base, copyTop });
   }
 
   // ---------- Drawing ----------
@@ -120,6 +132,10 @@ export function mount(reel, canvas, g) {
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
       redraw();
+    }
+    if (backdrop) {
+      if (running) backdrop.play().catch(() => {}); // a refused autoplay leaves the poster
+      else backdrop.pause();
     }
     reel.dataset.state = running ? "playing" : "paused";
     // Reading `reduce` here also keeps the MediaQueryList reachable: one held only by
@@ -214,7 +230,7 @@ export function mount(reel, canvas, g) {
   }).observe(root, { attributes: true, attributeFilter: ["data-scheme"] });
 
   function resize() {
-    size = logicalSize(reel);
+    size = measure();
     fit(canvas, size, pixelRatio());
     redraw(); // resizing clears the canvas; the clock is untouched
     reel.dataset.size = `${size.width}x${size.height}`;
@@ -244,7 +260,7 @@ export function mount(reel, canvas, g) {
     wordmark = image;
     capture = photo;
     rebuildContext();
-    redraw();
+    resize(); // the fonts may have moved the copy's top
     reel.dataset.ready = "";
   });
 }

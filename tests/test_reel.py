@@ -152,6 +152,47 @@ def test_without_the_reel_the_renderer_capture_shows(hero):
     assert ".catch(fallBack)" in main
 
 
+DEMO = content.BackdropVideo(
+    "marketing/media/demo.mp4", "capture", "Engine capture · Demo", "Recorded in the editor"
+)
+
+
+def test_there_is_no_backdrop_video_until_one_is_configured(hero):
+    assert content.HOME_HERO["backdrop"] is None
+    assert "<video" not in hero and "data-backdrop" not in hero
+
+
+def test_a_backdrop_video_loops_muted_behind_the_canvas_with_its_caption(client, monkeypatch):
+    monkeypatch.setitem(content.HOME_HERO, "backdrop", DEMO)
+    html = client.get(reverse("marketing:home")).content.decode()
+    reel = html.split('<figure id="reel"', 1)[1].split("</figure>", 1)[0]
+    assert "data-backdrop" in reel.split(">", 1)[0]
+    video = reel.split("<video", 1)[1].split("</video>", 1)[0]
+    # The player starts it, so it obeys Pause, reduced motion and visibility: never autoplay.
+    for attribute in ("muted", "loop", "playsinline", 'aria-hidden="true"'):
+        assert attribute in video
+    assert "autoplay" not in video
+    assert '<source src="/static/marketing/media/demo.mp4" type="video/mp4">' in video
+    assert reel.index("<video") < reel.index("<canvas")
+    assert f'<p class="media-cap micro reel-backdrop-cap">{escape(DEMO.caption)}</p>' in reel
+    player = _js(REEL / "player.js")
+    assert "backdrop.play()" in player and "backdrop.pause()" in player
+    # It shows only with the live reel, under the canvas and lighter scrims.
+    assert ".reel-canvas { position: relative;" in SOURCE
+    assert ".reel[data-backdrop]::after" in SOURCE
+    assert ".reel:not([data-live]) > .reel-backdrop," in SOURCE
+
+
+def test_a_backdrop_video_is_labelled_for_what_it_is():
+    with pytest.raises(ValueError):  # a capture's caption says so
+        content.BackdropVideo("a.mp4", "capture", "Illustrative · demo", "p")
+    with pytest.raises(ValueError):
+        content.BackdropVideo("a.mp4", "screenshot", "Engine capture", "p")
+    with pytest.raises(ValueError):  # a format browsers play
+        content.BackdropVideo("a.mov", "capture", "Engine capture", "p")
+    assert content.BackdropVideo("a.webm", "capture", "Engine capture", "p").mime == "video/webm"
+
+
 def test_the_controls_show_on_focus_when_paused_and_on_touch():
     assert (
         '.reel-controls:focus-within, .reel-controls[data-intent="paused"] { opacity: 1; }'

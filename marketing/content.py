@@ -193,6 +193,35 @@ class Media:
         return json.dumps(self.labels, ensure_ascii=False)
 
 
+VIDEO_TYPES = {".mp4": "video/mp4", ".webm": "video/webm"}
+
+
+@dataclass(frozen=True)
+class BackdropVideo:
+    """A demo video looping full bleed behind the hero's reel. `file` and `poster` are paths
+    under static/; the poster shows while it loads and under reduced motion."""
+
+    file: str
+    kind: str
+    caption: str
+    provenance: str
+    poster: str = ""
+
+    def __post_init__(self) -> None:
+        if self.kind not in MEDIA_KINDS:
+            raise ValueError(f"{self.file}: kind must be one of {sorted(MEDIA_KINDS)}")
+        if not self.caption.startswith(MEDIA_KINDS[self.kind]):
+            raise ValueError(
+                f"{self.file}: a {self.kind} caption starts {MEDIA_KINDS[self.kind]!r}"
+            )
+        if self.mime is None:
+            raise ValueError(f"{self.file}: a video is one of {sorted(VIDEO_TYPES)}")
+
+    @property
+    def mime(self) -> str | None:
+        return next((t for ext, t in VIDEO_TYPES.items() if self.file.endswith(ext)), None)
+
+
 # The editor's words, shared by the reel and the Editor pillar's loop.
 # The default dock (crates/editor/src/layout.rs default_dock), each place's tabs in order.
 EDITOR_DOCK = {
@@ -667,6 +696,9 @@ HOME_HERO = {
     "reel": MEDIA["reel"],
     "reel_controls": REEL_CONTROLS,
     "fallback": MEDIA["renderer"],
+    # The demo video behind the reel: None until the file is in static/, then e.g.
+    # BackdropVideo("marketing/media/demo.mp4", "capture", "Engine capture · Demo", "…").
+    "backdrop": None,
 }
 
 # The pause button on each animated recreation (screen-reader names; it shows icons).

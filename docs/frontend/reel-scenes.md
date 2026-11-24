@@ -137,4 +137,7 @@ Logic loop's (`LOGIC_LABELS`).
 
 The Logic scene's last frame shrinks and fades as one layer, the
 wordmark comes up (fully shown at 25 s, `LOCKUP_FRAME`) and fades to the
-empty page: Scene 1's first frame.
+empty page: Scene 1's first frame. The wordmark is centred across the
+hero, in the band between the nav and the copy's top (`size.copyTop`),
+and shrinks when that band is short (tested at 1280×720, 1920×1080 and
+390×844).

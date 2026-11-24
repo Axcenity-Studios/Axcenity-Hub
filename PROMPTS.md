@@ -28,6 +28,46 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-23 — Reel outro: centred logo, and a backdrop-video slot behind the hero
+
+### Prompts
+
+1. "Ok my thing now with the top animation is its ending clip I feel that
+   I am not a huge fan of the axcenity logo playing out on the bottom
+   right I would like it to be centered, additionally I will be having a
+   demo video playing in the background, so if we an style it to where it
+   can allow the video to show fully and well in the background that
+   would be great as well. Please append this session to PROMPTS.md
+   according to source formatting."
+
+### Summary
+
+- **Outcome:** The outro's wordmark is centred across the hero, in the
+  clear band between the nav and the top of the hero's copy, and shrinks
+  when that band is short. The player measures the copy's top and passes
+  it to the scenes as `size.copyTop`. The hero has a slot for a demo
+  video behind the reel: `HOME_HERO["backdrop"]` (a `BackdropVideo` with
+  a file, kind, caption, provenance and poster) is `None` until the file
+  is added. When it's set, a muted, looping, `aria-hidden` video fills
+  the hero under the canvas with its own caption, the scrims thin to a
+  band under the nav and a pool behind the copy, and the player plays
+  and pauses the video with the reel (Pause, reduced motion, off screen,
+  hidden tab). New tests cover the centring and clearance in Chromium at
+  1280×720, 1920×1080 and 390×844, the video markup and its rules, and
+  the manifest refusing a mislabelled or unplayable video. 472 fast and
+  46 browser tests pass; Ruff is clean. `reel.md` and `reel-scenes.md`
+  are updated. Not committed.
+- **Deviations:** None asked. The request didn't say where the video
+  comes from or what it shows, so it's an empty, documented slot rather
+  than a placeholder file; its caption must say whether it's an engine
+  capture or illustrative.
+- **Sideways:** The first fix centred the logo horizontally at the
+  stage's height. Screenshots showed it nearly touching the badge at
+  1440×900, and measuring showed the copy starts 200 px down at
+  1280×720, so it would have sat on the headline. The logo now follows
+  the copy's measured top. A `pkill -f` that matched its own shell ended
+  one screenshot command early; the server was stopped separately.
+
 ## 2026-11-23 — Axcenity Hub: Phase 4/17, a moving reel (Toolbox, Animation, Renderer, World, Logic) and animated icons
 
 ### Prompts

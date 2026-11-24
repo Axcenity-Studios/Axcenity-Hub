@@ -148,6 +148,28 @@ def test_reduced_motion_shows_the_lockup_and_follows_the_setting_live(open_home)
     assert errors == []
 
 
+@pytest.mark.parametrize("width, height", [(1280, 720), (1920, 1080), (390, 844)])
+def test_the_lockup_logo_is_centred_across_the_hero_above_the_copy(open_home, width, height):
+    page, _ = open_home(width=width, height=height, reduced_motion="reduce")  # opens on the lockup
+    page.wait_for_timeout(300)
+    assert position(page) == 25
+    left, right, bottom, canvas_width, copy_top = page.evaluate(
+        """() => { const c = document.querySelector('#reel canvas');
+        const data = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+        let left = c.width, right = -1, bottom = -1;
+        for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++)
+          if (data[(y * c.width + x) * 4 + 3] > 0) {
+            left = Math.min(left, x); right = Math.max(right, x); bottom = y; }
+        const ratio = c.width / c.getBoundingClientRect().width;
+        const badge = document.querySelector('.hero-copy .badge-pill').getBoundingClientRect();
+        const reel = document.querySelector('#reel').getBoundingClientRect();
+        return [left, right, bottom / ratio, c.width, badge.top - reel.top]; }"""
+    )
+    assert right > left  # the logo is drawn, and nothing else is
+    assert abs((left + right) / 2 - canvas_width / 2) <= 2
+    assert bottom < copy_top
+
+
 def test_every_frame_is_a_pure_function_of_time(open_home):
     page, _ = open_home()
     pause(page)

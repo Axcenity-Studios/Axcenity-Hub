@@ -264,8 +264,17 @@ html[data-pointer] .lift:hover::after { content: ""; position: absolute; inset: 
   background: linear-gradient(180deg, color-mix(in srgb, var(--color-app) 60%, transparent), transparent 14%, transparent 52%,
       color-mix(in srgb, var(--color-app) 95%, transparent) 86%),
     radial-gradient(ellipse 75% 70% at 0% 100%, color-mix(in srgb, var(--color-app) 88%, transparent) 35%, transparent); }
-.reel-canvas { display: block; width: 100%; height: 100%; }
+/* With a demo video behind it (data-backdrop), the scrims shrink to what the copy needs:
+   a light band under the nav and a pool at the bottom left, so the rest of the video shows
+   at full strength. The canvas stacks over the video; the player plays and pauses both. */
+.reel[data-backdrop]::after {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-app) 45%, transparent), transparent 10%),
+    radial-gradient(ellipse 60% 55% at 0% 100%, color-mix(in srgb, var(--color-app) 82%, transparent) 30%, transparent); }
+.reel-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.reel .reel-backdrop-cap { top: calc(5rem + 2rem); }
+.reel-canvas { position: relative; display: block; width: 100%; height: 100%; }
 .reel:not([data-live]) > .reel-canvas, .reel:not([data-live]) > figcaption { display: none; }
+.reel:not([data-live]) > .reel-backdrop, .reel:not([data-live]) > .reel-backdrop-cap { display: none; }
 .reel[data-live] > .reel-fallback, .reel[data-pending] > .reel-fallback { display: none; }
 .reel .media-cap { top: 5rem; right: 1rem; bottom: auto; left: auto; }
 /* The fallback capture: 16:9, upper right, at most 1280 px wide (half the capture, so it's

@@ -24,6 +24,8 @@ Chromium. The colour rules are in [theme.md](theme.md).
 | `static/reel/loops/` | The feature pillars' loops: the same contract plus a still frame ([media.md](media.md)) |
 | `marketing/content.py` | `MEDIA["reel"]`: caption, description (its `alt`), provenance, the drawn words (`labels`, with `REEL_TOOLBOX`, `REEL_ANIMATION`, `REEL_SCRIPT`, `TERRAIN_LABELS`, `LOGIC_LABELS`); `REEL_CONTROLS` |
 | `templates/marketing/media/reel.html` `data-capture` | The renderer capture's 1920 px WebP derivative, for Scene 4's wipe |
+| `templates/marketing/media/reel.html` `data-copy` | The hero copy's id: the player passes its top to the scenes as `size.copyTop` (layout boxes), so the outro's logo stays above it |
+| `marketing/content.py` `HOME_HERO["backdrop"]` | The demo video behind the reel (`BackdropVideo`: file, kind, caption, provenance, poster), or `None` |
 
 ## The timeline
 
@@ -35,7 +37,7 @@ Chromium. The colour rules are in [theme.md](theme.md).
 | `renderer` (Scene 4) | 12–16 s | 12 s | A grey room builds up and a scan line wipes it into the ray-traced capture |
 | `world` (Scene 5) | 16–20 s | 16 s | Raise / Lower brushes hills up, Scatter paints plants over them |
 | `logic` (Scene 6) | 20–24 s | 20 s | When Touched → Spawn Decal wired by the pointer, its Luau typing out, a pulse |
-| `lockup` (outro) | 24–26 s | none | The Logic scene's last frame shrinks and fades as one layer, wordmark comes up, then fades to the empty first frame |
+| `lockup` (outro) | 24–26 s | none | The Logic scene's last frame shrinks and fades as one layer, the wordmark comes up centred across the hero above the copy, then fades to the empty first frame |
 
 - `DURATION` is 26 s. `wrap(t)` maps any time into [0, 26): **26 s is
   the loop's first frame**, and anything not finite is 0.
@@ -145,6 +147,22 @@ visible. Otherwise no animation frame is requested at all.
 - `data-state` (`playing`/`paused`), `data-motion` (`full`/`reduced`),
   `data-size` and `data-ready` (fonts and logo loaded) on the figure are
   for tests and debugging.
+
+## The backdrop video
+
+With `HOME_HERO["backdrop"]` set, a `<video class="reel-backdrop">` loops
+full bleed (`object-fit: cover`) under the canvas, with its own caption
+under the reel's, and the figure gets `data-backdrop`. Its kind and
+caption follow the media rules (an engine recording is a capture);
+`.mp4` or `.webm` only.
+
+- It's muted, `playsinline`, `aria-hidden` and never `autoplay`: the
+  player plays and pauses it with the reel, so Pause, reduced motion
+  (the poster shows), off screen and a hidden tab all stop it.
+- `data-backdrop` swaps the scrims for lighter ones: a thin band under
+  the nav and a pool behind the copy at the bottom left. The rest of the
+  video shows at full strength, and fully between the outro and Scene 1.
+- It shows only with the live reel; the fallback capture replaces it.
 
 ## Accessibility and fallbacks
 

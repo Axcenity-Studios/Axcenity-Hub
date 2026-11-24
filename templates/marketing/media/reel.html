@@ -1,10 +1,17 @@
 {% load static shell_tags home_tags %}
 {# The hero's showcase reel (docs/frontend/reel.md). static/reel/ draws it on the canvas and runs the controls. #}
 {# Without JavaScript, ES modules or a 2D canvas, the fallback capture shows instead and the controls stay hidden. #}
-{# Usage: {% include "marketing/media/reel.html" with media=hero.reel fallback=hero.fallback controls=hero.reel_controls %} #}
-<figure id="reel" class="reel" data-reel data-controls="reel-controls" data-labels="reel-labels" data-description="reel-description"
+{# A backdrop (content.BackdropVideo) loops behind the canvas; the player plays and pauses it with the reel. #}
+{# Usage: {% include "marketing/media/reel.html" with media=hero.reel fallback=hero.fallback controls=hero.reel_controls backdrop=hero.backdrop %} #}
+<figure id="reel" class="reel" data-reel data-controls="reel-controls" data-labels="reel-labels" data-description="reel-description" data-copy="hero-copy"
         data-wordmark="{% static 'brand/wordmark-white.png' %}"
-        data-capture="{% static 'marketing/media/renderer/renderer-1920.webp' %}">
+        data-capture="{% static 'marketing/media/renderer/renderer-1920.webp' %}"{% if backdrop %} data-backdrop{% endif %}>
+  {% if backdrop %}
+  <video class="reel-backdrop" muted loop playsinline preload="metadata" aria-hidden="true"{% if backdrop.poster %} poster="{% static backdrop.poster %}"{% endif %}>
+    <source src="{% static backdrop.file %}" type="{{ backdrop.mime }}">
+  </video>
+  <p class="media-cap micro reel-backdrop-cap">{{ backdrop.caption }}</p>
+  {% endif %}
   <canvas class="reel-canvas" aria-hidden="true"></canvas>
   {# Lazy, so a browser that runs the reel never downloads it (data-pending hides it before layout). #}
   <figure class="reel-fallback">
