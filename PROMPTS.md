@@ -28,6 +28,43 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-24 — Custom error pages for every status
+
+### Prompts
+
+1. "Ok another thing is the default 403 and 404 pages look somewhat basic can you make custom
+   error pages for all error types."
+2. "Please add to PROMPTS.md commit and push"
+
+### Summary
+
+- **Outcome:** Every error status renders the Hub's own page: 400, 403, the CSRF 403 ("Form
+  expired"), 404, 405, 429 and 500. 1146 fast tests and 89 browser tests pass; Ruff is clean.
+- **Changes:**
+  - `config/errors.py` (new): each page's words, the handlers (`bad_request`,
+    `permission_denied`, `page_not_found`, `server_error`, `too_many_requests`,
+    `csrf_failure`), `render_error`, a development-only preview, and `ErrorPageMiddleware`
+    (an empty 405 gets the page, keeping `Allow`).
+  - `config/urls.py`: `handler400`/`403`/`404`/`500`, `handler429` (allauth's rate limits)
+    and `/errors/<kind>/` (`errors:preview`, a 404 unless `DEBUG`). `config/settings.py`:
+    `CSRF_FAILURE_VIEW` and the middleware.
+  - `templates/errors/page.html` (new) and the `.err-*` classes in `styles/source.css`: the
+    entrance's bar and grid backdrop, a panel with a title bar, the code in Home's outlined
+    numerals, a motif, the headline, what happened, and three ways on.
+  - Tests: `test_errors.py`, `test_errors_browser.py` (new). Docs: ARCHITECTURE (layout,
+    URL, rule), FRONTEND ("Error pages"), TESTING.
+- **Decisions:** Pages render without the request's context processors: no session, user or
+  database (a 500 must render when the database failed; a 400 may come from an untrusted
+  host), reading only the validated theme cookie. Nothing the visitor sent is echoed. The
+  CSRF page shows Django's reason and the `HUB_PUBLIC_URL` hint only under `DEBUG`. Since
+  `DEBUG` shows Django's technical 404 and 500, a development-only preview shows each page.
+  Error pages are `no-store`. allauth looks for `handler429` in the root URLconf, so its rate
+  limits use the same page.
+- **Deviations:** None.
+- **Sideways:** Three tests first asserted the wrong thing (Django's CSRF reason reads "Origin
+  checking failed", the webhook's `Allow` is just `POST`, and counting queries needs the
+  database mark even to prove there are none); fixed in the tests, not the code.
+
 ## 2026-11-24 — Phase 10 follow-up: webhooks through a Cloudflare Tunnel, honest setup messages, and the README
 
 ### Prompts

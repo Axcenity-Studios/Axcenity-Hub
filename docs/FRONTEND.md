@@ -22,6 +22,19 @@ its code).
 
 Later phases add topic files for each area they build.
 
+## Error pages
+
+`templates/errors/page.html` is every error page (copy in `config/errors.py`): the
+entrance's bar and grid backdrop, one panel with a Toolbox title bar ("Error 404", the
+status's name), the code in Home's outlined numerals, a motif, the headline, what happened,
+and three ways on (home, docs, projects). It renders without the request's context
+processors, so it uses no `user`, `request` or `{% csrf_token %}`, and no theme switch (the
+validated theme cookie is passed in). The CSRF page adds Django's reason and the
+`HUB_PUBLIC_URL` hint under `DEBUG` only. Under `DEBUG` Django shows its technical 404 and 500
+pages instead, so preview these at `/errors/<kind>/`. Classes: `.err`, `.err-panel`,
+`.err-bar`, `.err-body`, `.err-head`, `.err-code`, `.err-icon`, `.err-title`, `.err-lede`,
+`.err-debug`, `.err-detail`. Tests: `test_errors.py`, `test_errors_browser.py`.
+
 ## Tailwind + DaisyUI (no Node)
 
 - django-tailwind-cli downloads the standalone Tailwind CLI and DaisyUI's

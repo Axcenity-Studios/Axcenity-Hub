@@ -89,6 +89,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "config.errors.ErrorPageMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -199,6 +200,8 @@ SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 # address is one: behind a tunnel or a TLS proxy the browser posts from https://<host> while
 # Django sees plain http, so without it every sign-in through that address is refused.
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+# A refused form gets the Hub's own page (config/errors.py), not Django's.
+CSRF_FAILURE_VIEW = "config.errors.csrf_failure"
 if HUB_PUBLIC_URL and HUB_PUBLIC_URL not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS.append(HUB_PUBLIC_URL)
 if PRODUCTION:

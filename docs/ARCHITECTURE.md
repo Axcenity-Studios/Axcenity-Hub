@@ -15,7 +15,7 @@ index:** the rules below apply everywhere; topic files under
 
 | Path | Holds |
 |---|---|
-| `config/` | Settings, root URLs, WSGI/ASGI, site-wide context processors, `theme.py` (the colour-scheme cookie) |
+| `config/` | Settings, root URLs, WSGI/ASGI, site-wide context processors, `theme.py` (the colour-scheme cookie), `errors.py` (every error page) |
 | `marketing/` | Public signed-out pages: Home, Toolbox and Download. `content.py` holds their copy, links and media manifest as data; `drawings.py` computes the drawn media; `media.py` cuts captures into derivatives (`manage.py make_media`); `github.py` is the one GitHub request (the engine's release list) and `releases.py` chooses the release, groups its builds and caches it; `legal.py` reflows the engine's LICENSE and NOTICE into prose for the download agreement ([frontend/download.md](frontend/download.md)) |
 | `documentation/` | The engine docs at `/docs/`: `sync.py` (`sync_engine_docs`), `navigation.py`, `links.py`, `rendering.py`, `highlight.py`, `library.py` (the snapshot as served, and its build check), `api.py` (API pages as structure), `search.py` (the index and ranking), `diagrams.py`, `strings.py`. See [frontend/documentation.md](frontend/documentation.md) |
 | `documentation/content/` | The committed snapshot of the engine's `documentation/` folder, with `SOURCE.json` (commit and tree). Only `sync_engine_docs` writes it |
@@ -50,6 +50,11 @@ Later phases add `forums`, `showcases`, `reports`,
   ([architecture/projects.md](architecture/projects.md#the-five-project-limit-concurrency-safe)).
 - **New URLs are members-only by default:** `test_accounts_security.py` walks every
   URL, and anything not on its `PUBLIC` list must send an anonymous visitor to sign in.
+- **Error pages** are the Hub's own for every status: `handler400`/`403`/`404`/`500` and
+  `handler429` (allauth's rate limits) in `config/urls.py`, `CSRF_FAILURE_VIEW`, and
+  `errors.ErrorPageMiddleware` for an empty 405. They render without context processors (no
+  session or database, so a 500 renders even when the database failed), never echo what the
+  visitor sent, and show Django's reason only under `DEBUG` ([FRONTEND.md](FRONTEND.md#error-pages)).
 - **Secrets** come from environment variables only, never the database.
 - **Untrusted input is validated against a fixed set** before use (the
   theme cookie is the first example: only `system`, `light`, `dark`).
@@ -79,6 +84,7 @@ Later phases add `forums`, `showcases`, `reports`,
 | `/projects/<slug>/edit/`, `/delete/` | `projects:edit`, `projects:delete` | Rename (the slug follows) or describe; delete after confirming |
 | `/projects/<slug>/repository/link/`, `/unlink/`, `/refresh/` | `projects:link_repository`, `projects:unlink_repository`, `projects:refresh_repository` | POST: link (needs admin on GitHub), unlink (GitHub not asked), refresh (needs read) |
 | `/projects/hooks/github/<hook_id>/` | `projects:webhook` | `GitHubWebhookView`: POST only, CSRF-exempt, signed deliveries ([architecture/projects.md](architecture/projects.md#webhooks)) |
+| `/errors/<kind>/` | `errors:preview` | A development server's preview of an error page (`400`, `403`, `csrf`, `404`, `405`, `429`, `500`); a 404 when `DEBUG` is off |
 | `/theme/` | `marketing:theme` | `ThemeView`: POST only, the no-JavaScript fallback for the theme switch |
 | `/admin/` | `admin:*` | Django admin |
 

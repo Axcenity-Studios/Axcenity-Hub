@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load static %}
+{# Every error page (config/errors.py). Rendered without the request's context processors:   #}
+{# no session, user or database, and nothing the visitor sent is echoed. Copy: config/errors. #}
+{% block title %}{{ page.status }} {{ page.name }}{% endblock %}
+{% block body %}
+<a href="#content" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 btn btn-sm">Skip to content</a>
+<header class="app-bar">
+  <a href="{% url 'marketing:home' %}" class="flex shrink-0 items-center" aria-label="{{ copy.home }}">
+    <img src="{% static 'brand/wordmark-white.png' %}" alt="Axcenity" width="77" height="24" class="logo-img h-5 w-auto">
+  </a>
+</header>
+<main id="content" tabindex="-1" class="err grid-bg" data-error="{{ kind }}">
+  <section class="err-panel panel" aria-labelledby="error-title">
+    <div class="err-bar">
+      <span class="tb-chip tb-chip-current">{{ copy.eyebrow }} {{ page.status }}</span>
+      <span class="err-name micro">{{ page.name }}</span>
+    </div>
+    <div class="err-body">
+      <div class="err-head">
+        <p class="err-code" aria-hidden="true">{{ page.status }}</p>
+        <span class="err-icon">{% include "partials/icon.html" with name=page.icon size=28 class="motif err-motif" %}</span>
+      </div>
+      <h1 id="error-title" class="headline err-title">{{ page.title }}</h1>
+      <p class="err-lede">{{ page.lede }}</p>
+      {% if detail or debug_hint %}
+      <div class="err-debug" data-error-debug>
+        <p class="micro">{{ copy.debug_heading }}</p>
+        {% if detail %}<p class="err-detail">{{ detail }}</p>{% endif %}
+        {% if debug_hint %}<p>{{ debug_hint }}</p>{% endif %}
+      </div>
+      {% endif %}
+      <nav class="app-actions" aria-label="Where to go next">
+        {% for label, name in actions %}
+        <a class="btn {% if forloop.first %}btn-primary{% else %}btn-quiet{% endif %}" href="{% url name %}">{{ label }}</a>
+        {% endfor %}
+      </nav>
+    </div>
+  </section>
+</main>
+{% endblock %}
