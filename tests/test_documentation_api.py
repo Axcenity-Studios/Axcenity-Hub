@@ -504,10 +504,23 @@ def test_search_escapes_the_query_and_marks_matches(client):
 @pytest.mark.parametrize("url", ["/docs/", "/docs/learn/scripting/", "/docs/api/classes/part/"])
 def test_every_docs_page_has_the_search_form(client, url):
     html = client.get(url).content.decode()
-    form = html.split('<form id="docs-search"', 1)[1].split("</form>")[0]
+    form = html.split('<form id="docs-search" class="docs-search"', 1)[1].split("</form>")[0]
     assert 'action="/docs/search/" method="get"' in form and 'name="q"' in form
+    # A labelled field and a labelled submit button (an icon, so its name is its label).
+    assert '<label for="docs-search-input" class="sr-only">Search the docs</label>' in form
+    assert '<button type="submit" class="docs-search-button" aria-label="Search">' in form
     # Outside the phone disclosure, so it's always in reach.
     assert html.index('id="docs-search"') < html.index('id="docs-nav"')
+
+
+@pytest.mark.django_db
+def test_the_results_page_has_one_large_form_holding_the_query(client):
+    html = client.get("/docs/search/", {"q": "task.wait"}).content.decode()
+    assert html.count('id="docs-search"') == 1
+    form = html.split('<form id="docs-search" class="docs-search docs-search-large"', 1)[1]
+    assert 'value="task.wait"' in form.split("</form>")[0]
+    # It's in the article, under the title, not in the sidebar.
+    assert html.index('id="docs-title"') < html.index('id="docs-search"')
 
 
 def test_a_page_may_not_take_the_search_url(tmp_path):
@@ -525,3 +538,48 @@ def test_the_search_index_covers_pages_headings_and_members():
     assert kinds["page"] == len(LIBRARY.paths) and kinds["member"] == members
     assert kinds["heading"] > 100
     assert len({entry.url for entry in LIBRARY.search_index}) == len(LIBRARY.search_index)
+
+
+# ---------- The sidebar's API reference ----------
+
+
+def _sidebar(html: str) -> str:
+    return html.split('id="docs-nav"', 1)[1].split("</nav>", 1)[0]
+
+
+def _api_block(html: str) -> str:
+    return _sidebar(html).split('<li class="docs-api-block">', 1)[1]
+
+
+@pytest.mark.django_db
+def test_the_api_reference_is_set_apart_with_its_groups_not_every_page(client):
+    html = client.get("/docs/learn/scripting/").content.decode()
+    sidebar, block = _sidebar(html), _api_block(html)
+    # Below the guide's sections, after its own rule and title, not a collapsible group.
+    assert sidebar.index("Learn: Code") < sidebar.index('class="docs-api-block"')
+    assert block.startswith('\n              <p class="docs-api-title micro">API reference</p>')
+    assert "<details" not in block
+    groups = re.findall(r'class="docs-link docs-api-link"><span>([^<]+)</span>', block)
+    assert groups == ["Overview", "Classes", "Data types", "Enums", "Libraries", "Globals"]
+    counts = re.findall(r'<span class="docs-api-count">(\d+)</span>', block)
+    assert counts == ["144", "46"]
+    # No class or data type page is listed when you're not on one.
+    assert "/docs/api/classes/part/" not in block
+
+
+@pytest.mark.django_db
+def test_on_an_api_page_only_it_is_listed_under_its_group(client):
+    block = _api_block(client.get("/docs/api/classes/part/").content.decode())
+    # The Classes group, Part under it, then the Data types group: no other class or type.
+    assert re.findall(r'href="/docs/api/(?:classes|types)/([^"]*)"', block) == ["", "part/", ""]
+    classes = block.split(">Classes</span>", 1)[1].split(">Data types</span>", 1)[0]
+    assert '<a href="/docs/api/classes/part/" class="docs-link" aria-current="page">Part</a>' in (
+        classes
+    )
+    # The API home and a group page are marked as themselves.
+    home = _api_block(client.get("/docs/api/").content.decode())
+    assert '<a href="/docs/api/" class="docs-link docs-api-link" aria-current="page">' in home
+    enums = _api_block(client.get("/docs/api/enums/").content.decode())
+    assert '<a href="/docs/api/enums/" class="docs-link docs-api-link" aria-current="page">' in (
+        enums
+    )

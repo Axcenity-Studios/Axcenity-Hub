@@ -1,14 +1,30 @@
-{# The sidebar: the search form, then SUMMARY.md's sections as collapsible groups, the current page marked and its group open. #}
+{# The sidebar: the search form, then SUMMARY.md's guide sections as collapsible groups (the current #}
+{# page marked, its group open), then the API reference set apart: its groups with their page counts, #}
+{# and only the current class or type listed under its group (the API home lists them all).         #}
 {# Wide screens show it open beside the article (its toggle hidden). Below 1024 px it's a disclosure    #}
 {# at the top: the script after it closes it there; without JavaScript it simply stays open.           #}
 <div class="docs-sidebar">
-  {% include "documentation/partials/search_form.html" %}
+  {% if not search_in_article %}{% include "documentation/partials/search_form.html" %}{% endif %}
   <details id="docs-nav" class="docs-nav" open>
     <summary class="docs-nav-toggle">{{ docs.nav_toggle }}</summary>
     <nav aria-label="{{ docs.nav_label }}" class="docs-nav-body">
       <ul class="docs-sections">
         {% for section in sidebar %}
-          {% if section.title %}
+          {% if section.separate %}
+            <li class="docs-api-block">
+              <p class="docs-api-title micro">{{ section.title }}</p>
+              <ul class="docs-list">
+                {% for item in section.items %}
+                  <li>
+                    <a href="{{ item.url }}" class="docs-link docs-api-link"{% if item.current %} aria-current="page"{% endif %}><span>{{ item.title }}</span>{% if item.count %}<span class="docs-api-count">{{ item.count }}</span>{% endif %}</a>
+                    {% if item.children %}
+                      <ul class="docs-list">{% for child in item.children %}<li><a href="{{ child.url }}" class="docs-link"{% if child.current %} aria-current="page"{% endif %}>{{ child.title }}</a></li>{% endfor %}</ul>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            </li>
+          {% elif section.title %}
             <li>
               <details class="docs-group"{% if section.open %} open{% endif %}>
                 <summary class="docs-group-title micro">{{ section.title }}</summary>

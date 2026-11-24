@@ -38,6 +38,14 @@ Each entry has this shape:
 3. (TDD 1, parsing an API page, RED) "Lookgs good move to next red phase"
 4. (TDD 2, search ranking and query handling, RED) "Looks good move to next
    red phase after making this one pass"
+5. (After the commit, with a screenshot of the sidebar's search box) "Ok so
+   there are a few things I want to change first the API reference is huge
+   so I feel like it should get its own seperator not an infinite looking
+   tab list. additionally the search bar is fairly small with some of the
+   searches that might be occuring on this page, can we make it a but
+   bigger while still holding up the pages integrity. The sweach button
+   should also be improved as it looks squished and cropped out of place."
+6. "Go ahead and adjust the PROMPTS.md and commit and push the changes"
 
 ### Summary
 
@@ -94,8 +102,19 @@ Each entry has this shape:
   over 100 characters get a message; the enums page is fully structured
   (its prose is only each enum's description and items); `classes.md` and
   `types.md` stay plain pages.
-- **Deviations:** none; the user approved the brief and both tests as
-  written, and asked to stop only at red phases.
+- **Follow-up (prompt 5):** the sidebar's API reference was ~190 nested
+  links. It's now set apart below the guide by a rule and its own title:
+  Overview, Classes (144), Data types (46), Enums, Libraries, Globals, with
+  only the current class or type listed under its group
+  (`views._api_section`). The search box became one full-width field (44 px)
+  with a magnifier and an arrow submit button inside it. Its focus ring is
+  drawn inside (`:focus-within`) because the sidebar's scroll box was
+  cropping the outline. The results page drops the sidebar copy for a large
+  field under its title. Three new tests; the "every page in the sidebar"
+  test now leaves out class and type pages. 816 tests pass, Ruff clean.
+- **Deviations:** none in the build; the user approved the brief and both
+  tests as written, and asked to stop only at red phases. After the commit
+  they asked for the sidebar and search-box changes above.
 - **Sideways:**
   - On the real snapshot, `TweenService` first found the
     `DataModel.TweenService` property, since every exact name tied. Added

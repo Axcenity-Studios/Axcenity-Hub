@@ -137,11 +137,13 @@ are 404s, and a mixed-case URL 301s to its page.
   article (at most 46rem, about 70ch). **From 1280 px:** the "On this
   page" rail as well. Three columns at 1024 px would squeeze code and
   tables to about 450 px, so the rail waits.
-- **Sidebar** (`partials/sidebar.html`, `nav_items.html` recursive):
-  Overview (the README), then one `<details>` per SUMMARY.md section.
-  Only the current page's section and nested groups (such as API
-  reference › Classes) start open. The current page is `aria-current`
-  with an ink bar. On wide screens `docs.js` scrolls it into view.
+- **Sidebar** (`partials/sidebar.html`, `nav_items.html` recursive): the
+  search form, Overview (the README), then one `<details>` per guide
+  section; only the current page's section and groups start open. The
+  API reference is set apart below a rule (`views._api_section`): Overview,
+  Classes, Data types, Enums, Libraries, Globals with page counts, and only
+  the current class or type under its group. The current page is
+  `aria-current` with an ink bar; `docs.js` scrolls it into view.
 - **Below 1024 px** the same `<details>` is a disclosure at the top
   ("Browse the docs"). The script right after it closes it before first
   paint. Without JavaScript it stays open; with it, it follows the
@@ -196,7 +198,10 @@ engine's words: Properties, Events, Functions. `views.API_TEMPLATES` picks:
 
 ## Search (`/docs/search/?q=`)
 
-The form tops the sidebar column. The index (`Library.search_index`, built
+`partials/search_form.html`: one field with its icon and an icon submit
+button inside, its ring drawn inside (`:focus-within`) so the sidebar's
+scroll box can't crop it. It tops the sidebar column; the results page
+drops that one for a large one under its title (`search_in_article`). The index (`Library.search_index`, built
 once per process) holds every page, guide heading and API member.
 `clean_query` trims and collapses whitespace; empty or over 100 characters is a
 message, never an error. Ranking: an exact name (title or full name before a

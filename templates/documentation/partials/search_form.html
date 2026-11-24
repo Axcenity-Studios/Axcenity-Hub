@@ -1,7 +1,9 @@
-{# Search the docs (/docs/search/): a plain GET form at the top of the sidebar column, outside the #}
-{# phone disclosure so it's always in reach.                                                       #}
-<form id="docs-search" class="docs-search" role="search" action="{% url 'documentation:search' %}" method="get">
+{# Search the docs (/docs/search/): a plain GET form. In the sidebar column (outside the phone #}
+{# disclosure, so it's always in reach), or large at the top of the results (`large`). The ring #}
+{# is drawn inside the field (:focus-within), so the scrolling sidebar can never crop it.       #}
+<form id="docs-search" class="docs-search{% if large %} docs-search-large{% endif %}" role="search" action="{% url 'documentation:search' %}" method="get">
+  <svg class="docs-search-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="8.5" cy="8.5" r="5.25"/><path d="m12.5 12.5 4.5 4.5"/></svg>
   <label for="docs-search-input" class="sr-only">{{ docs.search_label }}</label>
   <input id="docs-search-input" class="docs-search-input" type="search" name="q" value="{{ search_query }}" placeholder="{{ docs.search_placeholder }}" maxlength="{{ search_limit }}" autocomplete="off" enterkeyhint="search">
-  <button type="submit" class="docs-search-button micro">{{ docs.search }}</button>
+  <button type="submit" class="docs-search-button" aria-label="{{ docs.search }}"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M4 10h11m-4.5-4.5L15 10l-4.5 4.5"/></svg></button>
 </form>

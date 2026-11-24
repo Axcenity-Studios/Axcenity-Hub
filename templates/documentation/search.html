@@ -12,6 +12,7 @@
     </nav>
     <h1 id="docs-title" class="headline mt-4 text-4xl text-fg-strong md:text-5xl">{{ docs.search_title }}</h1>
     <p class="docs-lede mt-4 text-lg text-fg-secondary">{{ docs.search_lede }}</p>
+    <div class="mt-8">{% include "documentation/partials/search_form.html" with large=True %}</div>
   </header>
   <div class="search-results mt-10" aria-live="polite">
     {% if problem %}

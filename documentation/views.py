@@ -6,6 +6,7 @@ The API reference's pages get their own layouts (`api_context`); search runs ove
 the snapshot's in-memory index (documentation/search.py).
 """
 
+import dataclasses
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -42,6 +43,8 @@ class NavItem:
     current: bool
     open: bool
     children: list["NavItem"] = field(default_factory=list)
+    # How many pages a group holds (the API's Classes: 144), when they aren't all listed.
+    count: int = 0
 
 
 @dataclass
@@ -49,6 +52,8 @@ class NavSection:
     title: str
     open: bool
     items: list[NavItem]
+    # The API reference: set apart below the guide, its groups listed but not their pages.
+    separate: bool = False
 
 
 def _nav_item(entry: navigation.Entry, current: str) -> NavItem:
@@ -63,10 +68,37 @@ def _nav_item(entry: navigation.Entry, current: str) -> NavItem:
     )
 
 
+def _api_section(title: str, home: navigation.Entry, current: str) -> NavSection:
+    """The API reference as the sidebar shows it: its home ("Overview") and its groups
+    (Classes, Data types, Enums, Libraries, Globals), each with its page count. Of the
+    ~190 class and type pages, only the current one is listed, under its group; the API
+    home lists them all."""
+    items = [NavItem(DOCS["overview"], links.page_url(home.path), home.path == current, False)]
+    for group in home.children:
+        pages = [child for child in group.walk() if child is not group]
+        here = [_nav_item(child, current) for child in pages if child.path == current]
+        items.append(
+            NavItem(
+                title=group.title,
+                url=links.page_url(group.path),
+                current=group.path == current,
+                open=bool(here),
+                children=[dataclasses.replace(item, children=[]) for item in here],
+                count=len(pages),
+            )
+        )
+    is_open = any(item.current or item.open for item in items)
+    return NavSection(title, is_open, items, separate=True)
+
+
 def sidebar(nav: navigation.Navigation, current: str) -> list[NavSection]:
-    """The table of contents as the sidebar shows it: the current page's section open."""
+    """The table of contents as the sidebar shows it: the current page's section open,
+    and the API reference set apart (`_api_section`)."""
     sections = []
     for section in nav.sections:
+        if section.entries and section.entries[0].path == API_README:
+            sections.append(_api_section(section.title, section.entries[0], current))
+            continue
         items = [_nav_item(entry, current) for entry in section.entries]
         is_open = any(item.current or item.open for item in items)
         sections.append(NavSection(section.title, is_open, items))
@@ -332,6 +364,8 @@ class DocsSearchView(DocsMixin, TemplateView):
                 "results": results,
                 "marked": [(r, search.mark(r.entry.snippet, outcome.query)) for r in results],
                 "search_query": outcome.query[: search.MAX_QUERY],
+                # The results page has its own large form, so the sidebar leaves it out.
+                "search_in_article": True,
                 "problem": (
                     DOCS["search_too_long"].format(limit=search.MAX_QUERY)
                     if outcome.problem == search.TOO_LONG

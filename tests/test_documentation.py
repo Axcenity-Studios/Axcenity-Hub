@@ -892,10 +892,12 @@ def test_the_sidebar_marks_the_current_page_and_opens_only_its_section(scripting
     assert sidebar.count('<details class="docs-group" open>') == 1
     open_group = sidebar.split('<details class="docs-group" open>', 1)[1].split("</details>")[0]
     assert "Learn: Code" in open_group
-    # Every section is there, every page linked.
+    # Every section is there, and every page linked except the API's classes and data types,
+    # which the API home lists (the sidebar shows their groups; see test_documentation_api.py).
     for section in LIBRARY.navigation.sections:
         assert escape(section.title) in sidebar
-    assert sidebar.count('class="docs-link') == len(PAGE_PATHS)
+    listed = [p for p in PAGE_PATHS if not p.startswith(("api/classes/", "api/types/"))]
+    assert sidebar.count('class="docs-link') == len(listed)
 
 
 def test_the_layout_needs_no_javascript(scripting):
