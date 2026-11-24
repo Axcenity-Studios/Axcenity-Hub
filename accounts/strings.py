@@ -13,8 +13,13 @@ UNVERIFIED_NOTICE = "Your email address isn't verified yet."
 TWO_FACTOR_ON = "On: an authenticator app"
 TWO_FACTOR_OFF = "Off"
 
-# The app shell's rail: (key, label, URL name, icon), in order. Later phases add sections.
+# The app shell's rail: sections of (key, label, URL name, icon), in order. Later phases
+# add items and sections.
 RAIL_HEADING = "Account"
+RAIL_HUB_HEADING = "Hub"
+RAIL_HUB = [
+    ("projects", "Projects", "projects:list", "folder"),
+]
 RAIL_ACCOUNT = [
     ("profile", "Profile", "accounts:profile", "user"),
     ("email", "Email", "account_email", "mail"),
@@ -31,6 +36,9 @@ RAIL_PAGES = {
     "account_set_password": "password",
     "socialaccount_connections": "connections",
 }
+# Every page of these URL namespaces belongs to a rail item.
+RAIL_NAMESPACES = {"projects": "projects"}
+RAIL_LABEL = "Hub and account"
 SIGN_OUT = "Sign out"
 APP_PLACE = "Hub"
 ACCOUNT_MENU = "Account menu"

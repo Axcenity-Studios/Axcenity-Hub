@@ -9,14 +9,17 @@ Both extend `templates/base.html` (theme, fonts, stylesheet, `shell.js`).
 
 | Template | For | Holds |
 |---|---|---|
-| `app/shell.html` | Signed-in pages (profile, email, password, two-factor, connected accounts; later projects, forums, reports) | `.app-bar` (wordmark, "Hub", theme switch, account menu), `.app-frame` with the `#app-rail` and `<main class="app-main">` |
+| `app/shell.html` | Signed-in pages (projects, profile, email, password, two-factor, connected accounts; later forums, reports) | `.app-bar` (wordmark, "Hub", theme switch, account menu), `.app-frame` with the `#app-rail` and `<main class="app-main">` |
 | `app/entrance.html` | Sign in, sign up, reset, the two-factor step, re-authentication | The same bar without the menu, and one `.entrance-panel` on the grid backdrop |
 
 - **Rail** (`.app-rail`): a `<details>` that's open without JavaScript; an inline script
-  folds it below 1024 px, where its summary is the toggle. Items come from
-  `{% app_rail %}` (`accounts/templatetags/app_shell.py`), which marks the current page
-  from the view name (`strings.RAIL_PAGES`; every `mfa_*` page is Two-factor). Later
-  phases add sections to `strings.py`.
+  folds it below 1024 px, where its summary ("Hub and account") is the toggle. Sections
+  come from `{% app_rail %}` (`accounts/templatetags/app_shell.py`): **Hub** (Projects),
+  then **Account**. It marks the current page from the view name (`strings.RAIL_PAGES`;
+  every `mfa_*` page is Two-factor; every page of a namespace in `strings.RAIL_NAMESPACES`,
+  such as `projects:*`, is its item). Later phases add items to `strings.RAIL_HUB`.
+- **Template context:** the shell sets `copy` (accounts' strings) for the whole page, so a
+  page with its own copy passes it under another name (the project pages use `text`).
 - **Account menu** (`.app-user`): a `<details>` with the email and **Sign out**, a POST
   form with its CSRF token (never a link).
 - **Messages**: `partials/messages.html`, a polite live region, in both layouts.
@@ -57,6 +60,7 @@ allauth renders through layouts and "elements"; the Hub overrides them all in
 | `.app-panel`, `.app-heading`, `.app-rows`, `.app-list` | 1px panels and their content |
 | `.app-field`, `.app-field-check`, `.app-help`, `.app-field-errors` | Fields on `inset`, ring `line-strong`, focus ring ink |
 | `.app-badge`, `.app-mono`, `.app-link`, `.app-notice`, `.app-message` | Small parts |
+| `.app-project` | A row of the projects list: the name and its repository, wrapping on phones |
 
 Everything is monochrome: errors are `fg-strong` with an ink ring and a "!" marker,
 never a colour. Every `:hover` is behind the hover gate. The nav's Sign in links to
@@ -65,5 +69,6 @@ never a colour. Every `:hover` is behind the hover gate. The nav's Sign in links
 ## Tests
 
 `test_accounts.py` (the shell's rail, current item and sign-out form; entrance layout),
+`test_projects.py` (project pages in the shell, Projects current),
 `test_accounts_browser.py` (sign in through the form, rail and menu at 360 and 1280 px,
 dark and light, no sideways scroll; screenshots in `screenshots/accounts/`).

@@ -34,4 +34,6 @@ def test_the_live_server_uses_the_test_database_never_the_development_one(browse
     from django.db import connection
 
     assert str(connection.settings_dict["NAME"]) != str(settings.BASE_DIR / "db.sqlite3")
-    assert "memorydb" in str(connection.settings_dict["NAME"])
+    # The per-process test file (config/settings.py: DATABASES["default"]["TEST"]).
+    assert str(connection.settings_dict["NAME"]) == connection.settings_dict["TEST"]["NAME"]
+    assert "axcenity-hub-test-" in str(connection.settings_dict["NAME"])

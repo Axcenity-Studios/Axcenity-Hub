@@ -9,6 +9,7 @@ index:** the rules below apply everywhere; topic files under
 | [architecture/github-releases.md](architecture/github-releases.md) | the GitHub release list behind `/download/`: choosing and validating the release, the cache, ETag, fallbacks and backoff |
 | [architecture/accounts.md](architecture/accounts.md) | accounts and sign-in: the email-verification policy and gate, case-insensitive uniqueness, sessions, password reset, rate limits, enumeration, two-factor, Turnstile, production settings |
 | [architecture/github-linking.md](architecture/github-linking.md) | linking a GitHub account: linking only (never sign-in), the OAuth App and its secrets, OAuth state, encrypted tokens and key rotation, revoked and expiring tokens, unlinking |
+| [architecture/projects.md](architecture/projects.md) | projects and their repositories: names, the concurrency-safe limit (`accounts/limits.py`), the no-scope permission check and its 60 s window, rate limits and budget, duplicate links, the webhook (per-link secrets, replays) |
 
 ## Layout
 
@@ -18,15 +19,16 @@ index:** the rules below apply everywhere; topic files under
 | `marketing/` | Public signed-out pages: Home, Toolbox and Download. `content.py` holds their copy, links and media manifest as data; `drawings.py` computes the drawn media; `media.py` cuts captures into derivatives (`manage.py make_media`); `github.py` is the one GitHub request (the engine's release list) and `releases.py` chooses the release, groups its builds and caches it; `legal.py` reflows the engine's LICENSE and NOTICE into prose for the download agreement ([frontend/download.md](frontend/download.md)) |
 | `documentation/` | The engine docs at `/docs/`: `sync.py` (`sync_engine_docs`), `navigation.py`, `links.py`, `rendering.py`, `highlight.py`, `library.py` (the snapshot as served, and its build check), `api.py` (API pages as structure), `search.py` (the index and ranking), `diagrams.py`, `strings.py`. See [frontend/documentation.md](frontend/documentation.md) |
 | `documentation/content/` | The committed snapshot of the engine's `documentation/` folder, with `SOURCE.json` (commit and tree). Only `sync_engine_docs` writes it |
-| `accounts/` | Profiles and the sign-in policy around django-allauth: the verification gate (`access.py`), the signup-only verification stage, case-insensitive unique indexes, the rate-limit backstop, Turnstile, session lifetimes ([architecture/accounts.md](architecture/accounts.md)); GitHub linking: `GitHubLink`, `crypto.py`, `github.py` ([architecture/github-linking.md](architecture/github-linking.md)) |
+| `accounts/` | Profiles and the sign-in policy around django-allauth: the verification gate (`access.py`), the signup-only verification stage, case-insensitive unique indexes, the rate-limit backstop, Turnstile, session lifetimes ([architecture/accounts.md](architecture/accounts.md)); GitHub linking: `GitHubLink`, `crypto.py`, `github.py` ([architecture/github-linking.md](architecture/github-linking.md)); `limits.py`, the lock behind every count-based limit |
+| `projects/` | Projects and their GitHub repositories: `services.py` (the limit, linking, refreshing), `github.py` (the member's repository calls and permission), `webhooks.py` ([architecture/projects.md](architecture/projects.md)) |
 | `marketing/legal/` | The engine's `LICENSE` and `NOTICE`, copied in unchanged (`content.LEGAL_COMMIT`), shown in full in the download agreement |
 | `marketing/media_sources/` | Captures as copied in (never served, never edited): the sources `make_media` reads, and `toolbox-capture.json`, the Toolbox screenshots' capture record |
-| `templates/` | `base.html` (shared by every shell), `marketing/` (the marketing shell and its pages), `documentation/` (the docs layout and pages), `app/` (the app shell and the entrance), `allauth/` (allauth's layouts and elements), `accounts/`, `partials/` |
+| `templates/` | `base.html` (shared by every shell), `marketing/` (the marketing shell and its pages), `documentation/` (the docs layout and pages), `app/` (the app shell and the entrance), `allauth/` (allauth's layouts and elements), `accounts/`, `projects/`, `partials/` |
 | `styles/source.css` | The Tailwind source; built into `static/css/tailwind.css` (git-ignored) |
 | `static/` | `js/`, `reel/` (the canvas kit and `reel/loops/`, the Home's animated recreations), `fonts/`, `brand/`, `marketing/media/` (the captures' derivatives, written by `make_media`, and the hero's film in `homestead/`) |
 | `tests/` | Every test (see [TESTING.md](TESTING.md)) |
 
-Later phases add `projects`, `forums`, `showcases`, `reports`,
+Later phases add `forums`, `showcases`, `reports`,
 `moderation` and `api` (see the plan's architectural decisions).
 
 ## Rules
@@ -39,9 +41,13 @@ Later phases add `projects`, `forums`, `showcases`, `reports`,
   un-namespaced names. The Hub's account pages are `accounts:*`.
 - **Access:** members-only views use `LoginRequiredMixin`; anything the
   caller can't see is a 404, never a 403. Every write is CSRF protected.
-  Nothing is `csrf_exempt` (Phase 10's webhook will be the one exception).
+  Nothing is `csrf_exempt` except the repository webhook (`projects:webhook`), which
+  authenticates each delivery by its signature instead.
   Views that post, create or report use `accounts.access.VerifiedEmailRequiredMixin`,
   and their services call `ensure_can_contribute(user)`.
+- **Count-based limits** (5 projects; later posts, comments, showcases, reports) run in one
+  transaction: `accounts.limits.lock_member(user)`, count, raise `LimitReached`, insert
+  ([architecture/projects.md](architecture/projects.md#the-five-project-limit-concurrency-safe)).
 - **New URLs are members-only by default:** `test_accounts_security.py` walks every
   URL, and anything not on its `PUBLIC` list must send an anonymous visitor to sign in.
 - **Secrets** come from environment variables only, never the database.
@@ -66,6 +72,13 @@ Later phases add `projects`, `forums`, `showcases`, `reports`,
 | `/accounts/github/login/` | `github_login` | `GitHubConnectView`: POST starts linking GitHub (never a sign-in); replaces allauth's view |
 | `/accounts/github/login/callback/` | `github_callback` | allauth: GitHub's return; links only for the signed-in member (`SocialAccountAdapter`) |
 | `/accounts/…` | `account_*`, `mfa_*`, `socialaccount_*` | allauth: sign in, sign up, sign out, confirm email, password change and reset, re-authenticate, two-factor (`/accounts/2fa/…`), a cancelled or failed link (`/accounts/3rdparty/login/…`) |
+| `/projects/` | `projects:list` | `ProjectListView`: the member's own projects and the count against the limit |
+| `/projects/new/` | `projects:create` | `ProjectCreateView`: verified members, at most 5 projects each |
+| `/projects/<slug>/` | `projects:detail` | `ProjectDetailView`: the project and its repository (refetched when over an hour old); owner only, others 404 |
+| `/projects/<slug>/edit/`, `/delete/` | `projects:edit`, `projects:delete` | Rename (the slug follows) or describe; delete after confirming |
+| `/projects/<slug>/repository/link/`, `/unlink/`, `/refresh/` | `projects:link_repository`, `projects:unlink_repository`, `projects:refresh_repository` | POST: link (needs admin on GitHub), unlink (GitHub not asked), refresh (needs read) |
+| `/projects/<slug>/repository/webhook/` | `projects:webhook_settings` | The webhook's payload URL and secret, after an admin check; never cached |
+| `/projects/hooks/github/<hook_id>/` | `projects:webhook` | `GitHubWebhookView`: POST only, CSRF-exempt, signed deliveries ([architecture/projects.md](architecture/projects.md#webhooks)) |
 | `/theme/` | `marketing:theme` | `ThemeView`: POST only, the no-JavaScript fallback for the theme switch |
 | `/admin/` | `admin:*` | Django admin |
 
@@ -123,6 +136,10 @@ Later phases add `projects`, `forums`, `showcases`, `reports`,
   account's token (`GET /user`) and refreshes expiring ones, reusing
   `marketing/github.py`'s headers and timeout
   ([architecture/github-linking.md](architecture/github-linking.md)).
+- **GitHub, as the member, for repositories** (Phase 10): `projects/github.py` reads
+  `GET /repos/{owner}/{repo}` with the member's no-scope token: details and their permission
+  (`permissions`), resolved before every repository-dependent action, with per-member
+  backoff, an hourly budget and ETags ([architecture/projects.md](architecture/projects.md)).
 - The cache is local memory in development. Production shares one (the
   database cache, or Redis): one list, one backoff and one set of rate limits
   for every process ([architecture/accounts.md](architecture/accounts.md)).
@@ -146,6 +163,7 @@ locally, copy it to `.env` (git-ignored) and run `uv run --env-file .env …`.
 | `DJANGO_EMAIL_HOST`, `_PORT`, `_HOST_USER`, `_HOST_PASSWORD`, `_USE_TLS` | `localhost`, `587`, none, none, on | Production SMTP |
 | `DJANGO_DEFAULT_FROM_EMAIL` | `Axcenity Hub <noreply@localhost>` | The sender |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | none | The GitHub OAuth App for account linking; off unless both and a token key are set |
+| `GITHUB_WEBHOOK_SECRET` | none | The root secret for repository webhooks (each link's secret derives from it); webhooks are off (404) unless set |
 | `GITHUB_TOKEN_KEYS` | none | Comma-separated Fernet keys for GitHub tokens at rest (first encrypts); required in production when the app is set |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | none | Cloudflare Turnstile on signup and reset; off unless both are set |
 | `AXCENITY_ENGINE_DIR` | `~/Documents/VSCode Projects/Axcenity-Engine` | The engine checkout `sync_engine_docs` reads (never at request time) |

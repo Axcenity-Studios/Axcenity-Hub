@@ -1,0 +1,31 @@
+{% extends "app/shell.html" %}
+{% block head_title %}{{ text.LIST_TITLE }}{% endblock %}
+{% block content %}
+<div class="app-page">
+  <header class="app-page-head">
+    <h1 class="headline app-title">{{ text.LIST_TITLE }}</h1>
+    <p class="app-lede">{{ text.LIST_LEDE }}</p>
+  </header>
+
+  <section class="app-panel panel" aria-labelledby="projects-title" data-project-count="{{ projects|length }}">
+    <h2 id="projects-title" class="app-heading">{{ count_text }}</h2>
+    {% if projects %}
+    <ul class="app-list">
+      {% for project in projects %}
+      <li class="app-project">
+        <a class="app-link" href="{{ project.get_absolute_url }}">{{ project.name }}</a>
+        {% if project.repository %}<span class="app-mono app-help">{{ project.repository.full_name }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>{{ text.LIST_EMPTY }}</p>
+    {% endif %}
+    {% if at_limit %}
+    <p class="app-notice" role="status">{{ text.LIMIT_REACHED }}</p>
+    {% else %}
+    <div class="app-actions"><a class="btn btn-primary" href="{% url 'projects:create' %}">{{ text.NEW_PROJECT }}</a></div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

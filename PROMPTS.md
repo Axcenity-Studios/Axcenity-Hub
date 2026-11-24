@@ -28,6 +28,84 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-24 — Axcenity Hub: Phase 10/17, Projects and repository integration
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub.md phase 10`.
+2. Changes to the brief before building: scope webhook delivery-id and body-hash uniqueness to
+   the repository link; resolve the permission before every repository-dependent action with
+   a cache of at most 60 s per member and repository, never reused after expiry, failing
+   closed, and document that revocation can take up to 60 s; make the permission-check
+   mechanism an explicit prerequisite (verify which GitHub endpoint establishes the role with
+   the existing no-scope token, settle the authorization model if it needs scopes, never
+   silently expand OAuth permissions); make the five-project limit concurrency-safe (atomic
+   transaction, owner-level locking, a concurrency test, other members' projects never
+   counting); then "continue to TDD phases only stopping on red".
+3. "Looks good move to next red test" (approving TDD 2's RED test).
+4. "Looks good move on" (approving TDD 3's RED test).
+5. "move on and finish the rest of the phase" (approving TDD 1's RED test).
+
+### Summary
+
+- **Outcome:** A `projects` app: create, view, edit and delete projects (owner only; others
+  404), at most 5 per member under a per-member lock, names unique in any case, slug URLs;
+  link one public GitHub repository per project (needs admin on GitHub), refresh it, unlink
+  it; GitHub calls with per-member backoff, an hourly budget and ETags; stored details with a
+  notice when GitHub fails; signed webhooks with per-link derived secrets and per-link replay
+  refusal. 1123 fast tests and 77 browser tests pass; Ruff is clean.
+- **Changes:**
+  - `projects/` (new): `models.py` (Project, RepositoryLink, WebhookDelivery; migration
+    0001), `services.py`, `github.py`, `webhooks.py`, `views.py`, `forms.py`, `urls.py`,
+    `strings.py`, `admin.py`, `apps.py`.
+  - `accounts/limits.py` (new): `lock_member` and `LimitReached`, the pattern for every
+    count-based limit.
+  - `config/settings.py`: the app; SQLite `transaction_mode = "IMMEDIATE"`; a per-process
+    file test database; `GITHUB_WEBHOOK_SECRET`, `GITHUB_PERMISSION_TTL` (60 s),
+    `GITHUB_CALLS_PER_MEMBER_PER_HOUR`, `GITHUB_REPOSITORY_REFRESH`. `config/urls.py`:
+    `/projects/`. `.env.example`: `GITHUB_WEBHOOK_SECRET`.
+  - `accounts/strings.py`, `accounts/templatetags/app_shell.py`, `templates/app/shell.html`:
+    the rail in sections (Hub: Projects; Account). `templates/partials/icon.html`: `folder`.
+    `styles/source.css`: `.app-project`. `templates/projects/*` (new).
+  - Tests: `test_projects.py`, `test_projects_github.py`, `test_projects_webhooks.py` (new),
+    `fixtures/github/repository.json` (GitHub's documented example repository);
+    `test_accounts_security.py` (the webhook is the one CSRF-exempt and public URL; the
+    project URLs in the members-only walk), `test_accounts.py` (the rail),
+    `test_browser_server.py` (the file test database).
+  - Docs: `docs/architecture/projects.md` (new), `docs/ARCHITECTURE.md`, `docs/TESTING.md`,
+    `docs/frontend/app-shell.md`; the plan's Phase 10 boxes ticked.
+- **TDD:** (2) a sixth project is rejected, one at a time and with eight concurrent creations
+  (exactly five succeed), other members' projects not counting; (3) the permission is resolved
+  before each action, a check reused only while younger than 60 s, a downgrade or removal
+  blocking it, and outages or a missing `permissions` failing closed; (1) only the link's own
+  valid `X-Hub-Signature-256` is accepted, and the same delivery id or body is refused as a
+  replay for that link but not for another.
+- **Decisions:** The authorization model: the no-scope OAuth App stays as it is; the role comes
+  from `GET /repos/{owner}/{repo}`'s `permissions` (GitHub's docs give that endpoint no scope
+  note and "repository info" to no-scope tokens; the collaborator and hook endpoints need
+  `repo`, `read:org` or `admin:repo_hook`); a missing or malformed `permissions` fails closed;
+  owners add the webhook by hand; only public repositories can be linked; the undocumented
+  `/repositories/{id}` isn't used. Per-link webhook secrets as HMAC(root, hook_id), shown only
+  after an admin check. Link and the webhook page need admin; refresh needs read; unlink and
+  delete never ask GitHub. Projects are owner-only until Phase 11. The slug follows the name;
+  `new` and `hooks` are reserved. Webhook signature failures answer 403 (unknown hooks 404).
+  No HTMX yet (Phase 12A).
+- **Deviations:** The user changed the brief before building: replay uniqueness per link,
+  the explicit 60 s permission rule and its documentation, the permission endpoint as a
+  verified prerequisite with no silent scope expansion, and a concurrency-safe limit with
+  its own test.
+- **Sideways:** The concurrency test first failed with "database table is locked": SQLite's
+  shared in-memory test database fails a waiting writer at once, so tests now use a file per
+  process (11 s → 15 s, later 11 s); with the lock removed the test fails, confirming it
+  catches the race. GitHub's docs don't say outright that `permissions` comes back to a
+  no-scope token, so the check fails closed without it and the manual test confirms it live.
+  The project templates' `copy` was shadowed by the app shell's own `copy` (renamed `text`).
+  A blank name slipped past `clean()`, the name constraint's error landed on the form instead
+  of the field, and `full_clean` added a duplicate slug error; all fixed. Page tests compared
+  messages with apostrophes against escaped HTML (unescaped now). Two weak assertions (an
+  `or True`, a clumsy mock swap) were tightened. The browser test pinning the in-memory test
+  database's name was updated.
+
 ## 2026-11-24 — Phase 9 follow-up: GitHub keys, a local .env, and .env.example
 
 ### Prompts

@@ -1,0 +1,20 @@
+{% extends "app/shell.html" %}
+{% block head_title %}{{ text.DELETE }}{% endblock %}
+{% block content %}
+<div class="app-page">
+  <header class="app-page-head">
+    <h1 class="headline app-title">{{ text.DELETE_TITLE }}</h1>
+    <p class="app-lede">{{ text.DELETE_LEDE }}</p>
+  </header>
+  <section class="app-panel panel" aria-labelledby="delete-title">
+    <h2 id="delete-title" class="app-heading">{{ project.name }}</h2>
+    <form method="post" class="app-form">
+      {% csrf_token %}
+      <div class="app-actions">
+        <button type="submit" class="btn btn-primary">{{ text.DELETE }}</button>
+        <a class="btn btn-quiet" href="{{ project.get_absolute_url }}">{{ text.CANCEL }}</a>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

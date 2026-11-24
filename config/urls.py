@@ -12,5 +12,6 @@ urlpatterns = [
     path("accounts/", include(allauth_overrides)),
     path("accounts/", include("allauth.urls")),
     path("docs/", include("documentation.urls")),
+    path("projects/", include("projects.urls")),
     path("", include("marketing.urls")),
 ]

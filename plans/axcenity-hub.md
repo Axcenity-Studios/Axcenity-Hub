@@ -452,14 +452,14 @@ Built test-first with the `tdd` skill; the rest of the phase is built and tested
 
 ### Acceptance criteria
 
-- [ ] Every rule below has tests
-- [ ] The 6th project is rejected; names are unique case-insensitively; owners can edit and delete, others get 404
-- [ ] Unverified accounts can't create projects (the Phase 8 email-verification gate)
-- [ ] **Rate limits:** GitHub calls read `X-RateLimit-*` and `Retry-After`, back off, use ETags, and are budgeted per user; exhaustion shows cached data with a clear notice, never an error page
-- [ ] **Webhooks:** payloads are verified with `X-Hub-Signature-256` (HMAC-SHA256, constant-time compare) using a secret from the environment; unsigned, mis-signed or replayed deliveries (duplicate `X-GitHub-Delivery`) are rejected; the endpoint is the only CSRF-exempt view
-- [ ] **Duplicate linking:** a repository can be linked to only one Hub project; a second attempt is refused with a clear message
-- [ ] **Permission revalidation:** before every repo-dependent operation, the user's current repository permission is checked against GitHub (with a short cache); downgraded or removed access blocks the operation, and the Hub never grants more than GitHub does
-- [ ] GitHub outages degrade gracefully (cached data, retry later); mocked failure tests cover 401, 403, 404, 5xx and timeouts
+- [x] Every rule below has tests
+- [x] The 6th project is rejected; names are unique case-insensitively; owners can edit and delete, others get 404
+- [x] Unverified accounts can't create projects (the Phase 8 email-verification gate)
+- [x] **Rate limits:** GitHub calls read `X-RateLimit-*` and `Retry-After`, back off, use ETags, and are budgeted per user; exhaustion shows cached data with a clear notice, never an error page
+- [x] **Webhooks:** payloads are verified with `X-Hub-Signature-256` (HMAC-SHA256, constant-time compare) using a secret from the environment; unsigned, mis-signed or replayed deliveries (duplicate `X-GitHub-Delivery`) are rejected; the endpoint is the only CSRF-exempt view
+- [x] **Duplicate linking:** a repository can be linked to only one Hub project; a second attempt is refused with a clear message
+- [x] **Permission revalidation:** before every repo-dependent operation, the user's current repository permission is checked against GitHub (with a short cache); downgraded or removed access blocks the operation, and the Hub never grants more than GitHub does
+- [x] GitHub outages degrade gracefully (cached data, retry later); mocked failure tests cover 401, 403, 404, 5xx and timeouts
 
 ---
 

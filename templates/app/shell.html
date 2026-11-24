@@ -34,15 +34,17 @@
 <div class="app-frame">
   {# Open without JavaScript; the script below folds it on phones (like the docs' sidebar). #}
   <details id="app-rail" class="app-rail" open>
-    <summary class="app-rail-toggle micro">{{ copy.RAIL_HEADING }}</summary>
-    <nav aria-label="{{ copy.RAIL_HEADING }}" class="app-rail-body">
-      <p class="app-rail-heading micro">{{ copy.RAIL_HEADING }}</p>
+    <summary class="app-rail-toggle micro">{{ copy.RAIL_LABEL }}</summary>
+    <nav aria-label="{{ copy.RAIL_LABEL }}" class="app-rail-body">
+      {% app_rail as rail %}
+      {% for section in rail %}
+      <p class="app-rail-heading micro">{{ section.heading }}</p>
       <ul class="app-rail-list">
-        {% app_rail as rail %}
-        {% for item in rail %}
+        {% for item in section.items %}
         <li><a href="{{ item.href }}" class="app-rail-link"{% if item.current %} aria-current="page"{% endif %}>{% include "partials/icon.html" with name=item.icon size=16 %}{{ item.label }}</a></li>
         {% endfor %}
       </ul>
+      {% endfor %}
     </nav>
   </details>
   <script>if (!matchMedia("(min-width: 1024px)").matches) document.getElementById("app-rail").open = false;</script>

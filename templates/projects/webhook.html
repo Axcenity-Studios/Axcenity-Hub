@@ -1,0 +1,21 @@
+{% extends "app/shell.html" %}
+{% block head_title %}{{ text.WEBHOOK_TITLE }}{% endblock %}
+{% block content %}
+<div class="app-page">
+  <header class="app-page-head">
+    <h1 class="headline app-title">{{ text.WEBHOOK_TITLE }}</h1>
+    <p class="app-lede">{{ text.WEBHOOK_LEDE }}</p>
+  </header>
+  <section class="app-panel panel" aria-labelledby="webhook-title">
+    <h2 id="webhook-title" class="app-heading">{{ project.repository.full_name }}</h2>
+    <dl class="app-rows">
+      <div><dt>{{ text.WEBHOOK_URL }}</dt><dd><span class="app-mono" data-webhook-url>{{ payload_url }}</span></dd></div>
+      <div><dt>{{ text.WEBHOOK_CONTENT_TYPE }}</dt><dd><span class="app-mono">application/json</span></dd></div>
+      <div><dt>{{ text.WEBHOOK_SECRET }}</dt><dd><span class="app-mono" data-webhook-secret>{{ secret }}</span></dd></div>
+      <div><dt>{{ text.WEBHOOK_EVENTS }}</dt><dd>{{ text.WEBHOOK_EVENTS_VALUE }}</dd></div>
+    </dl>
+    <p class="app-help">{{ text.WEBHOOK_SECRET_NOTE }}</p>
+    <div class="app-actions"><a class="btn btn-quiet" href="{{ project.get_absolute_url }}">{{ text.BACK_TO_PROJECT }}</a></div>
+  </section>
+</div>
+{% endblock %}

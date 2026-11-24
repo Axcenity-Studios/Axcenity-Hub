@@ -1,0 +1,25 @@
+{% extends "app/shell.html" %}
+{% block head_title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="app-page">
+  <header class="app-page-head">
+    <h1 class="headline app-title">{{ title }}</h1>
+    {% if lede %}<p class="app-lede">{{ lede }}</p>{% endif %}
+  </header>
+  <section class="app-panel panel" aria-labelledby="project-form-title">
+    <h2 id="project-form-title" class="app-heading">{% if project %}{{ project.name }}{% else %}{{ text.CREATE_TITLE }}{% endif %}</h2>
+    {% if at_limit %}
+    <p class="app-notice" role="status">{{ text.LIMIT_REACHED }}</p>
+    {% else %}
+    <form method="post" class="app-form" novalidate>
+      {% csrf_token %}
+      {% include "partials/form_fields.html" with form=form %}
+      <div class="app-actions">
+        <button type="submit" class="btn btn-primary">{{ submit }}</button>
+        <a class="btn btn-quiet" href="{{ cancel_url }}">{{ text.CANCEL }}</a>
+      </div>
+    </form>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

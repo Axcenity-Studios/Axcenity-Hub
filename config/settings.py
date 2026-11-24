@@ -9,6 +9,7 @@ docs/architecture/accounts.md). Never put a real secret in this file.
 
 import mimetypes
 import os
+import tempfile
 from datetime import timedelta
 from pathlib import Path
 
@@ -69,6 +70,7 @@ INSTALLED_APPS = [
     "marketing",
     "documentation",
     "accounts",
+    "projects",
 ]
 
 MIDDLEWARE = [
@@ -107,6 +109,15 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
+        # Every transaction takes SQLite's write lock when it begins, so a count-then-insert
+        # limit (accounts.limits.lock_member) is serialized; PostgreSQL locks the member's row.
+        "OPTIONS": {"transaction_mode": "IMMEDIATE"},
+        # Tests use a file too (one per test process), not SQLite's shared in-memory
+        # database: that one fails a waiting writer at once ("database table is locked")
+        # instead of queueing it, so it can't show the lock above working.
+        "TEST": {
+            "NAME": str(Path(tempfile.gettempdir()) / f"axcenity-hub-test-{os.getpid()}.sqlite3")
+        },
     }
 }
 
@@ -284,6 +295,20 @@ SOCIALACCOUNT_LOGIN_ON_GET = False
 SOCIALACCOUNT_REAUTHENTICATION_REQUIRED = False
 # How long a successful check of a link's token stands before GitHub is asked again.
 GITHUB_LINK_CHECK_INTERVAL = timedelta(minutes=15)
+
+# ---------- Projects and repositories (projects.github, projects.webhooks) ----------
+# The root secret for repository webhooks: each linked repository's own secret is derived
+# from it and the link's random hook id, so no owner ever sees this value. Webhooks are off
+# (their URL is a 404) while it's unset.
+GITHUB_WEBHOOK_SECRET = os.environ.get("GITHUB_WEBHOOK_SECRET", "")
+# How long a member's repository permission, as GitHub reported it, may be reused. Never
+# longer: a revoked permission stops working within this time.
+GITHUB_PERMISSION_TTL = timedelta(seconds=60)
+# GitHub requests the Hub makes for one member in an hour, at most (a courtesy budget on
+# top of GitHub's own rate limit).
+GITHUB_CALLS_PER_MEMBER_PER_HOUR = 60
+# Linked repositories' details older than this are fetched again when the project is viewed.
+GITHUB_REPOSITORY_REFRESH = timedelta(hours=1)
 
 # Cloudflare Turnstile on sign-up and the reset request (accounts.turnstile): on only when
 # both keys are set. Cloudflare's test keys work on localhost (docs/architecture/accounts.md).

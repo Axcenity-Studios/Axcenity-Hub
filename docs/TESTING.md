@@ -36,6 +36,9 @@ is on, so an unregistered marker fails.
 | `test_accounts_mfa.py` | Two-factor: enrolling (real TOTP codes from the secret), recovery codes once each, the code step that can't be skipped, rate limits on codes (cache and database), re-authentication before turning it off, session rotation |
 | `test_accounts_github.py` | GitHub linking: tokens encrypted at rest and deleted on unlink (TDD), a 401 marking the link for reconnection (TDD), `check_link`'s other replies, refresh and rotation, key rotation, OAuth state (missing, unknown, another session's, reused), one account each way, linking only, the page's states, unlinking after re-authentication, no token in logs, sessions or the admin |
 | `test_settings_production.py` | Production settings in a subprocess: `check --deploy --fail-level WARNING`, every security value, proxy and Redis options, refusal to start without a real secret key and hosts, or with a GitHub app but no (or a malformed) token key; `.env.example` lists every variable settings reads, with no values, and `.env` is git-ignored; development's security headers |
+| `test_projects.py` | Projects: the five-project limit (TDD; one at a time and eight concurrent creations), the lock, names unique in any case (form, model and database), addresses, owners only (404 for others on every URL), the verification gate, CSRF on every project POST, the app shell, escaping |
+| `test_projects_github.py` | Repositories: permission resolved before every action with its 60 s window (TDD), linking needs admin, owner/name parsing, one project per repository, no GitHub or a needs-reconnect link, every GitHub failure (401, 403, 404, 5xx, timeouts, malformed replies), expiring tokens, rate limits and backoff per member, the hourly budget, ETags and 304s, refreshing and a replaced repository, unlinking without GitHub, the pages and their notices, the webhook page, no token in logs |
+| `test_projects_webhooks.py` | Webhooks: only the link's valid signature, replays refused per link (TDD), GitHub's published test vector, per-link secrets never stored, 404s, 405, events (ping, rename, push, deleted, other repositories and kinds), malformed and oversized deliveries, escaping |
 | `test_accounts_browser.py` | `browser`: a member signs in through the form; the app shell's rail and account menu at 360 and 1280 px, dark and light, with no sideways scroll; sign-out returns Home; Connected accounts with a link needing reconnection fits the same widths |
 
 Add a row when you create a file.
@@ -49,6 +52,16 @@ Add a row when you create a file.
   an `OSError`), so no client code can swallow it, and the test fails.
   There's no opt-out marker, and none may be added.
 - **`_fast_password_hashing`:** MD5 hashing in tests, for speed only.
+
+## The test database
+
+A SQLite **file** per test process (`DATABASES["default"]["TEST"]["NAME"]`, in the system
+temp folder, removed after the run), not SQLite's shared in-memory database: that one fails
+a waiting writer at once ("database table is locked") instead of queueing it, so it can't
+show `accounts.limits.lock_member` working. A concurrency test uses
+`django_db(transaction=True)`, one thread per attempt released together by a
+`threading.Barrier`, and closes each thread's connection (`create_at_once` in
+`test_projects.py`).
 
 ## Browser tests: the one opening
 
@@ -110,7 +123,11 @@ call a live API: the guard fails the test, and its error is a
 - GitHub replies are built from real payloads trimmed to the fields the
   Hub reads, in `tests/fixtures/github/` (`releases.json`: the engine's
   release list, with the ETag GitHub sent noted in `test_download.py`;
-  `user.json`: `/user` for GitHub's public example account).
+  `user.json`: `/user` for GitHub's public example account; `repository.json`: GitHub's
+  documented example repository, which `repo_reply(role)` gives `permissions` for).
+- Repository calls take `now=`, like the releases: step past the 60 s permission window or a
+  backoff instead of sleeping. `github.forget_permission` drops a member's stored check.
+- Webhook deliveries: sign the exact bytes with `webhooks.signature(webhooks.secret_for(link.hook_id), body)`.
 - GitHub linking never drives real OAuth: make `SocialAccount` rows
   directly, or mock the token endpoint and `/user` around allauth's real
   callback ([architecture/github-linking.md](architecture/github-linking.md#tests)).
@@ -131,7 +148,9 @@ call a live API: the guard fails the test, and its error is a
   walks every URL; a new public page must be added to its `PUBLIC` set.
   Object URLs (later phases) must give a 404, never a 403.
 - CSRF everywhere: `test_every_post_without_a_csrf_token_is_refused_htmx_included`
-  posts to every URL without a token, signed out and in.
+  posts to every URL without arguments without a token, signed out and in; URLs with a slug
+  get their own walk (`test_every_project_post_without_a_csrf_token_is_refused`). The only
+  exempt view is the webhook (`test_only_the_repository_webhook_is_csrf_exempt`).
 - Contribution views: test the gate with an unverified member (see
   `tests/gate_urls.py` and `make_member(verified=False)` in `test_accounts.py`).
 

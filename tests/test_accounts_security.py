@@ -174,12 +174,17 @@ def _routes():
     return list(walk(get_resolver().url_patterns))
 
 
-def test_no_view_is_csrf_exempt(settings):
+def test_only_the_repository_webhook_is_csrf_exempt(settings):
+    # GitHub can't send a CSRF token: the webhook authenticates each delivery by its
+    # signature instead (tests/test_projects_webhooks.py). Nothing else is exempt.
     exempt = [name for _, name, callback, _ in _routes() if getattr(callback, "csrf_exempt", False)]
-    assert exempt == []
-    for folder in ["accounts", "config", "marketing", "documentation"]:
+    assert exempt == ["projects:webhook"]
+    allowed = settings.BASE_DIR / "projects" / "views.py"
+    for folder in ["accounts", "config", "marketing", "documentation", "projects"]:
         for path in (settings.BASE_DIR / folder).rglob("*.py"):
-            assert "csrf_exempt" not in path.read_text(encoding="utf-8"), path
+            if path != allowed:
+                assert "csrf_exempt" not in path.read_text(encoding="utf-8"), path
+    assert allowed.read_text(encoding="utf-8").count("@method_decorator(csrf_exempt") == 1
 
 
 @pytest.mark.django_db
@@ -491,6 +496,8 @@ PUBLIC = {
     # GitHub's return to the Hub, and allauth's pages for a cancelled or failed one: they
     # show an error to anyone and link nothing (accounts.adapter.SocialAccountAdapter).
     "github_callback", "socialaccount_login_cancelled", "socialaccount_login_error",
+    # GitHub's repository webhooks: authenticated by each delivery's signature, not a session.
+    "projects:webhook",
 }  # fmt: skip
 SAMPLE_KWARGS = {"key": "not-a-key", "uidb36": "1", "path": "not-a-page"}
 
@@ -526,6 +533,15 @@ def test_every_members_only_url_sends_an_anonymous_visitor_to_sign_in(client):
         "socialaccount_connections",
         "socialaccount_signup",
         "github_login",
+        "projects:list",
+        "projects:create",
+        "projects:detail",
+        "projects:edit",
+        "projects:delete",
+        "projects:link_repository",
+        "projects:unlink_repository",
+        "projects:refresh_repository",
+        "projects:webhook_settings",
     } <= set(members_only)
 
 
