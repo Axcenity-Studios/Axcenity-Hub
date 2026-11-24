@@ -36,8 +36,8 @@ class Project(models.Model):
     NAME_MAX = 60
     DESCRIPTION_MAX = 500
     LIMIT_PER_OWNER = 5
-    # Slugs that would shadow the app's own URLs (/projects/new/, /projects/hooks/...).
-    RESERVED_SLUGS = frozenset({"new", "hooks"})
+    # Slugs that would shadow the app's own URLs (/projects/new/, /projects/guide/, hooks).
+    RESERVED_SLUGS = frozenset({"new", "guide", "hooks"})
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="projects"
@@ -128,7 +128,15 @@ class RepositoryLink(models.Model):
     )
     etag = models.CharField(max_length=200, blank=True, editable=False)
     fetched_at = models.DateTimeField(null=True, blank=True)
-    webhook_at = models.DateTimeField(null=True, blank=True)
+    webhook_shown_at = models.DateTimeField(
+        null=True, blank=True, help_text="When the owner last opened the webhook's settings."
+    )
+    webhook_at = models.DateTimeField(
+        null=True, blank=True, help_text="When GitHub's last webhook delivery arrived."
+    )
+    first_webhook_at = models.DateTimeField(
+        null=True, blank=True, help_text="When GitHub's first webhook delivery arrived."
+    )
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:

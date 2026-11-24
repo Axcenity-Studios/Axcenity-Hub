@@ -1,54 +1,139 @@
 {% extends "app/shell.html" %}
+{% load shell_tags %}
 {% block head_title %}{{ project.name }}{% endblock %}
 {% block content %}
-<div class="app-page">
-  <header class="app-page-head">
-    <h1 class="headline app-title">{{ project.name }}</h1>
-    <p class="app-lede">{{ project.description|default:text.NO_DESCRIPTION|linebreaksbr }}</p>
+{# A project: its repository setup checklist (projects.setup), then the linked repository. #}
+<div class="app-page app-page-wide" data-repository="{% if link %}linked{% else %}none{% endif %}">
+  <div class="pj-head">
+    <header class="app-page-head">
+      <p class="micro text-fg-weak"><a class="app-link" href="{% url 'projects:list' %}">{{ text.LIST_TITLE }}</a></p>
+      <h1 class="headline app-title">{{ project.name }}</h1>
+      <p class="app-lede">{% if project.description %}{{ project.description|linebreaksbr }}{% else %}{{ text.NO_DESCRIPTION }}{% endif %}</p>
+    </header>
     <div class="app-actions">
-      <a class="btn btn-quiet" href="{% url 'projects:edit' project.slug %}">{{ text.EDIT }}</a>
-      <a class="btn btn-quiet" href="{% url 'projects:delete' project.slug %}">{{ text.DELETE }}</a>
+      <a class="btn btn-quiet btn-sm" href="{% url 'projects:edit' project.slug %}">{{ text.EDIT }}</a>
+      <a class="btn btn-quiet btn-sm" href="{% url 'projects:delete' project.slug %}">{{ text.DELETE }}</a>
     </div>
-  </header>
+  </div>
 
-  <section class="app-panel panel" aria-labelledby="repository-title" data-repository="{% if link %}linked{% else %}none{% endif %}">
-    <h2 id="repository-title" class="app-heading">{{ text.REPOSITORY }}</h2>
-    {% if link %}
-    {% if notice %}<p class="app-notice" role="status" data-repository-notice>{{ notice }}</p>{% endif %}
-    {% if link.deleted_on_github %}<p class="app-notice" role="status">{{ text.REPOSITORY_DELETED }}</p>{% endif %}
-    <dl class="app-rows">
-      <div><dt>{{ text.REPOSITORY }}</dt><dd><a class="app-link app-mono" href="{{ link.html_url }}" rel="noopener noreferrer">{{ link.full_name }}</a>{% if link.archived %} <span class="app-badge micro">{{ text.REPOSITORY_ARCHIVED }}</span>{% endif %}</dd></div>
-      {% if link.description %}<div><dt>{{ text.GITHUB_DESCRIPTION }}</dt><dd>{{ link.description }}</dd></div>{% endif %}
-      <div><dt>{{ text.VISIBILITY }}</dt><dd>{% if link.private %}{{ text.REPOSITORY_PRIVATE }}{% else %}{{ text.REPOSITORY_PUBLIC }}{% endif %}</dd></div>
-      {% if link.default_branch %}<div><dt>{{ text.DEFAULT_BRANCH }}</dt><dd><span class="app-mono">{{ link.default_branch }}</span></dd></div>{% endif %}
-      <div><dt>{{ text.LAST_PUSH }}</dt><dd>{% if link.pushed_at %}{{ link.pushed_at|date:"j M Y, H:i e" }}{% else %}—{% endif %}</dd></div>
-      <div><dt>{{ text.DETAILS_FROM }}</dt><dd>{% if link.fetched_at %}{{ link.fetched_at|date:"j M Y, H:i e" }}{% else %}{{ text.NEVER }}{% endif %}{% if link.webhook_at %} · {{ text.VIA_WEBHOOK }} {{ link.webhook_at|date:"j M Y, H:i e" }}{% endif %}</dd></div>
-    </dl>
-    <div class="app-actions">
-      <form method="post" action="{% url 'projects:refresh_repository' project.slug %}">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-quiet">{{ text.REPOSITORY_REFRESH }}</button>
-      </form>
-      {% if webhooks_on %}<a class="btn btn-quiet" href="{% url 'projects:webhook_settings' project.slug %}">{{ text.REPOSITORY_WEBHOOK }}</a>{% endif %}
-      <form method="post" action="{% url 'projects:unlink_repository' project.slug %}">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-quiet">{{ text.REPOSITORY_UNLINK }}</button>
-      </form>
+  <details id="setup" class="panel pj-panel pj-setup" data-setup="{% if setup.complete %}complete{% else %}incomplete{% endif %}"{% if not setup.complete or hook or webhook_error %} open{% endif %}>
+    <summary class="pj-bar">
+      <h2 class="tb-chip tb-chip-current">{% if setup.complete %}{{ text.SETUP_DONE_TITLE }}{% else %}{{ text.SETUP_TITLE }}{% endif %}</h2>
+      <span class="pj-progress micro">
+        <span class="pj-meter" aria-hidden="true">{% for step in steps %}<i data-state="{{ step.state }}"></i>{% endfor %}</span>
+        <span>{{ setup.done }} / {{ setup.total }}</span>
+        <span class="pj-setup-toggle" aria-hidden="true"><span class="pj-when-open">{{ text.SETUP_HIDE }}</span><span class="pj-when-closed">{{ text.SETUP_SHOW }}</span></span>
+      </span>
+    </summary>
+    <ol class="pj-steps">
+      {% for step in steps %}
+      <li id="setup-{{ step.key }}" class="pj-step" data-state="{{ step.state }}">
+        <span class="pj-num" aria-hidden="true">{{ step.number }}</span>
+        <div class="min-w-0">
+          <div class="pj-step-head">
+            <span class="pj-icon">{% include "partials/icon.html" with name=step.icon size=20 class="motif pj-motif" %}</span>
+            <h3 class="pj-step-title">{{ step.title }}</h3>
+            <span class="pj-tag micro" data-state="{{ step.state }}">{{ step.state_label }}</span>
+          </div>
+          <p class="pj-step-summary">{{ step.summary }}</p>
+
+          {% if step.key == "account" and step.open %}
+          <div class="pj-step-body">
+            <div class="app-actions"><a class="btn btn-primary" href="{% url 'socialaccount_connections' %}">{% if step.state == "attention" %}{{ step.words.attention_action }}{% else %}{{ step.words.action }}{% endif %}</a></div>
+          </div>
+
+          {% elif step.key == "repository" and step.state == "current" %}
+          <form method="post" action="{% url 'projects:link_repository' project.slug %}" class="pj-step-body app-form" novalidate>
+            {% csrf_token %}
+            {% include "partials/form_fields.html" with form=link_form %}
+            <div class="app-actions"><button type="submit" class="btn btn-primary">{{ step.words.action }}</button></div>
+          </form>
+
+          {% elif step.key == "repository" and step.state == "attention" %}
+          <form method="post" action="{% url 'projects:unlink_repository' project.slug %}" class="pj-step-body">
+            {% csrf_token %}
+            <div class="app-actions"><button type="submit" class="btn btn-primary">{{ text.REPOSITORY_UNLINK }}</button></div>
+          </form>
+
+          {% elif step.key == "webhook" and step.state != "off" and step.state != "waiting" %}
+          <div class="pj-step-body">
+            {% if webhook_error %}<p class="app-notice" role="alert" data-webhook-error>{{ webhook_error }}</p>{% endif %}
+            {% if hook %}
+            {% if local_warning %}<p class="app-notice" role="status" data-local-warning>{{ local_warning }}</p>{% endif %}
+            <p class="text-fg">{{ step.words.instructions }}</p>
+            <dl class="pj-fields" data-webhook-fields>
+              {% for field in webhook_fields %}
+              <div>
+                <dt>{{ field.label }}</dt>
+                <dd>
+                  <span id="webhook-value-{{ field.id }}" class="pj-value{% if not field.copy %} pj-value-plain{% endif %}">{{ field.value }}</span>
+                  {% if field.copy %}<button type="button" class="pj-copy" data-copy="webhook-value-{{ field.id }}" data-copied="{{ text.COPIED }}" data-copy-failed="{{ text.COPY_FAILED }}" aria-label="{{ text.COPY }} {{ field.label }}" hidden>{% include "partials/icon.html" with name="copy" size=14 %}<span data-copy-text aria-live="polite">{{ text.COPY }}</span></button>{% endif %}
+                </dd>
+              </div>
+              {% endfor %}
+            </dl>
+            <p class="app-help">{{ step.words.secret_note }}</p>
+            <div class="app-actions">
+              <a class="btn btn-primary" href="{{ webhook_new_url }}" target="_blank" rel="noopener noreferrer">{{ step.words.open_github }}{% include "partials/icon.html" with name="external" size=14 %}</a>
+              <a class="btn btn-quiet" href="{{ project.get_absolute_url }}#setup-webhook">{{ step.words.hide }}</a>
+            </div>
+            {% else %}
+            <div class="app-actions">
+              <a class="btn {% if step.state == 'current' %}btn-primary{% else %}btn-quiet btn-sm{% endif %}" href="{{ project.get_absolute_url }}?webhook=show#setup-webhook" data-show-webhook>{% if step.state == "current" %}{{ step.words.show }}{% else %}{{ step.words.show_again }}{% endif %}</a>
+            </div>
+            {% endif %}
+          </div>
+
+          {% elif step.key == "delivery" and step.state == "current" %}
+          <div class="pj-step-body">
+            <p class="app-help">{{ step.words.trouble }} <a class="app-link" href="{% url 'projects:guide' %}#trouble">{{ text.GUIDE_LINK }}</a></p>
+            <div class="app-actions"><a class="btn btn-quiet" href="{{ project.get_absolute_url }}#setup-delivery">{{ step.words.action }}</a></div>
+          </div>
+          {% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
+    <p class="pj-foot micro">
+      <span>{% if setup.complete %}{% if setup.total == 4 %}{{ text.SETUP_DONE_NOTE }}{% else %}{{ text.SETUP_DONE_NOTE_OFF }}{% endif %}{% endif %}</span>
+      <a class="app-link inline-flex items-center gap-2" href="{% url 'projects:guide' %}">{% include "partials/icon.html" with name="guide" size=14 %}{{ text.GUIDE_LINK }}</a>
+    </p>
+  </details>
+
+  {% if link %}
+  <section class="panel pj-panel" aria-labelledby="repository-title">
+    <div class="pj-bar">
+      <h2 id="repository-title" class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="repo" size=14 %}{{ text.REPOSITORY }}</h2>
+      <span class="pj-tag micro"{% if link.first_webhook_at %} data-complete{% endif %}>{% if link.first_webhook_at %}{{ text.REPOSITORY_LIVE }}{% else %}{{ text.REPOSITORY_POLLED }}{% endif %}</span>
     </div>
-    {% if not webhooks_on %}<p class="app-help">{{ text.WEBHOOKS_OFF }}</p>{% endif %}
-    {% else %}
-    <p>{{ text.REPOSITORY_NONE }}</p>
-    {% if has_github %}
-    <form method="post" action="{% url 'projects:link_repository' project.slug %}" class="app-form" novalidate>
-      {% csrf_token %}
-      {% include "partials/form_fields.html" with form=link_form %}
-      <div class="app-actions"><button type="submit" class="btn btn-primary">{{ text.REPOSITORY_LINK }}</button></div>
-    </form>
-    <p class="app-help">{{ text.REPOSITORY_LINK_NOTE }}</p>
-    {% else %}
-    <p class="app-help">{{ text.REPOSITORY_NEEDS_GITHUB }} <a class="app-link" href="{% url 'socialaccount_connections' %}">{{ text.CONNECTED_ACCOUNTS }}</a></p>
-    {% endif %}
-    {% endif %}
+    <div class="pj-repo-body">
+      {% if notice %}<p class="app-notice" role="status" data-repository-notice>{{ notice }}</p>{% endif %}
+      {% if link.deleted_on_github %}<p class="app-notice" role="status">{{ text.STEPS.repository.attention }}</p>{% endif %}
+      <div class="pj-repo-name">
+        <a href="{{ link.html_url }}" rel="noopener noreferrer">{{ link.full_name }}</a>
+        {% if link.archived %}<span class="pj-tag micro">{{ text.REPOSITORY_ARCHIVED }}</span>{% endif %}
+      </div>
+      {% if link.description %}<p class="text-fg-secondary">{{ link.description }}</p>{% endif %}
+      <dl class="pj-facts">
+        <div><dt class="micro">{{ text.VISIBILITY }}</dt><dd>{% if link.private %}{{ text.REPOSITORY_PRIVATE }}{% else %}{{ text.REPOSITORY_PUBLIC }}{% endif %}</dd></div>
+        <div><dt class="micro">{{ text.DEFAULT_BRANCH }}</dt><dd class="font-mono text-sm">{{ link.default_branch|default:"—" }}</dd></div>
+        <div><dt class="micro">{{ text.LAST_PUSH }}</dt><dd>{% if link.pushed_at %}{{ link.pushed_at|date:"j M Y, H:i e" }}{% else %}—{% endif %}</dd></div>
+        <div><dt class="micro">{{ text.UPDATED }}</dt><dd>{% if updated_at %}{{ updated_at|date:"j M Y, H:i e" }}{% else %}{{ text.NEVER }}{% endif %}</dd></div>
+      </dl>
+      <div class="app-actions">
+        <form method="post" action="{% url 'projects:refresh_repository' project.slug %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-quiet btn-sm">{{ text.REPOSITORY_REFRESH }}</button>
+        </form>
+        <a class="btn btn-quiet btn-sm" href="{{ link.html_url }}" target="_blank" rel="noopener noreferrer">{{ text.REPOSITORY_ON_GITHUB }}{% include "partials/icon.html" with name="external" size=14 %}</a>
+        <form method="post" action="{% url 'projects:unlink_repository' project.slug %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-quiet btn-sm">{{ text.REPOSITORY_UNLINK }}</button>
+        </form>
+      </div>
+    </div>
   </section>
+  {% endif %}
 </div>
 {% endblock %}
+{% block extra_body %}<script src="{% versioned_static 'js/projects.js' %}" defer></script>{% endblock %}

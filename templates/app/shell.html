@@ -28,6 +28,8 @@
         </form>
       </div>
     </details>
+    {% else %}
+    <a class="btn btn-quiet btn-sm" href="{% url 'account_login' %}?next={{ request.path|urlencode }}">{{ copy.SIGN_IN }}</a>
     {% endif %}
   </div>
 </header>

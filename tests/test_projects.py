@@ -170,10 +170,11 @@ def owner_client(client, **kwargs):
 
 def project_urls(slug: str) -> dict[str, list[str]]:
     """Every project URL by method."""
-    get = ["detail", "edit", "delete", "webhook_settings"]
+    get = ["detail", "edit", "delete"]
     post = ["edit", "delete", "link_repository", "unlink_repository", "refresh_repository"]
     return {
-        "get": [reverse(f"projects:{n}", args=[slug]) for n in get],
+        "get": [reverse(f"projects:{n}", args=[slug]) for n in get]
+        + [reverse("projects:detail", args=[slug]) + "?webhook=show"],
         "post": [reverse(f"projects:{n}", args=[slug]) for n in post],
     }
 

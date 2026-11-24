@@ -19,6 +19,7 @@ RAIL_HEADING = "Account"
 RAIL_HUB_HEADING = "Hub"
 RAIL_HUB = [
     ("projects", "Projects", "projects:list", "folder"),
+    ("guide", "Setup guide", "projects:guide", "guide"),
 ]
 RAIL_ACCOUNT = [
     ("profile", "Profile", "accounts:profile", "user"),
@@ -35,11 +36,13 @@ RAIL_PAGES = {
     "account_change_password": "password",
     "account_set_password": "password",
     "socialaccount_connections": "connections",
+    "projects:guide": "guide",
 }
 # Every page of these URL namespaces belongs to a rail item.
 RAIL_NAMESPACES = {"projects": "projects"}
 RAIL_LABEL = "Hub and account"
 SIGN_OUT = "Sign out"
+SIGN_IN = "Sign in"
 APP_PLACE = "Hub"
 ACCOUNT_MENU = "Account menu"
 

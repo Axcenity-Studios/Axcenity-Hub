@@ -141,6 +141,7 @@ def receive(link: RepositoryLink, *, body: bytes, headers, now: datetime) -> Out
             if outcome is MALFORMED:
                 raise Refused(MALFORMED)
             link.webhook_at = now
+            link.first_webhook_at = link.first_webhook_at or now
             link.save()
     except Refused as refused:
         link.refresh_from_db()

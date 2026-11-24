@@ -498,6 +498,8 @@ PUBLIC = {
     "github_callback", "socialaccount_login_cancelled", "socialaccount_login_error",
     # GitHub's repository webhooks: authenticated by each delivery's signature, not a session.
     "projects:webhook",
+    # The repository setup guide: readable before signing up.
+    "projects:guide",
 }  # fmt: skip
 SAMPLE_KWARGS = {"key": "not-a-key", "uidb36": "1", "path": "not-a-page"}
 
@@ -541,7 +543,6 @@ def test_every_members_only_url_sends_an_anonymous_visitor_to_sign_in(client):
         "projects:link_repository",
         "projects:unlink_repository",
         "projects:refresh_repository",
-        "projects:webhook_settings",
     } <= set(members_only)
 
 

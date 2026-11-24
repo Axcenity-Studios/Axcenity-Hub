@@ -74,10 +74,10 @@ Later phases add `forums`, `showcases`, `reports`,
 | `/accounts/…` | `account_*`, `mfa_*`, `socialaccount_*` | allauth: sign in, sign up, sign out, confirm email, password change and reset, re-authenticate, two-factor (`/accounts/2fa/…`), a cancelled or failed link (`/accounts/3rdparty/login/…`) |
 | `/projects/` | `projects:list` | `ProjectListView`: the member's own projects and the count against the limit |
 | `/projects/new/` | `projects:create` | `ProjectCreateView`: verified members, at most 5 projects each |
-| `/projects/<slug>/` | `projects:detail` | `ProjectDetailView`: the project and its repository (refetched when over an hour old); owner only, others 404 |
+| `/projects/guide/` | `projects:guide` | `ProjectGuideView`: the setup guide (public) ([frontend/projects.md](frontend/projects.md)) |
+| `/projects/<slug>/` | `projects:detail` | `ProjectDetailView`: the setup checklist and the repository (refetched when over an hour old); `?webhook=show` shows the webhook's URL and secret after an admin check, never cached; owner only, others 404 |
 | `/projects/<slug>/edit/`, `/delete/` | `projects:edit`, `projects:delete` | Rename (the slug follows) or describe; delete after confirming |
 | `/projects/<slug>/repository/link/`, `/unlink/`, `/refresh/` | `projects:link_repository`, `projects:unlink_repository`, `projects:refresh_repository` | POST: link (needs admin on GitHub), unlink (GitHub not asked), refresh (needs read) |
-| `/projects/<slug>/repository/webhook/` | `projects:webhook_settings` | The webhook's payload URL and secret, after an admin check; never cached |
 | `/projects/hooks/github/<hook_id>/` | `projects:webhook` | `GitHubWebhookView`: POST only, CSRF-exempt, signed deliveries ([architecture/projects.md](architecture/projects.md#webhooks)) |
 | `/theme/` | `marketing:theme` | `ThemeView`: POST only, the no-JavaScript fallback for the theme switch |
 | `/admin/` | `admin:*` | Django admin |

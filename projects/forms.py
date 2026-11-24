@@ -3,6 +3,9 @@
 from django import forms
 
 from .models import Project
+from .strings import STEPS
+
+WORDS = STEPS["repository"]
 
 
 class ProjectForm(forms.ModelForm):
@@ -19,9 +22,13 @@ class LinkRepositoryForm(forms.Form):
 
     repository = forms.CharField(
         max_length=200,
-        label="GitHub repository",
-        help_text="owner/name, or the repository's github.com address. You must be an admin of it.",
+        label=WORDS["field"],
+        help_text=WORDS["help"],
         widget=forms.TextInput(
-            attrs={"placeholder": "owner/name", "autocomplete": "off", "spellcheck": "false"}
+            attrs={
+                "placeholder": WORDS["placeholder"],
+                "autocomplete": "off",
+                "spellcheck": "false",
+            }
         ),
     )

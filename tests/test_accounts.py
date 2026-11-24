@@ -432,7 +432,15 @@ def test_the_app_shell_frames_account_pages(client):
         ]
         assert re.findall(
             r'class="app-rail-link"[^>]*>\s*<svg.*?</svg>\s*([^<]+?)\s*<', rail, re.S
-        ) == ["Projects", "Profile", "Email", "Password", "Two-factor", "Connected accounts"]
+        ) == [
+            "Projects",
+            "Setup guide",
+            "Profile",
+            "Email",
+            "Password",
+            "Two-factor",
+            "Connected accounts",
+        ]
         assert re.findall(r'aria-current="page">\s*<svg.*?</svg>\s*([^<]+?)\s*<', rail, re.S) == [
             current
         ], name

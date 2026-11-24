@@ -28,6 +28,72 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-24 — Phase 10 follow-up: webhook setup help, guided repository setup and a setup guide
+
+### Prompts
+
+1. "Ok so how would I setup a webhook I know I create one in github"
+2. "Ok but how would this work for other users if they do not have access to the internal env
+   file"
+3. "Ok there are a few problems for me functionally this works, but clarically I am getting
+   lost and I feel that for end users they would be likely to get lost as well. I currently
+   have no clear setup guide the interface looks simple and boring unlike the rest of the site
+   and overall there should be more emphasis on guiding users on how to setup their
+   repositories."
+4. Answers to two questions: the setup flow as a checklist on the project page
+   (recommended), and the guide in the app, public (recommended).
+5. "Commit and push", and log this follow-up in PROMPTS.md.
+
+### Summary
+
+- **Outcome:** Prompt 1: walked through a local webhook (the root secret and a tunnel host in
+  `.env`, a Cloudflare quick tunnel, swapping the tunnel's https address into the payload URL,
+  GitHub's form, and each failure code). Prompt 2: explained that `.env` is the server's
+  configuration: members of a hosted Hub only copy their own repository's URL and derived
+  secret, and the tunnel is for local development; noted the two ways to remove the manual
+  step (the `admin:repo_hook` scope, or a GitHub App) as later decisions. Prompt 3: rebuilt
+  the project pages around guidance. 1131 fast tests and the related browser tests (19)
+  pass; Ruff is clean.
+- **Changes:**
+  - `projects/setup.py` (new): the four setup steps' states from the records (done, current,
+    attention, waiting, off; one current at a time). Migration 0002: `webhook_shown_at` and
+    `first_webhook_at` on `RepositoryLink`; `webhooks.receive` sets the first delivery;
+    `services.webhook_settings` records when the values were shown.
+  - `projects/views.py`: the project page's checklist (`step_rows`), the webhook's values
+    shown inline with `?webhook=show` (never cached; the old `/repository/webhook/` page and
+    its template removed), a local-host warning, cards with setup progress, and
+    `ProjectGuideView`. `projects/urls.py`: `/projects/guide/`; `guide` is a reserved name.
+  - `templates/projects/detail.html`, `list.html`, `guide.html` (new): numbered steps with
+    Home's outlined numerals and motif icons, the Toolbox's title-bar chips, GitHub's Add
+    webhook form field by field with copy buttons and a direct link, a repository panel with
+    fact tiles, project cards, an empty state previewing the steps, and the guide (before you
+    start, the steps, what the Hub can and can't do, troubleshooting by response, unlinking,
+    testing on your own computer).
+  - `static/js/projects.js` (new): the copy buttons (hidden without JavaScript).
+    `styles/source.css`: the `.pj-*` classes. `templates/partials/icon.html`: `chain`,
+    `repo`, `hook`, `ping`, `guide` motifs and `copy`, `external`, `plus`, `check`.
+  - The app shell: the rail's Hub section gains Setup guide; signed out, it shows only the Hub
+    section and a Sign in button (`accounts/templatetags/app_shell.py`, `strings.py`,
+    `templates/app/shell.html`).
+  - Tests: `test_projects_setup.py`, `test_projects_browser.py` (new); updates to
+    `test_projects.py`, `test_projects_github.py`, `test_accounts.py`,
+    `test_accounts_security.py` (the guide is public; the webhook page is gone).
+  - Docs: `docs/frontend/projects.md` (new); FRONTEND, ARCHITECTURE, TESTING,
+    `architecture/projects.md`, `frontend/app-shell.md`.
+- **Decisions:** Step 3 counts as done once the owner has shown the webhook's values (a
+  recorded timestamp), since the Hub can't see GitHub's settings; step 4 once a delivery has
+  arrived. The checklist folds itself when complete. The guide lives in the app shell, not in
+  `/docs/` (the engine's snapshot). The guide's troubleshooting codes come from the webhook's
+  real responses, and a test keeps them in step.
+- **Deviations:** None: the user chose both recommended options.
+- **Sideways:** The project templates had to keep `text` (the shell's `copy`). Browser review
+  caught the setup bar crowding at 360 px, a doubled border on the folded checklist, a `−`
+  toggle that read as a stray dash (now "Show steps" / "Hide steps"), a button clipped by its
+  panel (the fit check now compares each element with its own panel, and fails without the
+  fix), and phone rules placed before the base rules they overrode. A test asserting
+  `?webhook=show` was absent tripped over the theme switch's own form URL. A second webhook
+  request in one test reused the 60 s permission check, as designed, so its mock was relaxed.
+
 ## 2026-11-24 — Axcenity Hub: Phase 10/17, Projects and repository integration
 
 ### Prompts

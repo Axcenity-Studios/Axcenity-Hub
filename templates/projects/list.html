@@ -1,31 +1,62 @@
 {% extends "app/shell.html" %}
 {% block head_title %}{{ text.LIST_TITLE }}{% endblock %}
 {% block content %}
-<div class="app-page">
-  <header class="app-page-head">
-    <h1 class="headline app-title">{{ text.LIST_TITLE }}</h1>
-    <p class="app-lede">{{ text.LIST_LEDE }}</p>
-  </header>
+{# The member's projects as cards, each with its repository and setup progress. #}
+<div class="app-page app-page-wide">
+  <div class="pj-head">
+    <header class="app-page-head">
+      <h1 class="headline app-title">{{ text.LIST_TITLE }}</h1>
+      <p class="app-lede">{{ text.LIST_LEDE }}</p>
+    </header>
+    <div class="app-actions">
+      <a class="btn btn-quiet btn-sm" href="{% url 'projects:guide' %}">{% include "partials/icon.html" with name="guide" size=14 %}{{ text.GUIDE_LINK }}</a>
+      {% if cards and not at_limit %}<a class="btn btn-primary btn-sm" href="{% url 'projects:create' %}">{% include "partials/icon.html" with name="plus" size=14 %}{{ text.NEW_PROJECT }}</a>{% endif %}
+    </div>
+  </div>
 
-  <section class="app-panel panel" aria-labelledby="projects-title" data-project-count="{{ projects|length }}">
-    <h2 id="projects-title" class="app-heading">{{ count_text }}</h2>
-    {% if projects %}
-    <ul class="app-list">
-      {% for project in projects %}
-      <li class="app-project">
-        <a class="app-link" href="{{ project.get_absolute_url }}">{{ project.name }}</a>
-        {% if project.repository %}<span class="app-mono app-help">{{ project.repository.full_name }}</span>{% endif %}
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p>{{ text.LIST_EMPTY }}</p>
-    {% endif %}
-    {% if at_limit %}
-    <p class="app-notice" role="status">{{ text.LIMIT_REACHED }}</p>
-    {% else %}
-    <div class="app-actions"><a class="btn btn-primary" href="{% url 'projects:create' %}">{{ text.NEW_PROJECT }}</a></div>
-    {% endif %}
+  {% if cards %}
+  <p class="micro text-fg-weak" data-project-count="{{ cards|length }}">{{ count_text }}</p>
+  {% if at_limit %}<p class="app-notice" role="status">{{ text.LIMIT_REACHED }}</p>{% endif %}
+  <ul class="pj-cards">
+    {% for card in cards %}
+    <li class="panel pj-panel pj-card" data-setup="{% if card.setup.complete %}complete{% else %}incomplete{% endif %}">
+      <div class="pj-bar">
+        <span class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="folder" size=14 %}{{ card.project.slug }}</span>
+        <span class="pj-tag micro"{% if card.setup.complete %} data-complete{% endif %}>{{ card.setup.label }}</span>
+      </div>
+      <div class="pj-card-body">
+        <h2 class="pj-card-title"><a href="{{ card.project.get_absolute_url }}">{{ card.project.name }}</a></h2>
+        <p class="pj-card-text">{{ card.project.description|default:text.NO_DESCRIPTION }}</p>
+        <div class="pj-card-foot">
+          <span class="pj-repo">{% include "partials/icon.html" with name="repo" size=14 %}{% if card.link %}{{ card.link.full_name }}{% else %}{{ text.NO_REPOSITORY_YET }}{% endif %}</span>
+          <span class="pj-progress micro"><span class="pj-meter" aria-hidden="true">{% for state in card.setup.steps %}<i data-state="{{ state }}"></i>{% endfor %}</span>{{ text.SETUP_LABEL }}</span>
+        </div>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <section class="panel pj-panel" aria-labelledby="empty-title">
+    <div class="pj-bar"><span class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="folder" size=14 %}{{ text.LIST_TITLE }}</span><span class="pj-tag micro">{{ count_text }}</span></div>
+    <div class="pj-empty">
+      <div class="grid gap-3">
+        <h2 id="empty-title" class="headline text-3xl text-fg-strong md:text-4xl">{{ text.EMPTY_TITLE }}</h2>
+        <p class="app-lede">{{ text.EMPTY_LEDE }}</p>
+      </div>
+      <ol class="pj-preview">
+        {% for number, title, icon in guide_steps %}
+        <li style="--stagger: {{ forloop.counter0 }}">
+          <span class="flex items-center gap-3"><span class="pj-num" aria-hidden="true">{{ number }}</span>{% include "partials/icon.html" with name=icon size=28 class="motif" %}</span>
+          <span>{{ title }}</span>
+        </li>
+        {% endfor %}
+      </ol>
+      <div class="app-actions">
+        <a class="btn btn-primary" href="{% url 'projects:create' %}">{% include "partials/icon.html" with name="plus" size=16 %}{{ text.NEW_PROJECT }}</a>
+        <a class="btn btn-quiet" href="{% url 'projects:guide' %}">{{ text.GUIDE_LINK }}</a>
+      </div>
+    </div>
   </section>
+  {% endif %}
 </div>
 {% endblock %}

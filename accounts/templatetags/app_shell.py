@@ -20,11 +20,15 @@ def rail_key(view_name: str) -> str:
 
 @register.simple_tag(takes_context=True)
 def app_rail(context) -> list[dict]:
-    """The rail's sections (Hub, then Account): each a heading and its items, each item with
-    its URL and whether it's the current page."""
+    """The rail's sections (Hub, then Account for a signed-in member): each a heading and its
+    items, each item with its URL and whether it's the current page."""
     request = context.get("request")
     match = getattr(request, "resolver_match", None)
     current = rail_key(match.view_name) if match else ""
+    sections = [(strings.RAIL_HUB_HEADING, strings.RAIL_HUB)]
+    user = context.get("user")
+    if getattr(user, "is_authenticated", False):  # a visitor reading a public page: no Account
+        sections.append((strings.RAIL_HEADING, strings.RAIL_ACCOUNT))
     return [
         {
             "heading": heading,
@@ -39,10 +43,7 @@ def app_rail(context) -> list[dict]:
                 for key, label, name, icon in items
             ],
         }
-        for heading, items in [
-            (strings.RAIL_HUB_HEADING, strings.RAIL_HUB),
-            (strings.RAIL_HEADING, strings.RAIL_ACCOUNT),
-        ]
+        for heading, items in sections
     ]
 
 

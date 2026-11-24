@@ -12,14 +12,16 @@ GitHub call made with a member's token. Linking the GitHub account itself:
 | `services.py` | `create_project` (the limit), `link_repository`, `refresh_repository`, `webhook_settings`, `unlink_repository` |
 | `github.py` | `GET /repos/{owner}/{repo}` with the member's token; `require_permission`; rate limits, budget, ETags |
 | `webhooks.py` | Per-link secrets, `verify`, `receive` (replays, events) |
+| `setup.py` | The four setup steps' states for the project page ([../frontend/projects.md](../frontend/projects.md)) |
 | `accounts/limits.py` | `lock_member` and `LimitReached`: the pattern for every count-based limit |
 
 ## Projects
 
 - **Owner only** in this phase: every project URL is a 404 for anyone else (Phase 11 adds
-  members). Views fetch through `Project.objects.owned_by(user)`.
+  members). Views fetch through `Project.objects.owned_by(user)`. The setup guide
+  (`/projects/guide/`) is the one public project page.
 - **Names** are unique across the Hub whatever their case: `Project.clean` checks it (and
-  that the slug is free, non-empty and not `new` or `hooks`), and the database holds a
+  that the slug is free, non-empty and not `new`, `guide` or `hooks`), and the database holds a
   unique index on `LOWER(name)` plus the unique slug. "Space Game", "space game" and
   "space-game" are the same name. Renaming changes the address; old addresses 404.
 - Creating, editing and linking need a **verified email** (`VerifiedEmailRequiredMixin`,
@@ -60,7 +62,7 @@ Hub asks for no more:
 | Action | Needs |
 |---|---|
 | Link a repository | `ADMIN` (asked fresh) |
-| Show the webhook's URL and secret | `ADMIN` |
+| Show the webhook's URL and secret (`?webhook=show`; records `webhook_shown_at`) | `ADMIN` |
 | Refresh the details (button, or a stale page view) | `PULL` (asked fresh) |
 | Unlink, delete the project | Nothing: the Hub's own records; GitHub isn't asked |
 
@@ -112,19 +114,22 @@ send a token; the signature authenticates instead). Public by necessity.
 - **Replays:** GitHub signs the body but not `X-GitHub-Delivery`, so both the delivery id and
   the body's SHA-256 are unique **per link** (409, nothing applied). The same body or id for
   another link isn't a replay. Rows go when the link does.
-- **Events:** `ping` (200); `repository` updates the details, `deleted` sets
+- **Events:** every accepted delivery sets `webhook_at` (and `first_webhook_at` once), which
+  completes the setup checklist. `ping` (200); `repository` updates the details, `deleted` sets
   `deleted_on_github`; `push` updates `pushed_at` (Unix seconds there). Events about another
   repository id, and other kinds, are 202 and change nothing. A refused delivery rolls back.
 
 **Setting one up** (development needs a tunnel for GitHub to reach the Hub): set
 `GITHUB_WEBHOOK_SECRET` (`uv run python -c "import secrets; print(secrets.token_hex(32))"`),
-open the project's **Set up webhook**, and add a webhook in the repository's settings with
-that payload URL, `application/json`, the secret, and the Pushes and Repositories events.
+open the project's checklist at step 3 (**Show webhook settings**), and add a webhook in the
+repository's settings with that payload URL, `application/json`, the secret, and the Pushes
+and Repositories events. Members' own walkthrough is the public guide, `/projects/guide/`.
 
 ## Tests
 
 `tests/test_projects.py` (limit with concurrent creation, names, pages, 404s, the gate,
 CSRF), `tests/test_projects_github.py` (permission, failures, rate limits, budget, ETags,
 duplicates, pages), `tests/test_projects_webhooks.py` (signatures with GitHub's test vector,
-replays per link, events, refusals). GitHub is mocked with `responses`;
+replays per link, events, refusals), `tests/test_projects_setup.py` and
+`tests/test_projects_browser.py` (the pages: [../frontend/projects.md](../frontend/projects.md)). GitHub is mocked with `responses`;
 `tests/fixtures/github/repository.json` is GitHub's documented example repository, trimmed.

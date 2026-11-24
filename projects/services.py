@@ -143,6 +143,8 @@ def webhook_settings(user, project: Project, *, now: datetime | None = None) -> 
     if not webhooks.webhooks_on():
         raise RepositoryError(strings.WEBHOOKS_OFF)
     _require(user, link.full_name, Permission.ADMIN, now)
+    # The setup checklist's third step: the owner has the values to add on GitHub.
+    RepositoryLink.objects.filter(pk=link.pk).update(webhook_shown_at=now)
     return WebhookSettings(webhooks.payload_path(link.hook_id), webhooks.secret_for(link.hook_id))
 
 

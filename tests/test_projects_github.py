@@ -7,6 +7,7 @@ documented example repository (tests/fixtures/github/repository.json, trimmed).
 
 import json
 import logging
+import re
 from datetime import UTC, datetime, timedelta
 from html import unescape
 from pathlib import Path
@@ -448,13 +449,15 @@ def test_the_project_page_links_a_repository_and_shows_its_details(client):
 
 
 @pytest.mark.django_db
-def test_a_member_without_github_is_pointed_to_connected_accounts(client):
+def test_a_member_without_github_starts_at_step_one(client):
     ada = make_member(github_uid=None)
     client.force_login(ada)
     project = Project.objects.create(owner=ada, name="Space Game")
-    page = client.get(project.get_absolute_url()).content.decode()
-    assert strings.REPOSITORY_NEEDS_GITHUB in page and reverse("socialaccount_connections") in page
-    assert 'name="repository"' not in page
+    page = unescape(client.get(project.get_absolute_url()).content.decode())
+    assert re.search(r'id="setup-account" class="pj-step" data-state="current"', page)
+    assert strings.STEPS["account"]["action"] in page
+    assert reverse("socialaccount_connections") in page
+    assert 'name="repository"' not in page  # step 2 waits behind step 1
 
 
 @pytest.mark.django_db
@@ -499,34 +502,38 @@ def test_a_fresh_page_view_doesnt_ask_github(client):
 
 @pytest.mark.django_db
 @responses.activate
-def test_the_webhook_page_shows_the_links_url_and_secret_to_an_admin_only(client, settings):
+def test_the_webhook_step_shows_the_links_url_and_secret_to_an_admin_only(client, settings):
     ada = make_member()
     client.force_login(ada)
     project = linked_project(ada, now=datetime.now(UTC))
     link = RepositoryLink.objects.get()
-    url = reverse("projects:webhook_settings", args=[project.slug])
+    secret = webhooks.secret_for(link.hook_id)
+    # The project page alone never shows the secret, nor asks GitHub.
+    page = client.get(project.get_absolute_url()).content.decode()
+    assert secret not in page and "data-show-webhook" in page
+    assert len(responses.calls) == 0
+
     responses.get(REPO_URL, json=repo_reply("admin"))
-    response = client.get(url)
+    response = client.get(project.get_absolute_url() + "?webhook=show")
     page = unescape(response.content.decode())
     assert response.status_code == 200 and "no-store" in response["Cache-Control"]
-    assert webhooks.secret_for(link.hook_id) in page
+    assert secret in page
     assert f"http://testserver/projects/hooks/github/{link.hook_id}/" in page
+    assert f"{REPOSITORY['html_url']}/settings/hooks/new" in page
+    assert "application/json" in page and "Pushes and Repositories" in page
     assert settings.GITHUB_WEBHOOK_SECRET not in page
-    # The project page never shows the secret.
-    assert (
-        webhooks.secret_for(link.hook_id)
-        not in client.get(project.get_absolute_url()).content.decode()
-    )
-    # Not an admin any more (after the 60 s window): sent back with the reason.
+    assert RepositoryLink.objects.get().webhook_shown_at is not None
+    # Not an admin any more (after the 60 s window): the reason, and no secret.
     github.forget_permission(ada, FULL_NAME)
     responses.replace(responses.GET, REPO_URL, json=repo_reply("push"))
-    response = client.get(url, follow=True)
+    response = client.get(project.get_absolute_url() + "?webhook=show")
     page = unescape(response.content.decode())
-    assert strings.REFUSED["insufficient"] in page
-    assert webhooks.secret_for(link.hook_id) not in page
-    # Webhooks off: no secret at all.
+    assert strings.REFUSED["insufficient"] in page and "data-webhook-error" in page
+    assert secret not in page and "no-store" not in response.get("Cache-Control", "")
+    # Webhooks off: the step says so, and showing does nothing.
     settings.GITHUB_WEBHOOK_SECRET = ""
-    assert strings.WEBHOOKS_OFF in unescape(client.get(url, follow=True).content.decode())
+    page = unescape(client.get(project.get_absolute_url() + "?webhook=show").content.decode())
+    assert strings.STEPS["webhook"]["off"] in page and "data-show-webhook" not in page
 
 
 @pytest.mark.django_db

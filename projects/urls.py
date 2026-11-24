@@ -9,6 +9,7 @@ app_name = "projects"
 urlpatterns = [
     path("", views.ProjectListView.as_view(), name="list"),
     path("new/", views.ProjectCreateView.as_view(), name="create"),
+    path("guide/", views.ProjectGuideView.as_view(), name="guide"),
     path("hooks/github/<uuid:hook_id>/", views.GitHubWebhookView.as_view(), name="webhook"),
     path("<slug:slug>/", views.ProjectDetailView.as_view(), name="detail"),
     path("<slug:slug>/edit/", views.ProjectUpdateView.as_view(), name="edit"),
@@ -27,10 +28,5 @@ urlpatterns = [
         "<slug:slug>/repository/refresh/",
         views.RefreshRepositoryView.as_view(),
         name="refresh_repository",
-    ),
-    path(
-        "<slug:slug>/repository/webhook/",
-        views.WebhookSettingsView.as_view(),
-        name="webhook_settings",
     ),
 ]
