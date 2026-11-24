@@ -131,6 +131,8 @@ Later phases add `projects`, `forums`, `showcases`, `reports`,
 
 `config/settings.py`: development defaults, and production when `DJANGO_DEBUG`
 is off ([architecture/accounts.md](architecture/accounts.md#production-settings)).
+`.env.example` lists every variable below (a test keeps it complete and value-free);
+locally, copy it to `.env` (git-ignored) and run `uv run --env-file .env …`.
 
 | Variable | Default | Effect |
 |---|---|---|

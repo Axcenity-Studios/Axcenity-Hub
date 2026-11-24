@@ -41,6 +41,9 @@ available. Production refuses to start with an app but no key.
 Register the app on GitHub (Settings → Developer settings → OAuth Apps) with the callback
 `http://127.0.0.1:8000/accounts/github/login/callback/` in development (production: the
 same path on the site's https origin).
+Put the three values in `.env` (from `.env.example`) and run with
+`uv run --env-file .env python manage.py tailwind runserver`; keep the same key, since tokens
+saved with one key read only with it (a new key means reconnecting).
 
 ## OAuth state
 

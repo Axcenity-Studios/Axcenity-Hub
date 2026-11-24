@@ -4,6 +4,7 @@ Each case runs Django in a subprocess with its own environment (no network invol
 
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -132,6 +133,23 @@ def test_a_malformed_token_key_is_refused_without_echoing_it():
     result = run(["manage.py", "check"], GITHUB_TOKEN_KEYS=bad)
     assert result.returncode != 0
     assert "GITHUB_TOKEN_KEYS" in result.stderr and bad not in result.stderr
+
+
+def test_env_example_lists_every_variable_settings_reads_and_holds_no_values():
+    source = (settings.BASE_DIR / "config" / "settings.py").read_text(encoding="utf-8")
+    read = set(re.findall(r'(?:environ\.get|environ\[|env_bool|env_list)\(?\s*"([A-Z_]+)"', source))
+    assert {"DJANGO_SECRET_KEY", "GITHUB_TOKEN_KEYS", "AXCENITY_ENGINE_DIR"} <= read
+    example = (settings.BASE_DIR / ".env.example").read_text(encoding="utf-8")
+    listed = set(re.findall(r"^#? ?([A-Z_]+)=", example, re.M))
+    assert read <= listed, read - listed
+    # Live (uncommented) lines are names only: the example never carries a value.
+    live = [line for line in example.splitlines() if line and not line.startswith("#")]
+    assert live and all(re.fullmatch(r"[A-Z_]+=", line) for line in live), live
+    # The real .env stays out of git.
+    ignored = subprocess.run(
+        ["git", "check-ignore", "-q", ".env"], cwd=settings.BASE_DIR, check=False
+    )
+    assert ignored.returncode == 0
 
 
 def test_development_is_the_default_and_still_sends_the_security_headers(client):

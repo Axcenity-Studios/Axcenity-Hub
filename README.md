@@ -112,13 +112,23 @@ uv run playwright install chromium
 
 Every setting has a development default, so none are needed locally. Secrets come from the environment only, never the database or admin.
 
+To set any, copy `.env.example` to `.env` (git-ignored; never commit it), fill in what you need, and let uv load it:
+
+```bash
+cp .env.example .env && chmod 600 .env
+uv run --env-file .env python manage.py tailwind runserver
+```
+
+Add `export UV_ENV_FILE=.env` to your shell profile to load it on every `uv run`. `.env.example` lists every variable; [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#settings) describes them all.
+
 | Variable | Default | Purpose |
 |---|---|---|
 | `DJANGO_DEBUG` | `true` | `1`, `true`, `yes` or `on` enable debug. Turning it off also makes the session, CSRF and theme cookies Secure |
 | `DJANGO_SECRET_KEY` | An insecure development key | **Must** be set outside development |
 | `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated host names |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_TOKEN_KEYS` | none | GitHub account linking: the OAuth App and the key that encrypts tokens; off unless all three are set ([docs/architecture/github-linking.md](docs/architecture/github-linking.md)) |
 
-Production settings (HSTS, SSL redirect, `check --deploy`) are hardened in Phase 8.
+Production settings (HSTS, SSL redirect, `check --deploy`) are hardened in Phase 8; see [docs/architecture/accounts.md](docs/architecture/accounts.md#production-settings).
 
 ## Common commands
 

@@ -28,6 +28,42 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-24 — Phase 9 follow-up: GitHub keys, a local .env, and .env.example
+
+### Prompts
+
+1. "Ok I got the client id and client secret but where are the token keys"
+2. "Ok the keys seemed to work and they linked my github, nwo how can I have these stored
+   without having to run them each time"
+3. "Ok everything looks good I was able to test it, can you add an env example file and
+   commit the changes do not commit the .env file I created also make sure to append this
+   session to PROMPT.md"
+
+### Summary
+
+- **Outcome:** Prompt 1: explained that `GITHUB_TOKEN_KEYS` isn't from GitHub; the member
+  generates a Fernet key with `cryptography` and keeps reusing it. Prompt 2: a git-ignored
+  `.env` loaded by `uv run --env-file .env …` (or `UV_ENV_FILE=.env` in the shell profile);
+  no code or dependency change. The user linked their GitHub account and tested the phase by
+  hand. Prompt 3: added `.env.example`, a test that keeps it complete, and docs; 1038 fast
+  tests pass; Ruff is clean. The user's `.env` was never read, staged or committed.
+- **Changes:**
+  - `.env.example` (new): every variable `config/settings.py` reads, grouped (GitHub
+    linking, Turnstile, email, the docs sync, production only), with no values, the key
+    command, and how to load it with uv.
+  - `tests/test_settings_production.py`: the example lists every variable settings reads,
+    its live lines hold names only, and `.env` is git-ignored.
+  - `README.md` (copying and loading `.env`; the GitHub variables), `docs/ARCHITECTURE.md`
+    (settings intro), `docs/architecture/github-linking.md` (running with `.env`, keeping
+    the key), `docs/TESTING.md` (the new test).
+- **Decisions:** uv's built-in `--env-file` rather than adding python-dotenv (no new
+  dependency, settings unchanged). `AXCENITY_ENGINE_DIR`'s example is an absolute, quoted
+  path, because settings doesn't expand `~`.
+- **Deviations:** None.
+- **Sideways:** The first scan for the variables settings reads missed the two read across
+  a line break (`DJANGO_EMAIL_BACKEND`, `AXCENITY_ENGINE_DIR`); the test's pattern allows
+  whitespace after the parenthesis and checks both are found.
+
 ## 2026-11-24 — Axcenity Hub: Phase 9/17, GitHub account linking
 
 ### Prompts
