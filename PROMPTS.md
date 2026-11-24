@@ -28,6 +28,44 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-24 — Internal README styled after the engine's
+
+### Prompts
+
+1. "Alright I would like you to update the README page make it styled
+   similarly off of the Axcenity Engine page this will eventually be for
+   internal use so style it similar to that. ALso include what technology
+   stack is being used how to set it up etc Append this session to
+   PROMPTS.md according to source formatting."
+
+### Summary
+
+- **Outcome:** `README.md` rewritten in the engine README's style: a
+  centred logo, title, tagline and link row, a status callout, captioned
+  screenshots, then tables. Sections: project status (a phase summary
+  pointing at the plan as the source of truth), technology stack, setup
+  (prerequisites, `uv sync`, `migrate`, `tailwind runserver`, Chromium for
+  browser tests), environment variables (the three `config/settings.py`
+  reads), common commands, testing (the network guard and the browser
+  tests' one opening), repository layout, the docs map, working rules, AI
+  disclosure and licence/trademark. Added `docs/images/icon.png` (copied
+  from the engine's `assets/branding/icon-256.png`) and two screenshots,
+  `readme-home.webp` and `readme-toolbox.webp`, taken with Playwright from
+  the development server at 1440 × 900 in dark mode.
+- **Deviations:** None; no questions were asked. Choices made without
+  asking: the audience is the Hub's own developers; the README says the
+  repo has no licence yet (none exists) rather than copying the engine's
+  Apache 2.0 text; planned stack pieces (allauth, DRF, HTMX) are listed
+  as planned, not installed.
+- **Sideways:** `screenshots/` is git-ignored, so the existing test
+  screenshots couldn't be linked; new ones went into `docs/images/`. The
+  first capture attempt timed out waiting for network idle (the hero film
+  keeps streaming) and was retaken waiting for page load. A first draft
+  said tests skip without the engine and Toolbox checkouts; only the
+  Toolbox README comparison does, and the README was corrected. Phase 3's
+  open DPR/60 fps box is noted in the status table rather than shown as
+  done.
+
 ## 2026-11-24 — Axcenity Hub: Phase 6/17, Toolbox page
 
 ### Prompts
