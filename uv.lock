@@ -16,6 +16,7 @@ name = "axcenity-hub"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "cryptography" },
     { name = "django" },
     { name = "django-allauth", extra = ["mfa"] },
     { name = "django-tailwind-cli" },
@@ -37,6 +38,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cryptography", specifier = ">=50.0.2" },
     { name = "django", specifier = ">=6.1" },
     { name = "django-allauth", extras = ["mfa"], specifier = ">=65.22.1" },
     { name = "django-tailwind-cli", specifier = ">=4.10.0" },

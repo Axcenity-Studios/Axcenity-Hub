@@ -424,11 +424,11 @@ Built test-first with the `tdd` skill; the rest of the phase is built and tested
 
 ### Acceptance criteria
 
-- [ ] No test drives real OAuth (SocialAccount rows are created directly; token endpoints are mocked)
-- [ ] **OAuth state:** a callback with a missing, mismatched or reused `state` is rejected and links nothing
-- [ ] **Token storage:** GitHub tokens are encrypted at rest with a key from the environment, never logged, never shown in the admin or API, and deleted on unlink
-- [ ] **Revoked or expired tokens:** a 401 from GitHub marks the link as needing reconnection, prompts the user, and never crashes a page; refresh tokens (GitHub App) are rotated and stored encrypted
-- [ ] One GitHub account can link to only one Hub account; unlinking requires re-authentication
+- [x] No test drives real OAuth (SocialAccount rows are created directly; token endpoints are mocked)
+- [x] **OAuth state:** a callback with a missing, mismatched or reused `state` is rejected and links nothing
+- [x] **Token storage:** GitHub tokens are encrypted at rest with a key from the environment, never logged, never shown in the admin or API, and deleted on unlink
+- [x] **Revoked or expired tokens:** a 401 from GitHub marks the link as needing reconnection, prompts the user, and never crashes a page; refresh tokens (GitHub App) are rotated and stored encrypted
+- [x] One GitHub account can link to only one Hub account; unlinking requires re-authentication
 
 ---
 

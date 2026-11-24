@@ -12,8 +12,11 @@ urlpatterns = [
     path("verify-email/", views.VerifyEmailView.as_view(), name="verify_email"),
 ]
 
-# Replaces allauth's own email page (same URL and name), mounted ahead of allauth's
-# URLs in config/urls.py: status and resend only (see accounts.views.EmailView).
+# Replace allauth's own pages (same URLs and names), mounted ahead of allauth's URLs in
+# config/urls.py: the email page (status and resend only, accounts.views.EmailView), the
+# connections page, and the GitHub start, which only ever links (never signs in).
 allauth_overrides = [
     path("email/", views.EmailView.as_view(), name="account_email"),
+    path("3rdparty/", views.ConnectionsView.as_view(), name="socialaccount_connections"),
+    path("github/login/", views.GitHubConnectView.as_view(), name="github_login"),
 ]

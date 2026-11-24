@@ -1,19 +1,28 @@
 """Signed-in account pages, in the app shell (templates/app/shell.html)."""
 
+from allauth.account.decorators import reauthentication_required
 from allauth.account.internal.flows.email_verification import send_verification_email_for_user
 from allauth.account.models import EmailAddress
 from allauth.mfa.models import Authenticator
+from allauth.socialaccount.adapter import get_adapter as get_social_adapter
+from allauth.socialaccount.internal.flows import connect as connect_flows
+from allauth.socialaccount.models import SocialAccount
+from allauth.socialaccount.providers.base import AuthProcess
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views import View
 from django.views.generic import TemplateView, UpdateView
 
-from . import strings
+from . import crypto, github, strings
 from .access import has_verified_email
+from .adapter import GITHUB
 from .forms import ProfileForm
-from .models import Profile
+from .models import GitHubLink, Profile
 
 
 class ProfileView(LoginRequiredMixin, UpdateView):
@@ -88,6 +97,78 @@ class EmailView(LoginRequiredMixin, TemplateView):
         if next_url := self._next_url():
             target = f"{target}?next={next_url}"
         return HttpResponseRedirect(target)
+
+
+def github_account(user) -> SocialAccount | None:
+    """The member's linked GitHub account, if any (one at most: SocialAccountAdapter)."""
+    return SocialAccount.objects.filter(user=user, provider=GITHUB).first()
+
+
+def github_linking_on() -> bool:
+    """Whether this server can link GitHub: an app's id and secret, and a token key."""
+    return bool(settings.GITHUB_CLIENT_ID and settings.GITHUB_CLIENT_SECRET) and (
+        crypto.is_configured()
+    )
+
+
+class ConnectionsView(LoginRequiredMixin, TemplateView):
+    """The member's linked GitHub account: its state, and link, reconnect and unlink.
+
+    Replaces allauth's socialaccount_connections page (same URL and name). Viewing it checks
+    the link with GitHub (at most every GITHUB_LINK_CHECK_INTERVAL): a revoked token shows
+    the reconnect prompt, and GitHub being down shows the last known state.
+    """
+
+    template_name = "accounts/connections.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        account = github_account(self.request.user)
+        link = GitHubLink.objects.filter(account=account).first() if account else None
+        state, login = None, ""
+        if link is not None:
+            state, login = github.check_link(link), link.login  # the check may update it
+        elif account is not None:
+            # A link with no stored token (made before this page, or by hand) can't be used.
+            state = github.LinkState.NEEDS_RECONNECT
+            login = str(account.extra_data.get("login", ""))
+        context.update(
+            account=account,
+            login=login,
+            state=state,  # a LinkState, a str: the template compares its value
+            linking_on=github_linking_on(),
+        )
+        return context
+
+    @method_decorator(reauthentication_required)
+    def post(self, request, *args, **kwargs):
+        """Unlink: after a fresh re-authentication (allauth replays this POST after it).
+
+        allauth's own disconnect checks that a social account isn't the member's last way
+        to sign in; GitHub never is one here, so it's left out.
+        """
+        account = github_account(request.user)
+        if account is None:
+            raise Http404
+        connect_flows.disconnect(request, account)
+        return HttpResponseRedirect(reverse("socialaccount_connections"))
+
+
+class GitHubConnectView(LoginRequiredMixin, View):
+    """Start linking (or reconnecting) GitHub: POST only, always allauth's connect process.
+
+    Replaces allauth's github_login view (same URL and name), so no URL starts a GitHub
+    sign-in. allauth's callback finishes the link through SocialAccountAdapter.
+    """
+
+    def get(self, request, *args, **kwargs):
+        return HttpResponseRedirect(reverse("socialaccount_connections"))
+
+    def post(self, request, *args, **kwargs):
+        provider = get_social_adapter(request).get_provider(request, GITHUB)  # 404 when off
+        return provider.redirect(
+            request, process=AuthProcess.CONNECT, next_url=reverse("socialaccount_connections")
+        )
 
 
 class VerifyEmailView(EmailView):

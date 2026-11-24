@@ -34,8 +34,9 @@ is on, so an unregistered marker fails.
 | `test_accounts.py` | Accounts: the contribution gate (TDD), case-insensitive uniqueness (TDD) and the index migration's duplicate check, the verification policy end to end through allauth's real signup, confirm and login views (`tests/gate_urls.py` adds a stand-in contribution view), registration rules, the admin's forms, the profile, the email and verify pages, the app shell and entrance markup |
 | `test_accounts_security.py` | Sessions and cookies (rotation, idle and absolute limits, server-side sign-out), CSRF on every URL (HTMX header too) and no `csrf_exempt`, password-reset tokens, rate limits on the dev and production caches and the database backstop, enumeration and hash counts, every members-only URL refusing an anonymous visitor, the honeypots, Turnstile (mocked siteverify, fail closed, never the only check) |
 | `test_accounts_mfa.py` | Two-factor: enrolling (real TOTP codes from the secret), recovery codes once each, the code step that can't be skipped, rate limits on codes (cache and database), re-authentication before turning it off, session rotation |
-| `test_settings_production.py` | Production settings in a subprocess: `check --deploy --fail-level WARNING`, every security value, proxy and Redis options, refusal to start without a real secret key and hosts; development's security headers |
-| `test_accounts_browser.py` | `browser`: a member signs in through the form; the app shell's rail and account menu at 360 and 1280 px, dark and light, with no sideways scroll; sign-out returns Home |
+| `test_accounts_github.py` | GitHub linking: tokens encrypted at rest and deleted on unlink (TDD), a 401 marking the link for reconnection (TDD), `check_link`'s other replies, refresh and rotation, key rotation, OAuth state (missing, unknown, another session's, reused), one account each way, linking only, the page's states, unlinking after re-authentication, no token in logs, sessions or the admin |
+| `test_settings_production.py` | Production settings in a subprocess: `check --deploy --fail-level WARNING`, every security value, proxy and Redis options, refusal to start without a real secret key and hosts, or with a GitHub app but no (or a malformed) token key; development's security headers |
+| `test_accounts_browser.py` | `browser`: a member signs in through the form; the app shell's rail and account menu at 360 and 1280 px, dark and light, with no sideways scroll; sign-out returns Home; Connected accounts with a link needing reconnection fits the same widths |
 
 Add a row when you create a file.
 
@@ -108,7 +109,11 @@ call a live API: the guard fails the test, and its error is a
 
 - GitHub replies are built from real payloads trimmed to the fields the
   Hub reads, in `tests/fixtures/github/` (`releases.json`: the engine's
-  release list, with the ETag GitHub sent noted in `test_download.py`).
+  release list, with the ETag GitHub sent noted in `test_download.py`;
+  `user.json`: `/user` for GitHub's public example account).
+- GitHub linking never drives real OAuth: make `SocialAccount` rows
+  directly, or mock the token endpoint and `/user` around allauth's real
+  callback ([architecture/github-linking.md](architecture/github-linking.md#tests)).
 - Pass `now=` to `releases.current_release` to step through freshness and
   backoff instead of sleeping; the autouse cache clear resets both.
 - Simulate failures with `responses`' `status=`, `headers=` (`Retry-After`,

@@ -28,6 +28,121 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-24 — Axcenity Hub: Phase 9/17, GitHub account linking
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub.md phase 9`.
+2. "Looks good go ahead and move to TDD only stopping at RED" (approving the brief and
+   both TDD behaviors; stop only at each RED, not after GREEN).
+3. "Looks good move to next test" (approving TDD 1's RED test).
+4. "Looks good move to development" (approving TDD 2's RED test).
+
+### Summary
+
+- **Outcome:** A member links one GitHub account from a new **Connected accounts** page
+  (`/accounts/3rdparty/`), sees its state (linked, needs reconnecting, GitHub unreachable),
+  reconnects, and unlinks after a fresh re-authentication. GitHub is a linked account only,
+  never a sign-in. Tokens are stored by the Hub, Fernet-encrypted with keys from
+  `GITHUB_TOKEN_KEYS`; allauth's plain-text token table stays empty. 1114 tests pass (the
+  full suite, browser tests included); Ruff check and format are clean. Every Phase 9
+  criterion is ticked.
+- **Changes:**
+  - `accounts/crypto.py` (new): Fernet/MultiFernet encryption with environment keys
+    (first encrypts, all decrypt); `KeyMissing`, `Unreadable`; never echoes a value.
+  - `accounts/models.py`, `accounts/migrations/0004_githublink.py`: `GitHubLink` (one per
+    `SocialAccount`, cascade-deleted on unlink) with encrypted access and refresh tokens,
+    `expires_at`, `needs_reconnect`, `checked_at`; `GitHubLink.objects.store`.
+  - `accounts/github.py` (new): `check_link` (`GET /user` at most every 15 minutes; 401 →
+    needs reconnecting, never asked again; other failures leave the link alone),
+    `refresh_tokens` (rotation for GitHub App tokens), `mark_needs_reconnect`; token-free logs.
+  - `accounts/adapter.py`: `SocialAccountAdapter`: apps from the environment only (SocialApp
+    rows ignored), a 404 when linking is off, no providers on sign-in or sign-up pages,
+    signup closed, and `pre_social_login` refusing anything but a connect by the signed-in
+    member, a GitHub account linked elsewhere, or a second GitHub account; stores a
+    reconnect's tokens. `signals.store_github_tokens` stores a new link's.
+  - `accounts/views.py`, `accounts/urls.py`: `ConnectionsView` (replaces allauth's
+    `socialaccount_connections`; unlink behind `reauthentication_required`) and
+    `GitHubConnectView` (replaces `github_login`: members only, POST only, always connect).
+  - `accounts/admin.py`: allauth's `SocialApp` and `SocialToken` admin pages unregistered.
+  - `accounts/strings.py`, `templates/accounts/connections.html`,
+    `templates/socialaccount/` (Hub copy for the cancelled and failed pages and the link
+    messages), `templates/partials/icon.html` (a `link` icon for the rail item).
+  - `config/settings.py`: `allauth.socialaccount` and its GitHub provider, the
+    `SOCIALACCOUNT_*` policy, `GITHUB_CLIENT_ID`/`_SECRET`/`GITHUB_TOKEN_KEYS`; production
+    refuses an app without a key, and any malformed key, without echoing it.
+  - `pyproject.toml`, `uv.lock`: `cryptography` listed explicitly (already installed through
+    allauth's MFA extra).
+  - Tests: `tests/test_accounts_github.py` (new, 47), `tests/fixtures/github/user.json`
+    (new), `tests/test_accounts_browser.py` (Connected accounts at 360 and 1280 px, dark and
+    light), `tests/test_accounts.py` (the rail's new item), `tests/test_accounts_security.py`
+    (allauth's public callback and error pages on `PUBLIC`, its deprecated `/social/`
+    redirects, the new pages in the walk), `tests/test_settings_production.py` (GitHub key
+    refusals; strips `GITHUB_*` from the subprocess environment).
+  - Docs: `docs/architecture/github-linking.md` (new), `docs/ARCHITECTURE.md` (index row,
+    layout, URLs, variables, external APIs), `docs/architecture/accounts.md` (pointer),
+    `docs/TESTING.md`, `docs/frontend/app-shell.md`; the plan's Phase 9 boxes ticked.
+- **TDD:** (1) Tokens are encrypted at rest: no column of the raw row holds either token,
+  they read back only with the environment's key (another key raises `Unreadable`, none
+  raises `KeyMissing`), and deleting the SocialAccount leaves no row. RED on the first
+  assertion with a model that stored tokens as given. (2) A 401 marks the link as needing
+  reconnection: `check_link` returns `NEEDS_RECONNECT`, saves the flag, keeps the token, and
+  never asks GitHub again. RED with a scaffold that reported every failure as
+  `UNAVAILABLE`. Both went GREEN with no change to the tests.
+- **Decisions:** GitHub is a link only, never a sign-in (research question 1; it can't
+  bypass two-factor). An OAuth App with no scopes, with the refresh path built and tested
+  for a GitHub App. Re-authentication to unlink but not to connect (allauth's connect
+  re-authentication would park the new token in plain text in the session). One GitHub
+  account per Hub account as well as one Hub account per GitHub account. Unverified
+  members may link. The link is checked when Connected accounts is viewed, at most every
+  15 minutes. allauth's "last sign-in method" check is skipped on unlink, since GitHub never
+  is one. A new topic file rather than growing `accounts.md`.
+- **Deviations:** The user asked for TDD to stop only at RED, not after each GREEN.
+- **Sideways:** Adding `allauth.socialaccount` broke 26 accounts tests until the
+  `SocialAccountAdapter` the settings named existed. The Connected accounts template
+  compared states against `states.NEEDS_RECONNECT`; Django calls callables in templates,
+  an Enum class is callable, so the lookup came out empty and no prompt showed. Comparing
+  against the string values fixed it. The refused-state tests expected a 200, but allauth's
+  error page is a 401. The "never logged" test found nothing logged at all, so it proved
+  nothing; `github.py` now logs (link id only), and the test requires records. Copy checks
+  failed on HTML-escaped apostrophes until pages were unescaped. allauth's
+  deprecated unnamed `/accounts/social/…` redirects answer 301, which the members-only URL
+  walk didn't allow for.
+- **Later phases:** Phase 10's repository calls and permission checks build on
+  `accounts/github.py`; Phase 16's API must keep `GitHubLink` out of its serializers.
+
+## 2026-11-24 — Fix: sign-up fails with "no such table: account_emailaddress"
+
+### Prompts
+
+1. (With a screenshot of `OperationalError at /accounts/signup/`, "no such table:
+   account_emailaddress") "Alright when I try to sign up the user ada@axample.com
+   according to the last guide it presents me with an error. Also please append any
+   conversations to PROMPTS.md"
+2. "ok I tried confirming the account and got" (a pasted 404 for
+   `/accounts/confirm-emai%3Dl/MQ:1xVwum:…/`)
+
+### Summary
+
+- **Outcome:** No code change. The local `db.sqlite3` had never had Phase 8's migrations
+  applied (`account` 0001–0009, `accounts` 0001–0003, `mfa` 0001–0003), so allauth's
+  tables didn't exist. Ran `uv run python manage.py migrate`; a sign-up POST in a
+  rolled-back transaction then returned 302 to `/accounts/confirm-email/` and created
+  the user.
+- **Deviations:** None.
+- **Sideways:** The first smoke POSTs failed for reasons in the test, not the app: the
+  shell's test client sent `Host: testserver` (400, not in `ALLOWED_HOSTS`), then the
+  POST left out the required `username` field (200 with a form error). Fixed both in the
+  test and the third run passed. Lesson: after pulling a phase that adds apps or models,
+  run `migrate` before `runserver`.
+- **Prompt 2 (no code change):** the 404 came from copying the link out of the console
+  email. The body is quoted-printable (the link line is longer than 78 characters), so
+  the terminal shows a soft line break, `=` at a line end, inside `confirm-email`, and
+  the paste kept it as `confirm-emai=l`. With the `=` removed, the key's signature
+  checks out (it decodes to Ada's email address, pk 1, within the 3-day expiry) and the page
+  shows allauth's "Please confirm that ada@example.com…" with a Confirm button. The
+  key was checked with GET requests only, so the user still confirms it.
+
 ## 2026-11-24 — Axcenity Hub: Phase 8/17, Accounts, security and two-factor sign-in
 
 ### Prompts

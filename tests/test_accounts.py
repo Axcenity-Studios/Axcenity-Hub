@@ -423,6 +423,7 @@ def test_the_app_shell_frames_account_pages(client):
         ("account_email", "Email"),
         ("account_change_password", "Password"),
         ("mfa_index", "Two-factor"),
+        ("socialaccount_connections", "Connected accounts"),
     ]:
         html = client.get(reverse(name)).content.decode()
         assert 'class="app-bar"' in html and 'id="app-rail"' in html, name
@@ -431,7 +432,7 @@ def test_the_app_shell_frames_account_pages(client):
         ]
         assert re.findall(
             r'class="app-rail-link"[^>]*>\s*<svg.*?</svg>\s*([^<]+?)\s*<', rail, re.S
-        ) == ["Profile", "Email", "Password", "Two-factor"]
+        ) == ["Profile", "Email", "Password", "Two-factor", "Connected accounts"]
         assert re.findall(r'aria-current="page">\s*<svg.*?</svg>\s*([^<]+?)\s*<', rail, re.S) == [
             current
         ], name

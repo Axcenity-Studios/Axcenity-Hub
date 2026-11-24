@@ -59,3 +59,46 @@ def test_a_member_signs_in_and_the_app_shell_fits_the_screen(open_home, width, s
     page.wait_for_url(lambda url: urlsplit(url).path == "/")
     assert page.locator("#site-nav a.nav-sign-in").inner_text() == "Sign in" or width < 768
     assert errors == []
+
+
+@pytest.mark.parametrize("scheme", ["dark", "light"])
+@pytest.mark.parametrize("width", [360, 1280])
+def test_connected_accounts_shows_a_link_needing_reconnection_and_fits_the_screen(
+    open_home, settings, width, scheme
+):
+    from allauth.socialaccount.models import SocialAccount
+
+    from accounts.models import GitHubLink
+
+    settings.GITHUB_TOKEN_KEYS = ["eE5nY3VhTnJ0d1lCV0lQZ3VHWHZmS2F6c0p6Q0JxS0Q="]
+    settings.GITHUB_CLIENT_ID, settings.GITHUB_CLIENT_SECRET = "Ov23liTestClientId", "secret"
+    settings.SOCIALACCOUNT_PROVIDERS = {
+        "github": {"SCOPE": [], "APPS": [{"client_id": "Ov23liTestClientId", "secret": "secret"}]}
+    }
+    user = get_user_model().objects.create_user("ada_lovelace", "ada@example.com", PASSWORD)
+    EmailAddress.objects.create(user=user, email="ada@example.com", primary=True, verified=True)
+    account = SocialAccount.objects.create(
+        user=user, provider="github", uid="583231", extra_data={"login": "octocat"}
+    )
+    link = GitHubLink.objects.store(account, access_token="gho_not_a_real_token")
+    link.needs_reconnect = True  # so the page never asks GitHub
+    link.save()
+
+    page, errors = open_home(path="/accounts/login/", width=width, height=800, scheme=scheme)
+    page.fill("input[name=login]", "ada@example.com")
+    page.fill("input[name=password]", PASSWORD)
+    page.click("button[type=submit].btn-primary")
+    page.wait_for_url("**/accounts/profile/")
+    page.goto(page.url.replace("/accounts/profile/", "/accounts/3rdparty/"))
+
+    panel = page.locator("[data-github-state=needs_reconnect]")
+    assert "octocat" in panel.inner_text()
+    assert page.get_by_role("button", name="Reconnect GitHub").is_visible()
+    assert page.get_by_role("button", name="Unlink GitHub").is_visible()
+    assert page.evaluate("document.documentElement.scrollWidth") <= width
+    assert page.evaluate(
+        "[...document.querySelectorAll('.app-panel, .app-actions .btn')]"
+        ".every(box => box.getBoundingClientRect().right <= innerWidth + 0.5)"
+    )
+    page.screenshot(path=f"screenshots/accounts/connections-{width}-{scheme}.png", full_page=True)
+    assert errors == []

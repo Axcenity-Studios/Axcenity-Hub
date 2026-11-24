@@ -1,6 +1,7 @@
 """Signal receivers for accounts."""
 
 from allauth.mfa import signals as mfa_signals
+from allauth.socialaccount import signals as social_signals
 from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -24,6 +25,20 @@ def rotate_session_on_security_change(sender, request, user, **kwargs) -> None:
     session id captured before the change no longer works."""
     if request is not None and hasattr(request, "session"):
         request.session.cycle_key()
+
+
+@receiver(social_signals.social_account_added)
+def store_github_tokens(sender, request, sociallogin, **kwargs) -> None:
+    """A new GitHub link: store its tokens, encrypted, once allauth has saved the account.
+
+    (A reconnect's tokens are stored by SocialAccountAdapter.pre_social_login, after it has
+    checked the account belongs to the member: allauth's `social_account_updated` fires
+    before that check, so it isn't used.)
+    """
+    from .adapter import GITHUB, store_tokens
+
+    if sociallogin.account.provider == GITHUB and sociallogin.token is not None:
+        store_tokens(sociallogin.account, sociallogin.token)
 
 
 # The session clocks start at sign-in (the receiver lives beside the middleware that reads them).

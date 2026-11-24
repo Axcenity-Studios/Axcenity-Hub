@@ -8,6 +8,7 @@ index:** the rules below apply everywhere; topic files under
 |---|---|
 | [architecture/github-releases.md](architecture/github-releases.md) | the GitHub release list behind `/download/`: choosing and validating the release, the cache, ETag, fallbacks and backoff |
 | [architecture/accounts.md](architecture/accounts.md) | accounts and sign-in: the email-verification policy and gate, case-insensitive uniqueness, sessions, password reset, rate limits, enumeration, two-factor, Turnstile, production settings |
+| [architecture/github-linking.md](architecture/github-linking.md) | linking a GitHub account: linking only (never sign-in), the OAuth App and its secrets, OAuth state, encrypted tokens and key rotation, revoked and expiring tokens, unlinking |
 
 ## Layout
 
@@ -17,7 +18,7 @@ index:** the rules below apply everywhere; topic files under
 | `marketing/` | Public signed-out pages: Home, Toolbox and Download. `content.py` holds their copy, links and media manifest as data; `drawings.py` computes the drawn media; `media.py` cuts captures into derivatives (`manage.py make_media`); `github.py` is the one GitHub request (the engine's release list) and `releases.py` chooses the release, groups its builds and caches it; `legal.py` reflows the engine's LICENSE and NOTICE into prose for the download agreement ([frontend/download.md](frontend/download.md)) |
 | `documentation/` | The engine docs at `/docs/`: `sync.py` (`sync_engine_docs`), `navigation.py`, `links.py`, `rendering.py`, `highlight.py`, `library.py` (the snapshot as served, and its build check), `api.py` (API pages as structure), `search.py` (the index and ranking), `diagrams.py`, `strings.py`. See [frontend/documentation.md](frontend/documentation.md) |
 | `documentation/content/` | The committed snapshot of the engine's `documentation/` folder, with `SOURCE.json` (commit and tree). Only `sync_engine_docs` writes it |
-| `accounts/` | Profiles and the sign-in policy around django-allauth: the verification gate (`access.py`), the signup-only verification stage, case-insensitive unique indexes, the rate-limit backstop, Turnstile, session lifetimes ([architecture/accounts.md](architecture/accounts.md)) |
+| `accounts/` | Profiles and the sign-in policy around django-allauth: the verification gate (`access.py`), the signup-only verification stage, case-insensitive unique indexes, the rate-limit backstop, Turnstile, session lifetimes ([architecture/accounts.md](architecture/accounts.md)); GitHub linking: `GitHubLink`, `crypto.py`, `github.py` ([architecture/github-linking.md](architecture/github-linking.md)) |
 | `marketing/legal/` | The engine's `LICENSE` and `NOTICE`, copied in unchanged (`content.LEGAL_COMMIT`), shown in full in the download agreement |
 | `marketing/media_sources/` | Captures as copied in (never served, never edited): the sources `make_media` reads, and `toolbox-capture.json`, the Toolbox screenshots' capture record |
 | `templates/` | `base.html` (shared by every shell), `marketing/` (the marketing shell and its pages), `documentation/` (the docs layout and pages), `app/` (the app shell and the entrance), `allauth/` (allauth's layouts and elements), `accounts/`, `partials/` |
@@ -61,7 +62,10 @@ Later phases add `projects`, `forums`, `showcases`, `reports`,
 | `/accounts/profile/` | `accounts:profile` | `ProfileView`: the member's own profile and its form (members only) |
 | `/accounts/verify-email/` | `accounts:verify_email` | `VerifyEmailView`: where the contribution gate sends an unverified member (`?next=`, same-site only) |
 | `/accounts/email/` | `account_email` | `EmailView`: the address, its status and a resend button (replaces allauth's page) |
-| `/accounts/…` | `account_*`, `mfa_*` | allauth: sign in, sign up, sign out, confirm email, password change and reset, re-authenticate, two-factor (`/accounts/2fa/…`) |
+| `/accounts/3rdparty/` | `socialaccount_connections` | `ConnectionsView`: Connected accounts, the linked GitHub account's state (checked with GitHub), link, reconnect, and unlink (POST, after re-authentication); replaces allauth's page |
+| `/accounts/github/login/` | `github_login` | `GitHubConnectView`: POST starts linking GitHub (never a sign-in); replaces allauth's view |
+| `/accounts/github/login/callback/` | `github_callback` | allauth: GitHub's return; links only for the signed-in member (`SocialAccountAdapter`) |
+| `/accounts/…` | `account_*`, `mfa_*`, `socialaccount_*` | allauth: sign in, sign up, sign out, confirm email, password change and reset, re-authenticate, two-factor (`/accounts/2fa/…`), a cancelled or failed link (`/accounts/3rdparty/login/…`) |
 | `/theme/` | `marketing:theme` | `ThemeView`: POST only, the no-JavaScript fallback for the theme switch |
 | `/admin/` | `admin:*` | Django admin |
 
@@ -107,14 +111,18 @@ Later phases add `projects`, `forums`, `showcases`, `reports`,
 
 ## External APIs
 
-- **GitHub** (Phase 7): `marketing/github.py` makes the Hub's one GitHub
-  request so far, the engine's release list, unauthenticated, with a fixed
-  `User-Agent`, a pinned API version, a timeout and `If-None-Match`. It
-  never raises for an HTTP or network failure. `marketing/releases.py`
-  caches the result in Django's cache (fresh for an hour, kept seven days
-  as the fallback) and backs off after a failure. GitHub's data is
-  untrusted input: every field is checked before use
+- **GitHub** (Phase 7): `marketing/github.py` requests the engine's release
+  list, unauthenticated, with a fixed `User-Agent`, a pinned API version, a
+  timeout and `If-None-Match`. It never raises for an HTTP or network
+  failure. `marketing/releases.py` caches the result in Django's cache
+  (fresh for an hour, kept seven days as the fallback) and backs off after
+  a failure. GitHub's data is untrusted input: every field is checked
+  before use
   ([architecture/github-releases.md](architecture/github-releases.md)).
+- **GitHub, as the member** (Phase 9): `accounts/github.py` checks a linked
+  account's token (`GET /user`) and refreshes expiring ones, reusing
+  `marketing/github.py`'s headers and timeout
+  ([architecture/github-linking.md](architecture/github-linking.md)).
 - The cache is local memory in development. Production shares one (the
   database cache, or Redis): one list, one backoff and one set of rate limits
   for every process ([architecture/accounts.md](architecture/accounts.md)).
@@ -135,6 +143,8 @@ is off ([architecture/accounts.md](architecture/accounts.md#production-settings)
 | `DJANGO_EMAIL_BACKEND` | console (dev), SMTP (production) | The default mailer's backend |
 | `DJANGO_EMAIL_HOST`, `_PORT`, `_HOST_USER`, `_HOST_PASSWORD`, `_USE_TLS` | `localhost`, `587`, none, none, on | Production SMTP |
 | `DJANGO_DEFAULT_FROM_EMAIL` | `Axcenity Hub <noreply@localhost>` | The sender |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | none | The GitHub OAuth App for account linking; off unless both and a token key are set |
+| `GITHUB_TOKEN_KEYS` | none | Comma-separated Fernet keys for GitHub tokens at rest (first encrypts); required in production when the app is set |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | none | Cloudflare Turnstile on signup and reset; off unless both are set |
 | `AXCENITY_ENGINE_DIR` | `~/Documents/VSCode Projects/Axcenity-Engine` | The engine checkout `sync_engine_docs` reads (never at request time) |
 

@@ -1,5 +1,7 @@
-"""Admin: users with their profile, and the sign-in backstop's records (read-only)."""
+"""Admin: users with their profile, the sign-in backstop's records (read-only), and no GitHub
+secrets."""
 
+from allauth.socialaccount.models import SocialApp, SocialToken
 from django import forms
 from django.contrib import admin
 from django.contrib.auth import get_user_model
@@ -53,6 +55,12 @@ class ProfileInline(admin.StackedInline):
 
 
 admin.site.unregister(User)
+# GitHub secrets never reach the admin: the app's id and secret come from the environment
+# (SocialApp rows are ignored by accounts.adapter.SocialAccountAdapter), and tokens live
+# encrypted in GitHubLink, which has no admin page (allauth's SocialToken table stays empty).
+# allauth's SocialAccount page stays: it shows which GitHub account a member linked.
+admin.site.unregister(SocialApp)
+admin.site.unregister(SocialToken)
 
 
 @admin.register(User)

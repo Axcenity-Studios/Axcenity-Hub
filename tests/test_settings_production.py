@@ -20,7 +20,11 @@ PRODUCTION = {
 
 
 def run(args: list[str], **env: str) -> subprocess.CompletedProcess:
-    clean = {k: v for k, v in os.environ.items() if not k.startswith(("DJANGO_", "TURNSTILE_"))}
+    clean = {
+        k: v
+        for k, v in os.environ.items()
+        if not k.startswith(("DJANGO_", "TURNSTILE_", "GITHUB_"))
+    }
     clean["DJANGO_SETTINGS_MODULE"] = "config.settings"
     return subprocess.run(
         [sys.executable, *args], cwd=settings.BASE_DIR, env={**clean, **env},
@@ -105,6 +109,29 @@ def test_production_refuses_to_start_without_a_real_key_and_hosts(env, complaint
     result = run(["manage.py", "check"], **{**PRODUCTION, **env})
     assert result.returncode != 0
     assert "ImproperlyConfigured" in result.stderr and complaint in result.stderr
+
+
+GITHUB_APP = {"GITHUB_CLIENT_ID": "Ov23liTestClientId", "GITHUB_CLIENT_SECRET": "test-secret"}
+TOKEN_KEY = "eE5nY3VhTnJ0d1lCV0lQZ3VHWHZmS2F6c0p6Q0JxS0Q="
+
+
+def test_production_refuses_github_linking_without_a_token_key():
+    result = run(["manage.py", "check"], **{**PRODUCTION, **GITHUB_APP})
+    assert result.returncode != 0
+    assert "ImproperlyConfigured" in result.stderr and "GITHUB_TOKEN_KEYS" in result.stderr
+    # With a key it starts, and check --deploy still passes.
+    result = run(
+        ["manage.py", "check", "--deploy", "--fail-level", "WARNING"],
+        **{**PRODUCTION, **GITHUB_APP, "GITHUB_TOKEN_KEYS": TOKEN_KEY},
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_a_malformed_token_key_is_refused_without_echoing_it():
+    bad = "not-a-fernet-key-but-a-secret-all-the-same"
+    result = run(["manage.py", "check"], GITHUB_TOKEN_KEYS=bad)
+    assert result.returncode != 0
+    assert "GITHUB_TOKEN_KEYS" in result.stderr and bad not in result.stderr
 
 
 def test_development_is_the_default_and_still_sends_the_security_headers(client):

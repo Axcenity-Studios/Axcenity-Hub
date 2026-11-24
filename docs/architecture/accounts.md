@@ -2,6 +2,7 @@
 
 Read this before touching `accounts/`, the allauth settings, sessions, rate limits or
 production settings. Templates and the app shell: [../frontend/app-shell.md](../frontend/app-shell.md).
+Linking a GitHub account (`GitHubLink`, `crypto.py`, `github.py`): [github-linking.md](github-linking.md).
 
 django-allauth (`allauth.account`, `allauth.mfa`) runs registration, sign-in, sign-out,
 email verification, password reset and two-factor sign-in. The `accounts` app adds the

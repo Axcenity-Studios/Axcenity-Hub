@@ -1,0 +1,9 @@
+{% extends "socialaccount/base_entrance.html" %}
+{% load allauth app_shell %}
+{% block head_title %}{% account_copy as copy %}{{ copy.GITHUB_LINK_CANCELLED_TITLE }}{% endblock head_title %}
+{% block content %}
+{% account_copy as copy %}
+{% element h1 %}{{ copy.GITHUB_LINK_CANCELLED_TITLE }}{% endelement %}
+{% element p %}{{ copy.GITHUB_LINK_CANCELLED }}{% endelement %}
+{% element p %}<a class="app-link" href="{% url 'socialaccount_connections' %}">{{ copy.GITHUB_BACK }}</a>{% endelement %}
+{% endblock content %}

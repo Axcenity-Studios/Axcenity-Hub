@@ -9,7 +9,7 @@ Both extend `templates/base.html` (theme, fonts, stylesheet, `shell.js`).
 
 | Template | For | Holds |
 |---|---|---|
-| `app/shell.html` | Signed-in pages (profile, email, password, two-factor; later projects, forums, reports) | `.app-bar` (wordmark, "Hub", theme switch, account menu), `.app-frame` with the `#app-rail` and `<main class="app-main">` |
+| `app/shell.html` | Signed-in pages (profile, email, password, two-factor, connected accounts; later projects, forums, reports) | `.app-bar` (wordmark, "Hub", theme switch, account menu), `.app-frame` with the `#app-rail` and `<main class="app-main">` |
 | `app/entrance.html` | Sign in, sign up, reset, the two-factor step, re-authentication | The same bar without the menu, and one `.entrance-panel` on the grid backdrop |
 
 - **Rail** (`.app-rail`): a `<details>` that's open without JavaScript; an inline script
@@ -41,6 +41,11 @@ allauth renders through layouts and "elements"; the Hub overrides them all in
   requires it, so it can't be vendored. It's absent unless Turnstile is configured.
 - allauth's own pages put their parts straight in `<main>`; `.app-main > :not(.app-page)`
   gives them the same 46rem measure as the Hub's `.app-page`.
+- `socialaccount/`: a cancelled or failed GitHub link (`login_cancelled.html`,
+  `authentication_error.html`) and allauth's link messages (`messages/*.txt`), in the
+  Hub's words: GitHub is linked, never signed in with. Copy in `accounts/strings.py`.
+- Connected accounts (`accounts/connections.html`) marks its panel with
+  `data-github-state` (`ok`, `needs_reconnect`, `unavailable` or `none`).
 - The TOTP QR code (`.app-qr`) carries its own white paper (`accounts.adapter.MFAAdapter`),
   so it scans in either scheme without a fixed colour in the chrome.
 

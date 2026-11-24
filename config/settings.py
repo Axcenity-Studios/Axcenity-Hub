@@ -12,6 +12,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from cryptography.fernet import Fernet
 from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -63,6 +64,8 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.mfa",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.github",
     "marketing",
     "documentation",
     "accounts",
@@ -239,6 +242,48 @@ MFA_FORMS = {
     "authenticate": "accounts.forms.MFAAuthenticateForm",
     "reauthenticate": "accounts.forms.MFAReauthenticateForm",
 }
+
+# ---------- GitHub account linking (allauth.socialaccount) ----------
+# GitHub is an account a member links, never a way to sign in (accounts.adapter
+# .SocialAccountAdapter). An OAuth App with no scopes: public data only. Its id and secret
+# come from the environment, never the database (SocialApp rows and their admin are unused).
+# Access and refresh tokens are stored by the Hub, encrypted with GITHUB_TOKEN_KEYS
+# (accounts.models.GitHubLink); allauth's own plain-text token table stays empty.
+GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID", "")
+GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "")
+# Fernet keys, comma-separated: the first encrypts, every one decrypts (for rotation).
+GITHUB_TOKEN_KEYS = env_list("GITHUB_TOKEN_KEYS")
+if (GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET) and not GITHUB_TOKEN_KEYS and PRODUCTION:
+    raise ImproperlyConfigured("GITHUB_TOKEN_KEYS must be set when GitHub linking is configured")
+for _key in GITHUB_TOKEN_KEYS:
+    try:
+        Fernet(_key)
+    except (ValueError, TypeError):
+        # Never echo the value: it's a secret, even when malformed.
+        raise ImproperlyConfigured(
+            "GITHUB_TOKEN_KEYS holds a value that isn't a Fernet key"
+        ) from None
+SOCIALACCOUNT_ADAPTER = "accounts.adapter.SocialAccountAdapter"
+SOCIALACCOUNT_PROVIDERS = {
+    "github": {
+        "SCOPE": [],
+        "APPS": (
+            [{"client_id": GITHUB_CLIENT_ID, "secret": GITHUB_CLIENT_SECRET, "key": ""}]
+            if GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET
+            else []
+        ),
+    }
+}
+SOCIALACCOUNT_STORE_TOKENS = False
+SOCIALACCOUNT_AUTO_SIGNUP = False
+SOCIALACCOUNT_QUERY_EMAIL = False
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
+SOCIALACCOUNT_LOGIN_ON_GET = False
+# Connecting needs no fresh re-authentication (allauth's would park the new token, in plain
+# text, in the session); unlinking does (accounts.views.ConnectionsView).
+SOCIALACCOUNT_REAUTHENTICATION_REQUIRED = False
+# How long a successful check of a link's token stands before GitHub is asked again.
+GITHUB_LINK_CHECK_INTERVAL = timedelta(minutes=15)
 
 # Cloudflare Turnstile on sign-up and the reset request (accounts.turnstile): on only when
 # both keys are set. Cloudflare's test keys work on localhost (docs/architecture/accounts.md).

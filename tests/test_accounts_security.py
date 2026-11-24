@@ -488,6 +488,9 @@ PUBLIC = {
     "account_email_verification_sent", "account_confirm_email", "account_confirm_login_code",
     "account_reset_password", "account_reset_password_done", "account_reset_password_from_key",
     "account_reset_password_from_key_done", "mfa_authenticate",
+    # GitHub's return to the Hub, and allauth's pages for a cancelled or failed one: they
+    # show an error to anyone and link nothing (accounts.adapter.SocialAccountAdapter).
+    "github_callback", "socialaccount_login_cancelled", "socialaccount_login_error",
 }  # fmt: skip
 SAMPLE_KWARGS = {"key": "not-a-key", "uidb36": "1", "path": "not-a-page"}
 
@@ -502,6 +505,12 @@ def test_every_members_only_url_sends_an_anonymous_visitor_to_sign_in(client):
             path = reverse(name, kwargs={arg: SAMPLE_KWARGS.get(arg, "1") for arg in args})
         members_only.append(name)
         response = client.get(path)
+        if name is None and path.startswith("/accounts/social/"):
+            # allauth's deprecated, unnamed /social/ URLs: permanent redirects to their
+            # /3rdparty/ pages, which this walk checks under their own names.
+            assert response.status_code == 301, path
+            assert response["Location"].startswith("/accounts/3rdparty/"), path
+            continue
         assert response.status_code in (302, 404), (name, response.status_code)
         if response.status_code == 302:
             assert response["Location"].startswith(LOGIN), (name, response["Location"])
@@ -514,6 +523,9 @@ def test_every_members_only_url_sends_an_anonymous_visitor_to_sign_in(client):
         "mfa_activate_totp",
         "mfa_deactivate_totp",
         "mfa_view_recovery_codes",
+        "socialaccount_connections",
+        "socialaccount_signup",
+        "github_login",
     } <= set(members_only)
 
 
