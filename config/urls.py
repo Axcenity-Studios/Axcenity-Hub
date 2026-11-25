@@ -21,6 +21,7 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
     path("docs/", include("documentation.urls")),
     path("projects/", include("projects.urls")),
+    path("forums/", include("forums.urls")),
     # A development server's preview of each error page (a 404 when DEBUG is off).
     path(
         "errors/",

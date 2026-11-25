@@ -1,0 +1,30 @@
+{% load app_shell %}
+{# The post's part of its page (#post). `swapped`: this is an HTMX answer, so its heading takes #}
+{# focus; `status` fills the page's live region out of band.                                     #}
+{% if status %}<div hx-swap-oob="innerHTML:#post-status"><p class="app-message">{{ status }}</p></div>{% endif %}
+<article id="post" class="panel pj-panel fm-post" aria-labelledby="post-title" data-post="{{ post.pk }}">
+  <div class="pj-bar">
+    <span class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="chat" size=14 %}{{ text.TITLE }}</span>
+    {% if is_author %}<span class="pj-tag micro" data-yours>{{ text.YOURS }}</span>{% endif %}
+  </div>
+  <div class="fm-post-body">
+    <header class="fm-post-head">
+      <h1 id="post-title" class="headline app-title fm-title" tabindex="-1"{% if swapped %} autofocus{% endif %}>{{ post.title }}</h1>
+      <p class="fm-meta">
+        {% include "partials/avatar.html" with person=author size=24 %}
+        <span class="fm-author">{{ author.name }}</span>
+        <span aria-hidden="true">·</span>
+        <time datetime="{{ post.created|date:'c' }}">{% fill text.POSTED when=post.created|date:"j M Y, H:i" %}</time>
+        {% if post.edited_at %}<span aria-hidden="true">·</span><time datetime="{{ post.edited_at|date:'c' }}" data-edited>{% fill text.EDITED_AT when=post.edited_at|date:"j M Y, H:i" %}</time>{% endif %}
+      </p>
+    </header>
+    <div class="fm-text">{{ post.body|linebreaks }}</div>
+    {% if is_author %}
+    <div class="app-actions" role="group" aria-label="{{ text.POST_ACTIONS }}">
+      {% url 'forums:edit' post.pk as edit_url %}{% url 'forums:delete' post.pk as delete_url %}
+      <a class="btn btn-quiet btn-sm" href="{{ edit_url }}" hx-get="{{ edit_url }}" hx-target="#post" hx-swap="outerHTML" data-edit>{{ text.EDIT }}</a>
+      <a class="btn btn-quiet btn-sm" href="{{ delete_url }}" hx-get="{{ delete_url }}" hx-target="#post" hx-swap="outerHTML" data-delete>{{ text.DELETE }}</a>
+    </div>
+    {% endif %}
+  </div>
+</article>

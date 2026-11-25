@@ -28,6 +28,74 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-25 — Axcenity Hub: Phase 12A/17, Forum posts and ownership
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub phase 12a`.
+2. "Looks good just include these smaller additions: 1. Test author ownership explicitly:
+   Verify that another signed-in user, an anonymous visitor, and an administrator who isn't
+   the author cannot edit or delete someone else's post. All should receive a 404 rather than
+   a 403. 2. Preserve accessibility and graceful fallback: HTMX interactions should retain
+   keyboard accessibility, provide clear focus behavior when content is swapped, and work
+   through the full-page routes when JavaScript is unavailable. Other than that continue to
+   development"
+
+### Summary
+
+- **Outcome:** A `forums` app: anyone reads `/forums/` and each post; verified members
+  publish; only a post's author edits or deletes it, and everyone else (another member, an
+  admin who isn't the author, a signed-out visitor) gets a 404. On a post's page Edit and
+  Delete swap the post in place through HTMX (the Hub's first), with focus following each
+  swap, and every action still works as full pages without JavaScript. 1302 fast tests and
+  102 browser tests pass; Ruff is
+  clean. The one failing fast test is
+  `test_download.py::test_the_copied_license_and_notice_match_the_engines`: the engine
+  checkout has new commits that change its NOTICE, which fails on a clean `main` too.
+- **Changes:**
+  - `forums/` (new) — `models.py` (`ForumPost`, `authored_by`, `is_author`), migration
+    `0001_initial`, `services.py` (`create_post`, `edit_post`, `delete_post`: the
+    verification gate and an author check), `forms.py` (`PostForm`, lengths in plain words),
+    `views.py` (`AuthorPostMixin`: the 404 lookup before anything else;
+    `HtmxAwareMixin`: `Vary: HX-Request` and redirects as `HX-Redirect`; partial or page per
+    request), `urls.py`, `strings.py`, a read-only `admin.py`.
+  - `templates/forums/` (new) — list, detail, form and confirm-delete pages; `partials/` for
+    the post, its edit form, the question and the deleted notice, each `#post` at its root.
+  - `static/js/forums.js` (new) — an htmx error answer loads the page in full.
+  - `templates/app/shell.html` — `{% htmx_script %}` and an `app_head` block.
+  - `config/settings.py`, `config/urls.py` — `django_htmx`, `HtmxMiddleware`, `forums`,
+    `/forums/`.
+  - `pyproject.toml`, `uv.lock`, `marketing/legal/hub.json` — django-htmx 1.29.0 (htmx
+    2.0.10) and its credit.
+  - `accounts/strings.py`, `templates/partials/icon.html` — the rail's Forums item and a
+    `chat` icon. `marketing/content.py` — the nav's Community and the footer's Forums link
+    to `/forums/` instead of "Soon".
+  - `styles/source.css` — the `.fm-*` classes.
+  - Tests: `test_forums.py` (35), `test_forums_browser.py` (9);
+    `test_accounts_security.py` (forums' public pages, the `csrf_exempt` scan, the walk's
+    members-only names); `test_accounts.py` (the rail's Forums item).
+  - Docs: `docs/architecture/forums.md` and `docs/frontend/forums.md` (new);
+    `ARCHITECTURE.md`, `FRONTEND.md`, `TESTING.md`, `frontend/app-shell.md`, `README.md`.
+  - `plans/axcenity-hub.md` — both 12A criteria ticked.
+- **TDD:** Skipped, as the plan says: CRUD with a 404 for non-authors follows the ownership
+  pattern Phases 10–11 test. Every criterion got ordinary tests.
+- **Decisions:** Reading is public (story 58's visitors), in the app shell; deleting your own
+  post isn't gated on verification; bodies are plain text; no pagination until 12C; htmx
+  through django-htmx (as the Toolbox does), not a hand-copied file; focus by htmx's own
+  `autofocus` handling (on HTMX answers only), with Save announced through a live region
+  filled out of band; the engine's NOTICE and crate list that `refresh_credits` also
+  rewrote were put back, keeping only the django-htmx credit.
+- **Deviations:** The user added the explicit three-way ownership test and the
+  accessibility and no-JavaScript requirements. A signed-out visitor now gets a 404 on edit
+  and delete rather than the usual sign-in redirect, as asked (the walk of members-only URLs
+  allows either).
+- **Sideways:** The HTMX create test expected `HX-Redirect` from a view that lacked the
+  mixin; added. The first browser runs failed: `hx-disabled-elt="find …"` logged an error once
+  its form was swapped out (removed; htmx already drops a second request while one runs),
+  and the test pressed keys before htmx had set up a swapped part, so the link acted as a
+  plain link. Waiting for focus wasn't enough (a field keeps it across a swap); the test now
+  waits on `htmx:load`.
+
 ## 2026-11-25 — Phase 11 follow-up: member suggestions while inviting, chips for several invitees, demo members and level role controls
 
 ### Prompts

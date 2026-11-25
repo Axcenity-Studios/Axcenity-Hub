@@ -1,0 +1,18 @@
+{# The post swapped for the question (an HTMX answer, its heading focused): Delete post swaps in #}
+{# the notice; Keep it swaps back the post.                                                     #}
+<article id="post" class="panel pj-panel fm-post" aria-labelledby="delete-title" data-confirming>
+  <div class="pj-bar"><span class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="chat" size=14 %}{{ post.title }}</span></div>
+  <div class="fm-post-body">
+    <h2 id="delete-title" class="app-heading fm-confirm-title" tabindex="-1"{% if swapped %} autofocus{% endif %}>{{ text.DELETE_TITLE }}</h2>
+    <p class="app-lede">{{ text.DELETE_LEDE }}</p>
+    {% url 'forums:delete' post.pk as delete_url %}
+    <form method="post" action="{{ delete_url }}"
+          hx-post="{{ delete_url }}" hx-target="#post" hx-swap="outerHTML">
+      {% csrf_token %}
+      <div class="app-actions">
+        <button type="submit" class="btn btn-primary btn-sm" data-confirm-delete>{{ text.DELETE_CONFIRM }}</button>
+        <a class="btn btn-quiet btn-sm" href="{{ post.get_absolute_url }}" hx-get="{{ post.get_absolute_url }}" hx-target="#post" hx-swap="outerHTML" data-keep>{{ text.KEEP }}</a>
+      </div>
+    </form>
+  </div>
+</article>

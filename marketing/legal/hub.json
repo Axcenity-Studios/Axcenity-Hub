@@ -102,6 +102,16 @@
    "url": "https://github.com/django-commons/django-click"
   },
   {
+   "name": "django-htmx",
+   "version": "1.29.0",
+   "group": "runtime",
+   "license": "MIT",
+   "authors": [
+    "Adam Johnson"
+   ],
+   "url": "https://github.com/adamchainz/django-htmx"
+  },
+  {
    "name": "django-tailwind-cli",
    "version": "4.10.0",
    "group": "runtime",

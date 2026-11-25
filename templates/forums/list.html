@@ -1,0 +1,49 @@
+{% extends "app/shell.html" %}
+{% block head_title %}{{ text.TITLE }}{% endblock %}
+{% block content %}
+{# Every post, newest first: its title (the link), author, date and the start of its text. #}
+<div class="app-page">
+  <div class="pj-head">
+    <header class="app-page-head">
+      <h1 class="headline app-title">{{ text.TITLE }}</h1>
+      <p class="app-lede">{{ text.LEDE }}</p>
+    </header>
+    <div class="app-actions">
+      {% if user.is_authenticated %}
+      <a class="btn btn-primary btn-sm" href="{% url 'forums:create' %}" data-new-post>{% include "partials/icon.html" with name="plus" size=14 %}{{ text.NEW_POST }}</a>
+      {% else %}
+      <a class="btn btn-quiet btn-sm" href="{% url 'account_login' %}?next={% url 'forums:create' %}" data-sign-in-to-post>{{ text.SIGN_IN_TO_POST }}</a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if rows %}
+  <section class="panel pj-panel" aria-labelledby="posts-title">
+    <div class="pj-bar"><h2 id="posts-title" class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="chat" size=14 %}{{ text.POSTS_LABEL }}</h2><span class="pj-tag micro">{{ rows|length }}</span></div>
+    <ul class="app-list fm-rows" data-posts>
+      {% for row in rows %}
+      <li class="fm-row" data-post="{{ row.post.pk }}">
+        <h3 class="fm-row-title"><a href="{{ row.post.get_absolute_url }}">{{ row.post.title }}</a></h3>
+        <p class="fm-meta">
+          {% include "partials/avatar.html" with person=row.author size=20 %}
+          <span class="fm-author">{{ row.author.name }}</span>
+          <span aria-hidden="true">·</span>
+          <time datetime="{{ row.post.created|date:'c' }}">{{ row.post.created|date:"j M Y" }}</time>
+          {% if row.post.edited_at %}<span aria-hidden="true">·</span><span>{{ text.EDITED }}</span>{% endif %}
+        </p>
+        <p class="fm-row-text">{{ row.post.body|truncatechars:180 }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% else %}
+  <section class="panel pj-panel" aria-labelledby="empty-title" data-empty>
+    <div class="pj-bar"><span class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="chat" size=14 %}{{ text.POSTS_LABEL }}</span></div>
+    <div class="pj-empty">
+      <h2 id="empty-title" class="app-heading">{{ text.EMPTY_TITLE }}</h2>
+      <p class="app-lede">{{ text.EMPTY_TEXT }}</p>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

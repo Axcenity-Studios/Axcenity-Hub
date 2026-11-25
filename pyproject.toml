@@ -7,6 +7,7 @@ dependencies = [
     "cryptography>=50.0.2",
     "django>=6.1",
     "django-allauth[mfa]>=65.22.1",
+    "django-htmx>=1.29.0",
     "django-tailwind-cli>=4.10.0",
     "markdown-it-py>=4.3.0",
     "pillow>=13.0.0",

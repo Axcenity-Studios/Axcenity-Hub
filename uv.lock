@@ -19,6 +19,7 @@ dependencies = [
     { name = "cryptography" },
     { name = "django" },
     { name = "django-allauth", extra = ["mfa"] },
+    { name = "django-htmx" },
     { name = "django-tailwind-cli" },
     { name = "markdown-it-py" },
     { name = "pillow" },
@@ -41,6 +42,7 @@ requires-dist = [
     { name = "cryptography", specifier = ">=50.0.2" },
     { name = "django", specifier = ">=6.1" },
     { name = "django-allauth", extras = ["mfa"], specifier = ">=65.22.1" },
+    { name = "django-htmx", specifier = ">=1.29.0" },
     { name = "django-tailwind-cli", specifier = ">=4.10.0" },
     { name = "markdown-it-py", specifier = ">=4.3.0" },
     { name = "pillow", specifier = ">=13.0.0" },
@@ -379,6 +381,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/fc/e9/80f860c3f2bb9bdcc58de6b9578bbc6b4a57bedefdc97211e736fb960380/django_click-2.5.0.tar.gz", hash = "sha256:60d346a04d0db991d0bb31754c0dcad282643aa26a4701ca5ff5df742a7473f8", size = 7251, upload-time = "2026-01-10T13:19:37.958Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/27/43/a8eedd594b0f1d5e736ad5afd48ff4431566d2760b79115af40d8b4e950a/django_click-2.5.0-py3-none-any.whl", hash = "sha256:6bcb71d0bac47f67b91d9ee1972d881d72b5bf20cd2a45a57265cdfac49b88aa", size = 7887, upload-time = "2026-01-10T13:19:37.13Z" },
+]
+
+[[package]]
+name = "django-htmx"
+version = "1.29.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "asgiref" },
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/66/cc/b0619004ed73a4a2bfa50d14b00a8228407b01994df73613584523ab3056/django_htmx-1.29.0.tar.gz", hash = "sha256:337dfa35b8da13fd68bf968f2b9cc9a4144a4e71f06c204d7ff10f7343988102", size = 204340, upload-time = "2026-08-05T23:42:09.457Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ec/72/1f5f35d719b355e5c051378ae4859586f59c9db08708f02fea358376c130/django_htmx-1.29.0-py3-none-any.whl", hash = "sha256:0ec5be1645ed71e6787bd75e0250624f00274ac3bb1730f07b6629a95688929b", size = 224954, upload-time = "2026-08-05T23:42:08.142Z" },
 ]
 
 [[package]]

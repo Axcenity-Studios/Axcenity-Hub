@@ -180,7 +180,7 @@ def test_only_the_repository_webhook_is_csrf_exempt(settings):
     exempt = [name for _, name, callback, _ in _routes() if getattr(callback, "csrf_exempt", False)]
     assert exempt == ["projects:webhook"]
     allowed = settings.BASE_DIR / "projects" / "views.py"
-    for folder in ["accounts", "config", "marketing", "documentation", "projects"]:
+    for folder in ["accounts", "config", "marketing", "documentation", "projects", "forums"]:
         for path in (settings.BASE_DIR / folder).rglob("*.py"):
             if path != allowed:
                 assert "csrf_exempt" not in path.read_text(encoding="utf-8"), path
@@ -498,6 +498,8 @@ PUBLIC = {
     "github_callback", "socialaccount_login_cancelled", "socialaccount_login_error",
     # GitHub's repository webhooks: authenticated by each delivery's signature, not a session.
     "projects:webhook",
+    # The forums are read by anyone (writing them is members-only).
+    "forums:list", "forums:detail",
 }  # fmt: skip
 SAMPLE_KWARGS = {"key": "not-a-key", "uidb36": "1", "path": "not-a-page"}
 
@@ -541,6 +543,9 @@ def test_every_members_only_url_sends_an_anonymous_visitor_to_sign_in(client):
         "projects:link_repository",
         "projects:unlink_repository",
         "projects:refresh_repository",
+        "forums:create",
+        "forums:edit",
+        "forums:delete",
     } <= set(members_only)
 
 

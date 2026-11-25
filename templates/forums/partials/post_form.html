@@ -1,0 +1,15 @@
+{# The post swapped for its edit form (an HTMX answer): Save swaps back the post, or this form #}
+{# with its errors (the first invalid field focused); Cancel swaps back the post unchanged.   #}
+<article id="post" class="panel pj-panel fm-post" aria-labelledby="post-form-title" data-editing>
+  <div class="pj-bar"><h2 id="post-form-title" class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="chat" size=14 %}{{ text.EDIT_TITLE }}</h2></div>
+  {% url 'forums:edit' post.pk as edit_url %}
+  <form method="post" action="{{ edit_url }}" class="app-form fm-post-body" novalidate
+        hx-post="{{ edit_url }}" hx-target="#post" hx-swap="outerHTML">
+    {% csrf_token %}
+    {% include "partials/form_fields.html" with form=form %}
+    <div class="app-actions">
+      <button type="submit" class="btn btn-primary btn-sm">{{ text.SAVE }}</button>
+      <a class="btn btn-quiet btn-sm" href="{{ post.get_absolute_url }}" hx-get="{{ post.get_absolute_url }}" hx-target="#post" hx-swap="outerHTML" data-cancel>{{ text.CANCEL }}</a>
+    </div>
+  </form>
+</article>

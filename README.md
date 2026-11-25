@@ -45,8 +45,10 @@ Ticked boxes in [plans/axcenity-hub.md](plans/axcenity-hub.md) are the source of
 | **7** | `/download/`: releases from the GitHub API | Done |
 | **8–9** | Accounts, two-factor sign-in, GitHub linking | Done |
 | **10** | Projects, repository linking, webhooks and the setup checklist's help | Done |
-| **11** | Project teams (Owner, Maintainer, Viewer) | Next |
-| **12–15** | Forums, showcases, bug reports, moderation | Planned |
+| **11** | Project teams (Owner, Maintainer, Viewer) | Done |
+| **12A** | `/forums/`: forum posts, editable and deletable in place by their author only | Done |
+| **12B–12C** | Comments, ratings, posting limits and reports; forum search, filters and pagination | Next |
+| **13–15** | Showcases, bug reports, moderation | Planned |
 | **16–17** | REST API, and porting the Toolbox into the Hub | Planned |
 
 <p align="center">
@@ -62,7 +64,8 @@ Ticked boxes in [plans/axcenity-hub.md](plans/axcenity-hub.md) are the source of
 | **Package manager** | [uv](https://docs.astral.sh/uv/) | uv only: no pip, no Node, no npm. Lockfile: [`uv.lock`](uv.lock) |
 | **Web framework** | Django 6.1 | Class-based views; every URL named and namespaced |
 | **Styling** | Tailwind CSS 4 + DaisyUI via [django-tailwind-cli](https://github.com/django-commons/django-tailwind-cli) | Uses the standalone Tailwind binary (downloaded once into `.django_tailwind_cli/`), so there's no Node toolchain. Source: [`styles/source.css`](styles/source.css) |
-| **Interactivity** | Vanilla JavaScript (ES modules), Canvas 2D | The reel and animated loops in [`static/reel/`](static/reel/); any library is a vendored file. HTMX joins with the members' pages |
+| **Interactivity** | Vanilla JavaScript (ES modules), Canvas 2D | The reel and animated loops in [`static/reel/`](static/reel/); any library is a vendored file |
+| **Partial updates** | HTMX 2 via [django-htmx](https://github.com/adamchainz/django-htmx) | Ships htmx as a static file (no Node); loaded on the app shell's pages. A forum post edits and deletes in place, and every action still works as a full page without JavaScript |
 | **Images** | Pillow | `make_media` cuts captures into AVIF, WebP and JPEG derivatives |
 | **Docs** | markdown-it-py, Pygments, PyYAML | The engine docs rendered server-side (raw HTML off), Luau highlighted as the editor does; `sync_engine_docs` copies them in |
 | **GitHub API** | requests, responses (tests) | `/download/` reads the engine's release list with ETags and an hourly cache; projects read a linked repository with the member's token and take signed webhooks; tests mock GitHub with `responses` |
@@ -70,7 +73,7 @@ Ticked boxes in [plans/axcenity-hub.md](plans/axcenity-hub.md) are the source of
 | **Database** | SQLite (development and tests) | PostgreSQL planned for production |
 | **Tests** | pytest, pytest-django, pytest-playwright (Chromium) | Fast suite plus browser tests behind a `browser` marker |
 | **Lint and format** | Ruff | Rules: `E F W I B UP DJ`, line length 100 |
-| **Planned** | Django REST Framework, HTMX | Added in the phase that needs them (12A, 16) |
+| **Planned** | Django REST Framework | Added in Phase 16 |
 
 Fonts (Inter, Plus Jakarta Sans, JetBrains Mono) are self-hosted from [`static/fonts/`](static/fonts/) under the OFL; nothing loads from a CDN.
 

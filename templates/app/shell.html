@@ -1,9 +1,11 @@
 {% extends "base.html" %}
-{% load static app_shell %}
+{% load static app_shell django_htmx %}
 {# The app shell: the editor-style frame for signed-in pages (docs/frontend/app-shell.md). #}
 {# A top bar, a rail of sections like the editor's Explorer, and the page in 1px panels.  #}
 {# allauth's account pages use it too (templates/allauth/layouts/manage.html).            #}
 {% block title %}{% block head_title %}Account{% endblock %}{% endblock %}
+{# htmx 2 (django-htmx ships it as a static file): in-place updates on the members' pages. #}
+{% block head %}{% htmx_script %}{% block app_head %}{% endblock %}{% endblock %}
 {% block body %}
 {% account_copy as copy %}
 <a href="#content" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 btn btn-sm">Skip to content</a>

@@ -820,7 +820,7 @@ NAV_LINKS = [
     Link("Features", url_name="marketing:home", fragment="features"),
     Link("Toolbox", url_name="marketing:toolbox"),
     Link("Docs", url_name="documentation:index", section="documentation"),
-    Link("Community", soon=True),
+    Link("Community", url_name="forums:list", section="forums"),
 ]
 # allauth's sign-in page (its URL names aren't namespaced); signed in, the nav shows Account.
 SIGN_IN = Link("Sign in", url_name="account_login")
@@ -852,7 +852,11 @@ FOOTER_COLUMNS = [
     ),
     FooterColumn(
         "Community",
-        [Link("Forums", soon=True), Link("Showcases", soon=True), Link("Projects", soon=True)],
+        [
+            Link("Forums", url_name="forums:list"),
+            Link("Showcases", soon=True),
+            Link("Projects", soon=True),
+        ],
     ),
 ]
 

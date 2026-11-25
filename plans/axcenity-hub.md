@@ -503,8 +503,8 @@ None: CRUD where others get a 404 follows the ownership pattern that Phases 10â€
 
 ### Acceptance criteria
 
-- [ ] Tests: CRUD, ownership (others get 404 on edit and delete), validation, unverified users blocked
-- [ ] HTMX partial updates for edit and delete with CSRF
+- [x] Tests: CRUD, ownership (others get 404 on edit and delete), validation, unverified users blocked
+- [x] HTMX partial updates for edit and delete with CSRF
 
 ---
 

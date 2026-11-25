@@ -18,6 +18,7 @@ its code).
 | [frontend/toolbox.md](frontend/toolbox.md) | the Toolbox page (`/toolbox/`): its sections, the `.tb-*` panel classes, the commands and demo credentials, its screenshots and their capture record |
 | [frontend/documentation.md](frontend/documentation.md) | the docs at `/docs/`: re-syncing the snapshot, rendering and its link rules, heading ids, Luau highlighting, the three-column layout, the sidebar, `docs.js`, the API reference's layouts and type links, search |
 | [frontend/projects.md](frontend/projects.md) | the project pages: the setup checklist and its states, showing the webhook's values, copy buttons (`projects.js`), the cards, each step's help, the `.pj-*` classes |
+| [frontend/forums.md](frontend/forums.md) | the forum pages, **HTMX** (loading, partials, fallbacks, CSRF, errors), focus after a swap and the live region, `forums.js`, the `.fm-*` classes |
 | [frontend/app-shell.md](frontend/app-shell.md) | the app shell for signed-in pages, Account settings and its tabs, profile photos, the sign-in entrance, allauth's layouts and elements, `form_fields.html`, the honeypot and Turnstile markup, the `.app-*` classes |
 | [frontend/canvas.md](frontend/canvas.md) | the loops' canvas kit (`static/reel/`): the loop contract, its context, the determinism and seamless-wrap rules, the drawing modules, fidelity to the editor |
 
@@ -53,7 +54,10 @@ pages instead, so preview these at `/errors/<kind>/`. Classes: `.err`, `.err-pan
   block); the animated loops' ES modules (`static/reel/loops/main.js`)
   once, at the end of Home; `static/js/docs.js` on the docs pages;
   `static/js/download.js` on `/download/` (the license dialog);
-  `static/js/projects.js` on a project's page (the copy buttons). The one
+  `static/js/projects.js` on a project's page (the copy buttons);
+  `static/js/forums.js` on a forum post's page (error answers load in full). htmx 2 comes
+  from django-htmx (a static file in the package, through uv) on every app-shell page
+  ([forums.md](frontend/forums.md#htmx)). The one
   script from another site is Cloudflare Turnstile's `api.js`, which
   Cloudflare doesn't allow to be vendored, on signup and reset only when
   Turnstile is configured ([app-shell.md](frontend/app-shell.md)).

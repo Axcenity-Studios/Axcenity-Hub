@@ -5,7 +5,9 @@ The security rules behind them: [../architecture/accounts.md](../architecture/ac
 
 ## Two layouts beside the marketing shell
 
-Both extend `templates/base.html` (theme, fonts, stylesheet, `shell.js`).
+Both extend `templates/base.html` (theme, fonts, stylesheet, `shell.js`). The app shell also
+loads htmx 2 (`{% htmx_script %}`); its pages add scripts in the `app_head` block
+([forums.md](forums.md#htmx)).
 
 | Template | For | Holds |
 |---|---|---|
@@ -14,10 +16,10 @@ Both extend `templates/base.html` (theme, fonts, stylesheet, `shell.js`).
 
 - **Rail** (`.app-rail`): a `<details>` that's open without JavaScript; an inline script
   folds it below 1024 px, where its summary ("Menu") is the toggle. Sections come from
-  `{% app_rail %}` (`accounts/templatetags/app_shell.py`): **Workspace** (Projects), then
+  `{% app_rail %}` (`accounts/templatetags/app_shell.py`): **Workspace** (Projects, Forums), then
   **Account** (one item, Account settings) for a signed-in member only. `page_key` names a
   view's page from its name (`strings.PAGES`; every `mfa_*` page is two_factor; every page of
-  a namespace in `strings.RAIL_NAMESPACES`, such as `projects:*`, is its item); `rail_key`
+  a namespace in `strings.RAIL_NAMESPACES`, such as `projects:*` or `forums:*`, is its item); `rail_key`
   makes every account tab the Account settings item. Later phases add items to `strings.RAIL_HUB`.
 - **Column** (`.app-column`): every page, the messages included, sits in one column centred
   in the space beside the rail. allauth's pages put their parts straight in it; their forms,

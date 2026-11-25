@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_tailwind_cli",
+    "django_htmx",
     "allauth",
     "allauth.account",
     "allauth.mfa",
@@ -85,6 +86,7 @@ INSTALLED_APPS = [
     "documentation",
     "accounts",
     "projects",
+    "forums",
 ]
 
 MIDDLEWARE = [
@@ -98,6 +100,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",  # request.htmx
 ]
 
 ROOT_URLCONF = "config.urls"
