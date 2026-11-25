@@ -1087,6 +1087,7 @@ def test_the_notice_reflows_its_underlined_headings():
         "Third-party code",
         "Public-domain character base data (CC0 1.0 Universal)",
         "MakeHuman",
+        "Quaternius",
     ]
     # Each "---" between two credited works is a divider, never a word or a heading.
     rules = [i for i, b in enumerate(blocks) if b.kind == "rule"]

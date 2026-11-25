@@ -47,7 +47,10 @@ Run it after the engine's NOTICE or dependencies change, and after
 `uv add` or `uv lock` here. It needs git and cargo, never the network,
 and writes nothing in the engine. It refuses, changing nothing, when:
 - LICENSE, NOTICE, Cargo.toml or Cargo.lock has uncommitted changes in
-  the engine (an edit in progress isn't the engine's NOTICE yet);
+  the engine (an edit in progress isn't the engine's NOTICE yet). To pick
+  up the engine's last commit anyway, refresh from a clean copy of it:
+  `git clone --shared <engine> <tmp>` (it borrows the engine's objects and
+  writes nothing there), then `refresh_credits --engine <tmp>`;
 - `cargo metadata --all-features --locked --offline` lists a crate HEAD's
   Cargo.lock doesn't, or a crate or package has no licence;
 - a package isn't installed here (Windows-only ones) and has no entry in
