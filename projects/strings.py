@@ -13,7 +13,7 @@ ROLE_NOTES = {
     "maintainer": "Edits the description and refreshes the repository's details.",
     "viewer": "Reads the project, its repository's details and its team.",
 }
-NO_SUCH_MEMBER = "No Hub member has that username."
+NO_SUCH_MEMBER = "No Hub member is called “{username}”."
 INVITE_YOURSELF = "You're already in this project."
 ALREADY_MEMBER = "{username} is already in this project."
 ALREADY_INVITED = "{username} already has an invitation to this project."
@@ -38,12 +38,31 @@ LEAVE_NOTE = "You'll lose access to this project. An Owner can invite you back."
 LAST_OWNER_NOTE = (
     "You're this project's only Owner. Make someone else an Owner before you leave or step down."
 )
-INVITE_TITLE = "Invite a member"
+INVITE_TITLE = "Invite members"
 INVITE_LEDE = (
     "They'll see the invitation on their Projects page and can accept or decline it. "
     "Making someone an Owner gives them everything you can do."
 )
 INVITE = "Send invitation"
+INVITE_MANY = "Send {count} invitations"
+INVITING = "Inviting"
+INVITING_LABEL = "People to invite"
+INVITE_USERNAMES_HELP = "Separate several usernames with commas."
+CHIP_REMOVE = "Remove {name} from the invitation"
+CHIP_ADDED = "{name} added. {count} to invite."
+CHIP_REMOVED = "{name} removed. {count} to invite."
+SUGGEST_CHOSEN = "Added"
+SUGGEST_STATES = {
+    "available": "",
+    "member": "Already in the team",
+    "invited": "Already invited",
+    "you": "You",
+}
+SUGGEST_NONE = "No Hub member's username or name starts with “{query}”."
+SUGGEST_COUNT = "{count} members found. Use the arrow keys to choose one."
+SUGGEST_HINT = (
+    "Type at least two letters to find members, then choose each one. Add up to 10 at once."
+)
 PENDING_TITLE = "Pending invitations"
 PENDING_ROW = "Invited as {role} by {inviter}"
 CANCEL_INVITATION = "Cancel invitation"
@@ -54,7 +73,9 @@ DECLINE = "Decline"
 SOMEONE = "An Owner"
 NO_REPOSITORY_MEMBER = "No repository is linked yet. An Owner links it."
 INVITE_INVALID = "Enter a username and choose a role."
-INVITED = "Invitation sent. They'll see it on their Projects page."
+INVITED = "Invited {names}. They'll see it on their Projects page."
+INVITE_TOO_MANY = "Invite at most {limit} people at a time."
+AND = "and"
 ROLE_CHANGED = "Role changed."
 MEMBER_REMOVED = "Member removed."
 INVITATION_CANCELLED = "Invitation cancelled."

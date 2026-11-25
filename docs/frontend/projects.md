@@ -10,6 +10,7 @@ or the `.pj-*` classes. The rules behind them (the limit, permissions, webhooks)
 | `projects/list.html` | `/projects/`: the member's invitations, then a card per project they're in, or the empty state |
 | `projects/detail.html` | `/projects/<slug>/`: the role tag, Team link, the setup checklist (Owners), then the repository panel |
 | `projects/members.html` | `/projects/<slug>/members/`: the team, and for Owners the controls, pending invitations and the invite form |
+| `projects/member_suggestions.html` | The invite field's suggestions (`/projects/<slug>/members/search/?q=`), shown by `projects.js` |
 | `projects/form.html`, `confirm_delete.html` | New, edit and delete |
 
 Every word is in `projects/strings.py` (copy as data). The app shell already sets `copy`, so
@@ -28,10 +29,26 @@ cards of projects the member doesn't own show their role instead of setup progre
 ## The team page
 
 - One row per member (`[data-members] > li[data-member][data-role]`): their avatar, name
-  (and username when it differs), "(You)" and role tag. Owners get a role `<select>` with
-  "Change role" and, for others, "Remove".
+  (and username when it differs), "(You)" and role tag. Owners get a compact role `<select>`
+  (`h-8`, level with the small buttons; not `.app-field`'s full-size field) with "Change role"
+  and, for others, "Remove": one row from `sm` up; on a phone the role control takes its own
+  line and Remove the next. The wrapper isn't `.app-actions` (its forms are `display:
+  contents`). The only Owner's own row has no role control.
 - The panel's foot: "Leave project", or for the only Owner the reason they can't
   (`data-last-owner`).
+- **The invite field's suggestions** (`projects.js`, the Team page for Owners only): as an
+  Owner types two or more characters (150 ms after the last key; earlier requests aborted),
+  the field fetches `member_search` and shows the list under its hint. It's a combobox
+  (`role="combobox"`, `aria-expanded`, `aria-activedescendant`; options `role="option"`,
+  `aria-selected` highlighted with `bg-control`): ↑/↓ move, Enter or a click chooses, Escape
+  closes, a polite live region reads the count. Members already in the team or invited,
+  yourself, and anyone already chosen ("Added") are tagged, `aria-disabled`, and can't be chosen.
+- **Inviting several at once:** each chosen member becomes a chip under "Inviting · n"
+  (`[data-inviting] [data-chip]`, above the field): photo or initial, name, username, and a ×
+  ("Remove … from the invitation"); Backspace in the empty field removes the last. Each chip
+  holds a hidden `username` input; the field clears for the next person; the button reads
+  "Send 2 invitations". Up to 10. The wording comes from the form's `data-*` attributes
+  (`strings.py`). Without JavaScript the field ("Usernames") takes comma-separated usernames.
 - Owners also see **Pending invitations** (`[data-pending]`, each with Cancel) and **Invite a
   member** (`[data-invite]`: username and role).
 - Everyone sees **Roles**: what each one may do (`strings.ROLE_NOTES`).
@@ -79,7 +96,7 @@ each step's words and summary ("Linked as octocat.", "First delivery …").
 
 ## Copy buttons
 
-`static/js/projects.js` (on the project page only): each `button.pj-copy[data-copy]` copies
+`static/js/projects.js` (on the project page, and the Team page for Owners): each `button.pj-copy[data-copy]` copies
 the text of the element its `data-copy` names, then reads "Copied" (`data-copied`) for two
 seconds. The buttons are `hidden` until the script shows them; without JavaScript the values
 are plain selectable text.
@@ -131,5 +148,5 @@ Toolbox restyles).
 completing it, the webhook values and copy markup, the local warning, the cards, each step's
 help and when it opens). `tests/test_projects_browser.py` (`browser`): every page at 360 and
 1280 px, dark and light: centred, nothing scrolls sideways or spills past its panel, the
-current step's help open on a first repository, the copy button copies; the team pages (an Owner inviting
-through the form, the invitations panel and accepting, a Viewer's page without controls); screenshots in `screenshots/projects/` for review by eye.
+current step's help open on a first repository, the copy button copies; the team pages (an Owner choosing a suggestion with the keyboard, a disabled one refused,
+role controls level with their buttons, inviting through the form, the invitations panel and accepting, a Viewer's page without controls); screenshots in `screenshots/projects/` for review by eye.

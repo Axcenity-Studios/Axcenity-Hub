@@ -321,14 +321,14 @@ def test_owners_cancel_invitations_and_no_one_else_can(client):
 @pytest.mark.parametrize(
     "username, role, message",
     [
-        ("nobody", "viewer", "No Hub member has that username."),
+        ("nobody", "viewer", "No Hub member is called “nobody”."),
         ("", "viewer", "Enter a username and choose a role."),
         ("ada", "viewer", "You're already in this project."),
         ("linus", "viewer", "linus is already in this project."),
         ("grace", "viewer", "grace already has an invitation to this project."),
-        ("sleepy", "viewer", "No Hub member has that username."),  # deactivated
-        ("zoe", "admin", "Enter a username and choose a role."),
-        ("<b>zoe</b>", "viewer", "No Hub member has that username."),
+        ("sleepy", "viewer", "No Hub member is called “sleepy”."),  # deactivated
+        ("zoe", "admin", "Choose Owner, Maintainer or Viewer."),
+        ("<b>zoe</b>", "viewer", "No Hub member is called “<b>zoe</b>”."),
     ],
 )
 def test_an_invitation_is_refused_with_a_clear_message(client, username, role, message):
@@ -776,3 +776,243 @@ def test_the_teams_migration_makes_each_owner_an_owner_member_and_rolls_back():
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()
         executor.migrate(executor.loader.graph.leaf_nodes("projects"))
+
+
+# ---------- Finding someone to invite ----------
+
+
+def search(client, project, q):
+    return client.get(reverse("projects:member_search", args=[project.slug]), {"q": q})
+
+
+@pytest.mark.django_db
+def test_finding_members_by_username_or_name_shows_who_can_be_invited():
+    from accounts.models import Profile
+    from projects import teams
+
+    ada, project = owner_with_project()
+    dan, dana, daniel, dave = (make_member(n) for n in ["dan", "dana", "Daniel", "dave"])
+    Profile.objects.filter(user=make_member("zed")).update(display_name="Dante Zed")
+    join(project, dana, "viewer")
+    ProjectInvitation.objects.create(project=project, invitee=daniel, role="viewer")
+    User.objects.filter(pk=dave.pk).update(is_active=False)
+
+    found = teams.find_members(ada, project, "  DAN ")
+    # The exact username first, then by username in any case; display names match too.
+    assert [(c.user.username, c.state) for c in found] == [
+        ("dan", "available"),
+        ("dana", "member"),
+        ("Daniel", "invited"),
+        ("zed", "available"),
+    ]
+    assert [c.state for c in teams.find_members(ada, project, "ad")] == ["you"]
+    # Too short, too long, or nothing: no one. Emails are never searched.
+    for query in ["", "d", " d ", "x" * 151, "example.com", "dan@example.com"]:
+        assert teams.find_members(ada, project, query) == [], query
+    for i in range(8):
+        make_member(f"many{i}")
+    assert len(teams.find_members(ada, project, "many")) == teams.SEARCH_LIMIT
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("role", ["maintainer", "viewer", None])
+def test_only_owners_can_search_members(client, role):
+    from projects import teams
+
+    _, project = owner_with_project()
+    grace = make_member("grace")
+    if role:
+        join(project, grace, role)
+    client.force_login(grace)
+    assert search(client, project, "ad").status_code == 404
+    with pytest.raises(Project.DoesNotExist):
+        teams.find_members(grace, project, "ad")
+
+
+@pytest.mark.django_db
+def test_the_suggestions_show_people_never_emails_and_are_never_cached(client):
+    from accounts.models import Profile
+
+    _, project = owner_with_project(client)
+    dan = make_member("dan")
+    Profile.objects.filter(user=dan).update(display_name="<b>Dan</b>")
+    join(project, make_member("dana"), "maintainer")
+    response = search(client, project, "da")
+    html = response.content.decode()
+    assert response.status_code == 200 and "no-store" in response["Cache-Control"]
+    assert 'role="listbox"' in html and html.count('role="option"') == 2
+    assert 'data-username="dan" data-state="available"' in html
+    assert 'aria-disabled="true" data-username="dana" data-state="member"' in html
+    assert "Already in the team" in html and "2 members found." in html
+    assert "@example.com" not in html
+    assert "<b>Dan</b>" not in html and "&lt;b&gt;Dan&lt;/b&gt;" in html
+    # Nothing found: a sentence, the query escaped; too short: nothing at all.
+    none = search(client, project, "<i>zz").content.decode()
+    assert "data-no-match" in none and "&lt;i&gt;zz" in none and "<i>" not in none
+    assert search(client, project, "d").content.decode().strip() == ""
+
+
+@pytest.mark.django_db
+def test_the_invite_field_is_ready_for_suggestions_and_works_without_them(client):
+    _, project = owner_with_project(client)
+    page = page_for(client, User.objects.get(username="ada"), project, "members")
+    assert "data-member-search" in page and 'autocomplete="off"' in page
+    assert f'data-search-url="{reverse("projects:member_search", args=[project.slug])}"' in page
+    assert "js/projects.js" in page
+    # Viewers have no invite form, so no script.
+    linus = make_member("linus")
+    join(project, linus, "viewer")
+    assert "js/projects.js" not in page_for(client, linus, project, "members")
+
+
+@pytest.mark.django_db
+def test_the_last_owner_gets_no_role_control_on_their_own_row(client):
+    ada, project = owner_with_project()
+    grace = make_member("grace")
+    grace_member = join(project, grace, "maintainer")
+    own = ProjectMembership.objects.get(user=ada)
+    page = page_for(client, ada, project, "members")
+    assert reverse("projects:change_role", args=[project.slug, own.pk]) not in page
+    assert reverse("projects:change_role", args=[project.slug, grace_member.pk]) in page
+    # With another Owner, she can step down from her own row.
+    grace_member.role = "owner"
+    grace_member.save()
+    page = page_for(client, ada, project, "members")
+    assert reverse("projects:change_role", args=[project.slug, own.pk]) in page
+
+
+# ---------- The demo seed ----------
+
+
+@pytest.mark.django_db
+def test_the_team_demo_seed_runs_only_in_development(settings):
+    from django.core.management import CommandError, call_command
+
+    settings.DEBUG = False
+    with pytest.raises(CommandError):
+        call_command("seed_team_demo")
+    assert not User.objects.exists()
+
+
+@pytest.mark.django_db
+def test_the_team_demo_seed_makes_plain_verified_members_once(settings):
+    from django.contrib.auth import authenticate
+    from django.core.management import call_command
+
+    from projects.management.commands.seed_team_demo import DEMO_PASSWORD, MEMBERS, PROJECT
+
+    settings.DEBUG = True
+    real_bob = User.objects.create_user("Bob", "real@example.com", "bobs-own-password-9")
+    call_command("seed_team_demo")
+    call_command("seed_team_demo")  # again: nothing changes
+
+    assert User.objects.count() == len(MEMBERS)
+    assert not User.objects.filter(is_staff=True).exists()
+    assert not User.objects.filter(is_superuser=True).exists()
+    assert not User.objects.exclude(groups=None).exists()
+    assert not User.objects.exclude(user_permissions=None).exists()
+    # An existing account is left alone: its password and email stay its own.
+    real_bob.refresh_from_db()
+    assert real_bob.check_password("bobs-own-password-9") and real_bob.email == "real@example.com"
+    alice = authenticate(username="alice", password=DEMO_PASSWORD)
+    assert alice is not None
+    assert EmailAddress.objects.filter(user=alice, verified=True).exists()
+
+    project = Project.objects.get(name=PROJECT)
+    assert sorted(project.memberships.values_list("user__username", "role")) == [
+        ("Bob", "maintainer"),
+        ("alice", "owner"),
+        ("cara", "viewer"),
+    ]
+    assert list(project.invitations.values_list("invitee__username", "role")) == [
+        ("erin", "maintainer")
+    ]
+    assert Project.objects.count() == 1 and ProjectMembership.objects.count() == 3
+
+
+# ---------- Inviting several people at once ----------
+
+
+@pytest.mark.django_db
+def test_several_people_are_invited_at_once_one_value_each_or_comma_separated(client):
+    _, project = owner_with_project(client)
+    for name in ["dan", "dana", "erin"]:
+        make_member(name)
+    # As projects.js sends them (one value per chip), plus a typed list, with a repeat.
+    response = client.post(
+        invite_url(project),
+        {"username": ["dan", "DANA", "erin, dan  "], "role": "maintainer"},
+        follow=True,
+    )
+    assert "Invited dan, dana and erin. They'll see it on their Projects page." in messages_on(
+        response
+    )
+    assert sorted(project.invitations.values_list("invitee__username", "role")) == [
+        ("dan", "maintainer"),
+        ("dana", "maintainer"),
+        ("erin", "maintainer"),
+    ]
+
+
+@pytest.mark.django_db
+def test_a_batch_invites_who_it_can_and_names_each_refusal(client):
+    _, project = owner_with_project(client)
+    make_member("dan")
+    linus = make_member("linus")
+    join(project, linus, "viewer")
+    response = client.post(
+        invite_url(project),
+        {"username": ["dan", "linus", "nobody", "ada"], "role": "viewer"},
+        follow=True,
+    )
+    said = messages_on(response)
+    assert "Invited dan. They'll see it on their Projects page." in said
+    assert "linus is already in this project." in said
+    assert "No Hub member is called “nobody”." in said
+    assert "You're already in this project." in said
+    assert list(project.invitations.values_list("invitee__username", flat=True)) == ["dan"]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "data, message",
+    [
+        (
+            {"username": [f"m{i}" for i in range(11)], "role": "viewer"},
+            "Invite at most 10 people at a time.",
+        ),
+        ({"username": ["dan", "dana"], "role": "boss"}, "Choose Owner, Maintainer or Viewer."),
+        ({"username": [" , ", ""], "role": "viewer"}, "Enter a username and choose a role."),
+        ({"role": "viewer"}, "Enter a username and choose a role."),
+    ],
+)
+def test_a_batch_is_refused_whole_when_it_is_too_big_empty_or_has_no_valid_role(
+    client, data, message
+):
+    _, project = owner_with_project(client)
+    for name in ["dan", "dana"] + [f"m{i}" for i in range(11)]:
+        make_member(name)
+    response = client.post(invite_url(project), data, follow=True)
+    assert messages_on(response) == [message]
+    assert not ProjectInvitation.objects.exists()
+
+
+def test_usernames_are_read_from_every_value_and_separator_once_each():
+    from projects.teams import parse_usernames
+
+    assert parse_usernames(["dan", " Dana,erin ", "DAN", "", None, "zoe\tzed\n,,"]) == [
+        "dan",
+        "Dana",
+        "erin",
+        "zoe",
+        "zed",
+    ]
+    assert parse_usernames([]) == [] and parse_usernames([" , "]) == []
+
+
+@pytest.mark.django_db
+def test_without_javascript_the_field_says_how_to_invite_several(client):
+    _, project = owner_with_project(client)
+    page = client.get(reverse("projects:members", args=[project.slug])).content.decode()
+    assert "Usernames" in page and "Separate several usernames with commas." in page
+    assert 'data-batch-max="10"' in page and "data-invite-submit" in page

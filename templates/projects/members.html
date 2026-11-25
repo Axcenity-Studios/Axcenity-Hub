@@ -1,4 +1,5 @@
 {% extends "app/shell.html" %}
+{% load shell_tags %}
 {% block head_title %}{{ text.TEAM }} · {{ project.name }}{% endblock %}
 {% block content %}
 {# A project's team. Every member sees who's in it; Owners also change roles, remove #}
@@ -25,15 +26,18 @@
           </div>
           <span class="pj-tag micro"{% if row.membership.role == "owner" %} data-complete{% endif %}>{{ row.role_label }}</span>
         </div>
-        {% if manage %}
-        <div class="app-actions">
-          <form method="post" action="{% url 'projects:change_role' project.slug row.membership.pk %}" class="flex flex-wrap items-center gap-2">
+        {% if manage %}{% if row.me and last_owner %}{# The only Owner can't step down or remove themselves: the panel's foot says why. #}{% else %}
+        {# Not .app-actions: its forms are display: contents, which would undo this layout. #}
+        {# On a phone the role control takes its own line, Remove the next; from sm up, one row. #}
+        <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap" data-member-actions>
+          <form method="post" action="{% url 'projects:change_role' project.slug row.membership.pk %}" class="flex min-w-0 basis-full items-center gap-2 sm:basis-auto" data-role-form>
             {% csrf_token %}
-            <div class="app-field">
-              <label class="sr-only" for="{{ row.form.role.id_for_label }}">{{ text.CHANGE_ROLE }}: {{ row.membership.user.username }}</label>
-              {{ row.form.role }}
-            </div>
-            <button type="submit" class="btn btn-quiet btn-sm">{{ text.CHANGE_ROLE }}</button>
+            <label class="sr-only" for="member-{{ row.membership.pk }}-role">{{ text.CHANGE_ROLE }}: {{ row.membership.user.username }}</label>
+            {# Sized to sit level with the small buttons beside it (the shell's .app-field select is a full-size field). #}
+            <select name="role" id="member-{{ row.membership.pk }}-role" class="h-8 min-w-0 flex-1 rounded-md bg-inset pr-8 pl-2.5 text-sm text-fg-strong ring-1 ring-line-strong ring-inset focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ink sm:w-36 sm:flex-none">
+              {% for value, label in row.form.fields.role.choices %}<option value="{{ value }}"{% if value == row.membership.role %} selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+            <button type="submit" class="btn btn-quiet btn-sm shrink-0">{{ text.CHANGE_ROLE }}</button>
           </form>
           {% if not row.me %}
           <form method="post" action="{% url 'projects:remove_member' project.slug row.membership.pk %}">
@@ -42,7 +46,7 @@
           </form>
           {% endif %}
         </div>
-        {% endif %}
+        {% endif %}{% endif %}
       </li>
       {% endfor %}
     </ul>
@@ -85,11 +89,11 @@
 
   <section class="panel pj-panel" aria-labelledby="invite-title" data-invite>
     <div class="pj-bar"><h2 id="invite-title" class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="plus" size=14 %}{{ text.INVITE_TITLE }}</h2></div>
-    <form method="post" action="{% url 'projects:invite' project.slug %}" class="app-form p-4 md:p-5" novalidate>
+    <form method="post" action="{% url 'projects:invite' project.slug %}" class="app-form p-4 md:p-5" novalidate data-search-url="{% url 'projects:member_search' project.slug %}" data-hint="{{ text.SUGGEST_HINT }}" data-inviting="{{ text.INVITING }}" data-inviting-label="{{ text.INVITING_LABEL }}" data-chip-remove="{{ text.CHIP_REMOVE }}" data-chip-added="{{ text.CHIP_ADDED }}" data-chip-removed="{{ text.CHIP_REMOVED }}" data-chosen="{{ text.SUGGEST_CHOSEN }}" data-send-one="{{ text.INVITE }}" data-send-many="{{ text.INVITE_MANY }}" data-batch-max="10">
       {% csrf_token %}
       <p class="app-help">{{ text.INVITE_LEDE }}</p>
       {% include "partials/form_fields.html" with form=invite_form %}
-      <div class="app-actions"><button type="submit" class="btn btn-primary">{{ text.INVITE }}</button></div>
+      <div class="app-actions"><button type="submit" class="btn btn-primary" data-invite-submit>{{ text.INVITE }}</button></div>
     </form>
   </section>
   {% endif %}
@@ -102,3 +106,4 @@
   </section>
 </div>
 {% endblock %}
+{% block extra_body %}{% if manage %}<script src="{% versioned_static 'js/projects.js' %}" defer></script>{% endif %}{% endblock %}

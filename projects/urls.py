@@ -25,6 +25,7 @@ urlpatterns = [
     path("<slug:slug>/delete/", views.ProjectDeleteView.as_view(), name="delete"),
     path("<slug:slug>/members/", views.MembersView.as_view(), name="members"),
     path("<slug:slug>/members/invite/", views.InviteView.as_view(), name="invite"),
+    path("<slug:slug>/members/search/", views.MemberSearchView.as_view(), name="member_search"),
     path(
         "<slug:slug>/members/<int:pk>/role/",
         views.MemberRoleView.as_view(),

@@ -1,0 +1,18 @@
+{# Members matching what an Owner types in the invite form (views.MemberSearchView). #}
+{# projects.js puts this under the Username field; only "available" rows can be chosen. #}
+{% if candidates %}
+<ul id="invite-suggestions-list" role="listbox" aria-label="{{ text.INVITE_TITLE }}" class="app-list gap-0" data-suggestions data-count-text="{{ count_text }}">
+  {% for c in candidates %}
+  <li id="invite-option-{{ forloop.counter0 }}" role="option" aria-selected="false"{% if not c.available %} aria-disabled="true"{% endif %} data-username="{{ c.user.username }}" data-state="{{ c.state }}" class="flex cursor-pointer items-center gap-3 border-t border-line px-3 py-2 first:border-t-0 aria-disabled:cursor-default aria-disabled:opacity-60 aria-selected:bg-control">
+    {% include "partials/avatar.html" with person=c.person size=28 %}
+    <span class="grid min-w-0 flex-1">
+      <span class="truncate text-sm font-semibold text-fg-strong" data-name>{{ c.person.name }}</span>
+      {% if c.person.name != c.user.username %}<span class="truncate font-mono text-xs text-fg-secondary">{{ c.user.username }}</span>{% endif %}
+    </span>
+    {% if c.note %}<span class="pj-tag micro shrink-0">{{ c.note }}</span>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% elif searched %}
+<p class="px-3 py-2 text-sm text-fg-secondary" data-no-match data-count-text="{{ none_text }}">{{ none_text }}</p>
+{% endif %}

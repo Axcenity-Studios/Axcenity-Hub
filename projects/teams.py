@@ -7,8 +7,10 @@ moment can't both act on what the other has just changed. Locks are always taken
 order, the project and then a member (accounts.limits.lock_member, for the ownership limit),
 so concurrent changes queue rather than deadlock.
 
-- Owners invite members by username (case-insensitive), as Owner, Maintainer or Viewer. One
-  invitation per member and project; never to a member already in the team.
+- Owners invite members by username (case-insensitive), as Owner, Maintainer or Viewer, up to
+  INVITE_BATCH_MAX at once (invite_many: each invitation its own transaction, so one refusal
+  doesn't stop the others). One invitation per member and project; never to a member
+  already in the team.
 - Only the invitee accepts or declines; Owners can cancel. Anyone else gets a 404.
 - Becoming an Owner (accepting an Owner invitation, or being made one) counts against
   Project.LIMIT_PER_OWNER. At the limit it's refused, and nothing changes: the invitation
@@ -23,8 +25,13 @@ Refusals: TeamError (the Hub's rules; its message is for the page), LimitReached
 model's DoesNotExist for anything the member can't see (the views' 404).
 """
 
+import re
+from dataclasses import dataclass, field
+
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
+from django.db.models import Case, IntegerField, Q, Value, When
+from django.db.models.functions import Lower
 
 from accounts.access import ensure_can_contribute
 from accounts.limits import LimitReached, lock_member
@@ -65,6 +72,68 @@ def _ensure_room_to_own(user, message: str) -> None:
         raise LimitReached(message)
 
 
+# Finding someone to invite: at least SEARCH_MIN characters, at most SEARCH_LIMIT people.
+SEARCH_MIN = 2
+SEARCH_MAX = 150  # a username's longest
+SEARCH_LIMIT = 6
+
+
+@dataclass(frozen=True)
+class Candidate:
+    """A member an Owner might invite, and whether they can: "available", "member" (already
+    in the team), "invited" (has a pending invitation) or "you"."""
+
+    user: object
+    state: str
+
+    @property
+    def available(self) -> bool:
+        return self.state == "available"
+
+
+def find_members(owner, project: Project, query: str) -> list[Candidate]:
+    """Active members whose username or display name starts with `query` (any case), for an
+    Owner of `project` choosing whom to invite; an exact username first, then by username.
+
+    Raises Project.DoesNotExist unless `owner` may manage the team. A query shorter than
+    SEARCH_MIN or longer than SEARCH_MAX finds no one. Emails are never matched or returned.
+    """
+    _acting(owner, project, Action.MANAGE_MEMBERS)
+    query = (query or "").strip()
+    if not SEARCH_MIN <= len(query) <= SEARCH_MAX:
+        return []
+    people = (
+        get_user_model()
+        .objects.filter(is_active=True)
+        .filter(Q(username__istartswith=query) | Q(profile__display_name__istartswith=query))
+        .select_related("profile")
+        .annotate(
+            exact=Case(
+                When(username__iexact=query, then=Value(0)),
+                default=Value(1),
+                output_field=IntegerField(),
+            )
+        )
+        .order_by("exact", Lower("username"))[:SEARCH_LIMIT]
+    )
+    members = set(ProjectMembership.objects.filter(project=project).values_list("user", flat=True))
+    invited = set(
+        ProjectInvitation.objects.filter(project=project).values_list("invitee", flat=True)
+    )
+    candidates = []
+    for person in people:
+        if person.pk == owner.pk:
+            state = "you"
+        elif person.pk in members:
+            state = "member"
+        elif person.pk in invited:
+            state = "invited"
+        else:
+            state = "available"
+        candidates.append(Candidate(person, state))
+    return candidates
+
+
 def invite(owner, project: Project, username: str, role: str) -> ProjectInvitation:
     """Invite the member called `username` to `project` as `role` (an Owner's action)."""
     ensure_can_contribute(owner)
@@ -76,7 +145,7 @@ def invite(owner, project: Project, username: str, role: str) -> ProjectInvitati
         invitee = get_user_model().objects.filter(username__iexact=username, is_active=True)
         invitee = invitee.first() if username else None
         if invitee is None:
-            raise TeamError(strings.NO_SUCH_MEMBER)
+            raise TeamError(strings.NO_SUCH_MEMBER.format(username=username))
         if invitee.pk == owner.pk:
             raise TeamError(strings.INVITE_YOURSELF)
         if ProjectMembership.objects.filter(project=project, user=invitee).exists():
@@ -90,6 +159,55 @@ def invite(owner, project: Project, username: str, role: str) -> ProjectInvitati
                 )
         except IntegrityError:  # the unique index: invited a moment ago
             raise TeamError(strings.ALREADY_INVITED.format(username=invitee.username)) from None
+
+
+INVITE_BATCH_MAX = 10
+
+
+def parse_usernames(values: list[str]) -> list[str]:
+    """The usernames in what the invite form sent: each value may hold several, separated by
+    commas or spaces (usernames have neither). Blanks dropped, repeats (in any case) once,
+    in the order given."""
+    seen, names = set(), []
+    for value in values:
+        for name in re.split(r"[\s,]+", value or ""):
+            if name and name.lower() not in seen:
+                seen.add(name.lower())
+                names.append(name)
+    return names
+
+
+@dataclass
+class InviteResult:
+    """What invite_many did: the usernames invited, and each refused one with its reason."""
+
+    invited: list[str] = field(default_factory=list)
+    refused: list[tuple[str, str]] = field(default_factory=list)
+
+
+def invite_many(owner, project: Project, usernames: list[str], role: str) -> InviteResult:
+    """Invite each member in `usernames` to `project` as `role` (an Owner's action).
+
+    Each invitation is its own transaction (invite), so a refusal (no such member, already
+    in the team or invited) is reported and the others still go. Raises TeamError, inviting
+    no one, for no usernames, more than INVITE_BATCH_MAX, or an invalid role; and
+    EmailNotVerified or Project.DoesNotExist like invite.
+    """
+    ensure_can_contribute(owner)
+    role = _role(role)
+    if not usernames:
+        raise TeamError(strings.INVITE_INVALID)
+    if len(usernames) > INVITE_BATCH_MAX:
+        raise TeamError(strings.INVITE_TOO_MANY.format(limit=INVITE_BATCH_MAX))
+    result = InviteResult()
+    for username in usernames:
+        try:
+            invitation = invite(owner, project, username, role)
+        except TeamError as error:
+            result.refused.append((username, str(error)))
+        else:
+            result.invited.append(invitation.invitee.username)
+    return result
 
 
 def _pending(user, invitation_pk: int) -> ProjectInvitation:

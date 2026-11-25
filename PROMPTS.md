@@ -28,6 +28,76 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-25 — Phase 11 follow-up: member suggestions while inviting, chips for several invitees, demo members and level role controls
+
+### Prompts
+
+1. "Ok so there are a few things that I want to change firslty when inviting member and typing
+   their name I want to be able to see their profile come up while I am typing it otherwise I
+   would hav no idea if I am typing it correctly. Also what is Bob and the other test users
+   sign in information. Additionally some of the formatting looks a little off, in one of my
+   screen shots the owner and change role buttns look sized and wrapped strangely. Please add
+   these changes and let me know how I can test for them" (with a screenshot of the Owner row's
+   tall role select beside a small "Change role" button).
+2. "One last thing when I click on the username for instance bob I want it to show somewhere
+   that I still am inviting him, becasue right now when I click his name it just disappears,
+   then I would like to be able to add multiple people at once"
+3. Sent while that was being built: "Ok I tested to make sure that bob could not access the
+   space game project without being a member it returned a 404 page like it is supposed to but
+   it is still using the default django template no the custom ones we made earlier."
+4. "I understand now go ahead and append our conversation to PROMPTS.md and commit and push the
+   changes"
+
+### Summary
+
+- **Outcome:** The Team page's invite field suggests members as an Owner types and adds each
+  chosen one as a chip, so up to 10 people are invited at once in one role; a
+  development-only `seed_team_demo` command creates demo members to sign in as; the role
+  controls sit level with their buttons. 1267 fast tests and 93 browser tests pass; Ruff is
+  clean. The one failing fast test is still
+  `test_download.py::test_the_copied_license_and_notice_match_the_engines`, from the
+  uncommitted credits work.
+- **Changes:**
+  - `projects/teams.py` — `find_members` (Owners only; at least 2 characters; at most 6
+    active members whose username or display name starts with the query, exact username
+    first; each marked available, already in the team, invited, or you; emails never matched
+    or shown), `parse_usernames`, `invite_many` and `InviteResult` (each invitation its own
+    transaction; refusals named; too many, none or an invalid role sends none).
+  - `projects/views.py`, `urls.py` — `MemberSearchView` at `/projects/<slug>/members/search/`
+    (never cached); `InviteView` reads every `username` value and reports each refusal.
+  - `projects/forms.py`, `strings.py` — the field is "Usernames" (comma-separated without
+    JavaScript, not required since chips carry the names); the suggestion, chip and batch copy;
+    "No Hub member is called “…”."; "Invite members".
+  - `templates/projects/member_suggestions.html` (new), `members.html` — the suggestions list;
+    a compact role select (`h-8`, level with the small buttons) in a row that isn't
+    `.app-actions` (its forms are `display: contents`); no role control on the only Owner's own
+    row; the script's wording as `data-*` attributes.
+  - `static/js/projects.js` — the invite field as a combobox (↑/↓, Enter, click, Escape, a
+    polite live region) and the "Inviting" chips (×, Backspace, hidden inputs, "Send 2
+    invitations", chosen people tagged "Added").
+  - `projects/management/commands/seed_team_demo.py` (new) — alice, bob, cara, dan, dana and
+    erin (`<username>@example.com`, password `axcenity-team-demo`, verified) and "Demo Space
+    Game"; DEBUG only, no privileges, never changes existing accounts or projects.
+  - Tests: `test_projects_teams.py` (search, states and access; the seed; batch invites and
+    parsing; the last Owner's row), `test_projects_browser.py` (suggestions by keyboard and
+    pointer, a disabled one refused, chips removed and re-added, two invited at once, role
+    controls level with their buttons). Docs: `docs/architecture/projects.md`,
+    `docs/frontend/projects.md`, `docs/TESTING.md`, `docs/ARCHITECTURE.md`.
+- **Decisions:** Suggestions are server-rendered HTML fetched by a few lines of vanilla
+  JavaScript (no vendored library); one role per batch; a batch invites who it can rather
+  than all-or-nothing; the seed creates members only when missing, so a real "bob" keeps
+  his password.
+- **Deviations:** The user's 404 report: under `DEBUG` Django shows its technical 404 in
+  place of the Hub's page (the Hub's shows with `DEBUG` off, and at `/errors/404/` in
+  development); explained, nothing changed. Offered a switch to show the Hub's pages under
+  `DEBUG`; not taken up.
+- **Sideways:** A text replacement added the script block after every `{% endblock %}`,
+  caught by a template error. The shell's `.app-actions > form { display: contents }`
+  undid the role row's layout, and the only Owner's row kept an empty actions box: both seen
+  in the phone screenshots. Playwright refuses to click an `aria-disabled` option, so the test
+  forces the click to show it does nothing; the chips' hidden `username` inputs made the
+  field's locator ambiguous, so it uses `[data-member-search]`.
+
 ## 2026-11-25 — Axcenity Hub: Phase 11/17, Project teams
 
 ### Prompts

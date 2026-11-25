@@ -167,6 +167,7 @@ def test_the_team_pages_fit_the_screen_for_owners_and_viewers(open_home, width, 
 
     ada, grace, linus = member("ada"), member("grace_hopper_long_name"), member("linus")
     member("zoe")
+    member("zoltan")
     project = Project.objects.create_with_owner(ada, name="Space Game", description="In space.")
     ProjectMembership.objects.create(project=project, user=grace, role="maintainer")
     ProjectMembership.objects.create(project=project, user=linus, role="viewer")
@@ -186,11 +187,57 @@ def test_the_team_pages_fit_the_screen_for_owners_and_viewers(open_home, width, 
     # The Owner's team page: invite Zoe through the form; she's listed as pending.
     base = page.url.split("/projects/")[0]
     page.goto(base + f"/projects/{project.slug}/members/")
-    page.fill("input[name=username]", "zoe")
-    page.select_option("select[name=role]", "viewer")
+    # Typing shows matching members: Linus is already in the team and can't be chosen.
+    field = page.locator("[data-member-search]")
+    field.press_sequentially("li", delay=40)
+    page.wait_for_selector('#invite-suggestions [role="option"][data-username="linus"]')
+    assert page.get_attribute('[data-username="linus"]', "aria-disabled") == "true"
+    assert field.get_attribute("aria-expanded") == "true"
+    page.click('[data-username="linus"]', force=True)  # disabled: choosing it does nothing
+    assert field.input_value() == "li"
+    # Zoe can: the arrow key and Enter add her to "Inviting" as a chip, and the field clears.
+    field.fill("")
+    field.press_sequentially("zo", delay=40)
+    page.wait_for_selector('#invite-suggestions [role="option"][data-username="zoe"]')
+    field.press("ArrowDown")
+    field.press("Enter")
+    page.wait_for_selector('[data-inviting] [data-chip="zoe"]')
+    assert field.input_value() == "" and page.locator("#invite-suggestions").is_hidden()
+    # Searching again: Zoe shows as already added; Zoltan is added with a click.
+    field.press_sequentially("zo", delay=40)
+    page.wait_for_selector('#invite-suggestions [data-username="zoltan"]')
+    assert (
+        page.get_attribute('#invite-suggestions [data-username="zoe"]', "aria-disabled") == "true"
+    )
+    page.click('#invite-suggestions [data-username="zoltan"]')
+    page.wait_for_selector('[data-inviting] [data-chip="zoltan"]')
+    submit = page.locator("[data-invite-submit]")
+    assert submit.inner_text().strip() == "Send 2 invitations"
+    fits(page, width)
+    shot(page, shots.format("team-inviting"))
+    # The × takes Zoltan out (and Backspace in the empty field would too); add him back.
+    page.click('[data-chip="zoltan"] button')
+    assert page.locator("[data-chip]").count() == 1
+    assert submit.inner_text().strip() == "Send invitation"
+    field.press_sequentially("zol", delay=40)
+    page.wait_for_selector('#invite-suggestions [data-username="zoltan"]')
+    page.click('#invite-suggestions [data-username="zoltan"]')
+    page.wait_for_selector('[data-inviting] [data-chip="zoltan"]')
+    page.select_option("[data-invite] select[name=role]", "viewer")
     page.click("[data-invite] button[type=submit]")
+    page.wait_for_selector('[data-invitee="zoltan"]')
     page.wait_for_selector('[data-invitee="zoe"]')
+    assert page.locator("[data-pending] li").count() == 2
     assert page.locator("[data-members] > li").count() == 3
+    # Each role control sits level with its button; the only Owner's own row has none.
+    assert page.locator('[data-member="ada"] [data-role-form]').count() == 0
+    for form in page.locator("[data-role-form]").all():
+        select, button = (
+            form.locator("select").bounding_box(),
+            form.locator("button").bounding_box(),
+        )
+        assert abs(select["height"] - button["height"]) <= 1
+        assert abs(select["y"] - button["y"]) <= 1
     centred(page)
     fits(page, width)
     shot(page, shots.format("team-owner"))

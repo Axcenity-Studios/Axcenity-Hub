@@ -3,7 +3,7 @@
 from django import forms
 
 from .models import Project, Role
-from .strings import ROLES, STEPS
+from .strings import INVITE_USERNAMES_HELP, ROLES, STEPS
 
 WORDS = STEPS["repository"]
 
@@ -30,12 +30,24 @@ ROLE_CHOICES = [(role.value, ROLES[role.value]) for role in Role]
 
 
 class InviteForm(forms.Form):
-    """Who to invite, by their Hub username, and in which role."""
+    """Who to invite, by Hub username (several, comma-separated), and in which role. Only
+    rendered: the view reads every `username` value sent (projects.js sends one per chosen
+    member) through teams.parse_usernames."""
 
     username = forms.CharField(
-        max_length=150,
-        label="Username",
-        widget=forms.TextInput(attrs={"autocomplete": "off", "spellcheck": "false"}),
+        max_length=2000,
+        required=False,  # the chips' hidden inputs may carry every username; the view checks
+        label="Usernames",
+        help_text=INVITE_USERNAMES_HELP,
+        # projects.js turns this into a combobox listing matching members as you type.
+        widget=forms.TextInput(
+            attrs={
+                "autocomplete": "off",
+                "spellcheck": "false",
+                "autocapitalize": "none",
+                "data-member-search": "",
+            }
+        ),
     )
     role = forms.ChoiceField(choices=ROLE_CHOICES, initial=Role.VIEWER.value, label="Role")
 

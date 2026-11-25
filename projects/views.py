@@ -13,7 +13,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import RequestDataTooBig, ValidationError
 from django.http import Http404, HttpResponse, HttpResponseRedirect
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.cache import add_never_cache_headers
@@ -491,6 +491,42 @@ class MembersView(ProjectAccessMixin, DetailView):
         return context
 
 
+class MemberSearchView(ProjectAccessMixin, View):
+    """Members matching what an Owner is typing in the invite form (GET `?q=`): a list of
+    suggestions for `projects.js` to show under the field. Owners only; never cached."""
+
+    action = Action.MANAGE_MEMBERS
+    http_method_names = ["get"]
+
+    def get(self, request, slug):
+        project = self.get_project()
+        query = request.GET.get("q", "").strip()[: teams.SEARCH_MAX]
+        candidates = teams.find_members(request.user, project, query)
+        response = render(
+            request,
+            "projects/member_suggestions.html",
+            {
+                "text": strings,
+                "query": query,
+                "candidates": [
+                    {
+                        "user": c.user,
+                        "person": person(c.user),
+                        "state": c.state,
+                        "note": strings.SUGGEST_STATES[c.state],
+                        "available": c.available,
+                    }
+                    for c in candidates
+                ],
+                "searched": len(query) >= teams.SEARCH_MIN,
+                "count_text": strings.SUGGEST_COUNT.format(count=len(candidates)),
+                "none_text": strings.SUGGEST_NONE.format(query=query),
+            },
+        )
+        add_never_cache_headers(response)
+        return response
+
+
 class TeamActionView(ProjectAccessMixin, View):
     """A team change (POST): run it, show its refusal if any, and return to the team page.
 
@@ -523,18 +559,23 @@ class TeamActionView(ProjectAccessMixin, View):
         return HttpResponseRedirect(self.done_url(project))
 
 
-class InviteView(VerifiedEmailRequiredMixin, TeamActionView):
-    """Invite a member by username, in a role (an Owner's action)."""
+def listing(names: list[str]) -> str:
+    """ "dan", "dan and dana", "dan, dana and erin"."""
+    if len(names) < 2:
+        return "".join(names)
+    return f"{', '.join(names[:-1])} {strings.AND} {names[-1]}"
 
-    success = strings.INVITED
+
+class InviteView(VerifiedEmailRequiredMixin, TeamActionView):
+    """Invite members by username, several at once, in one role (an Owner's action)."""
 
     def change(self, request, project):
-        form = InviteForm(request.POST)
-        if not form.is_valid():
-            raise teams.TeamError(strings.INVITE_INVALID)
-        teams.invite(
-            request.user, project, form.cleaned_data["username"], form.cleaned_data["role"]
-        )
+        usernames = teams.parse_usernames(request.POST.getlist("username"))
+        result = teams.invite_many(request.user, project, usernames, request.POST.get("role", ""))
+        if result.invited:
+            messages.success(request, strings.INVITED.format(names=listing(result.invited)))
+        for _, reason in result.refused:
+            messages.error(request, reason)
 
 
 class MemberRoleView(TeamActionView):

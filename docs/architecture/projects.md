@@ -13,7 +13,8 @@ GitHub call made with a member's token. Linking the GitHub account itself:
 | `models.RepositoryLink` | The repository linked to a project, as GitHub last described it; `github_id` unique; `hook_id` |
 | `models.WebhookDelivery` | Each accepted delivery, to refuse replays (unique per link) |
 | `services.py` | `create_project` (the limit), `owned_count`, `link_repository`, `refresh_repository`, `webhook_settings`, `unlink_repository` |
-| `teams.py` | `invite`, `accept`, `decline`, `cancel`, `change_role`, `remove`, `leave`: transactional, the last Owner kept |
+| `teams.py` | `find_members` (the invite field's suggestions), `invite`, `accept`, `decline`, `cancel`, `change_role`, `remove`, `leave`: transactional, the last Owner kept |
+| `management/commands/seed_team_demo.py` | Demo members and a demo project for trying teams (development only) |
 | `github.py` | `GET /repos/{owner}/{repo}` with the member's token; `require_permission`; rate limits, budget, ETags |
 | `webhooks.py` | Per-link secrets, `verify`, `receive` (replays, events) |
 | `setup.py` | The four setup steps' states for the project page ([../frontend/projects.md](../frontend/projects.md)) |
@@ -45,7 +46,15 @@ GitHub call made with a member's token. Linking the GitHub account itself:
 
 ## Teams (`teams.py`)
 
-- **Invitations** are by username (case-insensitive; active members only), as any role. The
+- **Finding someone to invite** (`find_members`, `GET /projects/<slug>/members/search/?q=`):
+  Owners only (others 404), at least 2 characters, at most 6 active members whose username or
+  display name starts with the query (any case), an exact username first. Each is marked
+  available, already in the team, already invited, or you. Emails are never matched or shown;
+  the response is never cached.
+- **Invitations** are by username (case-insensitive; active members only), as any role, up to
+  10 at once (`invite_many`; `parse_usernames` reads every `username` value sent, each
+  possibly comma-separated, repeats once). Each is its own transaction: the valid ones are
+  sent and each refusal is reported by name; too many, none, or an invalid role sends none. The
   inviter can't invite themselves, a member, or someone already invited. Only the invitee
   accepts or declines (a 404 for anyone else); Owners cancel. An invitation is deleted once
   answered or cancelled. No email: the invitee sees it on `/projects/`.
@@ -68,6 +77,14 @@ GitHub call made with a member's token. Linking the GitHub account itself:
 - **The admin** shows teams read-only; they change only through `teams.py`.
 - **Migrations:** `0003_teams` makes every project's `owner` its first Owner member (the
   owner column goes nullable first, so it rolls back); `0004` drops the column.
+
+## Demo members (development)
+
+`uv run python manage.py seed_team_demo` creates alice (Owner of "Demo Space Game"), bob
+(Maintainer), cara (Viewer), erin (invited as Maintainer), and dan and dana (in no project),
+each with a verified `<username>@example.com` and the published password
+`axcenity-team-demo`. It refuses unless `DEBUG` is on, grants no staff, superuser, group or
+permission, never changes an account or project that already exists, and deletes nothing.
 
 ## The five-project limit (concurrency-safe)
 
