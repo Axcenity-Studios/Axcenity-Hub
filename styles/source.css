@@ -515,7 +515,57 @@ html:has(.dl-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
 .dl-legal-lines { color: var(--color-fg-strong); }
 .dl-legal-lines.text-center { padding-bottom: 0.5rem; font-weight: 600; }
 .dl-legal-sub { padding-left: 1.25rem; }
+/* "---" between a NOTICE's entries. */
+.dl-legal-rule { margin-block: 1.25rem; border: 0; border-top: 1px solid var(--color-line); }
 .dl-tab { cursor: pointer; }
+/* Under the full texts: the way to every crate and package on /credits/. */
+.dl-credits { flex: none; padding: 0.75rem 1.5rem; border-top: 1px solid var(--color-line); font-size: 0.8125rem; color: var(--color-fg-secondary); }
+.dl-credits-link { color: var(--color-fg-strong); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- Credits (/credits/) ----------
+   The engine's NOTICE as prose, every crate grouped by licence (a <details> each, the
+   largest open), and the Hub's packages as tables. Monochrome tokens only. */
+.cr-jump ul { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0; list-style: none; }
+.cr-jump a { box-shadow: inset 0 0 0 1px var(--color-line); gap: 0.5rem; }
+html[data-pointer] .cr-jump a:hover { color: var(--color-fg-strong); background: var(--color-surface); }
+.cr-section { scroll-margin-top: 5rem; }
+.cr-head { padding: 1.75rem; border-bottom: 1px solid var(--color-line); }
+@media (min-width: 768px) { .cr-head { padding: 3rem; } }
+.cr-notice { max-height: 36rem; padding: 1.5rem 1.75rem 2rem; overflow: auto; overscroll-behavior: contain; }
+@media (min-width: 768px) { .cr-notice { padding-inline: 3rem; } }
+.cr-notice > p, .cr-notice > .dl-legal-heading { max-width: 46rem; }
+.cr-group + .cr-group { border-top: 1px solid var(--color-line); }
+.cr-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: 1rem 1.75rem; cursor: pointer; list-style: none; }
+.cr-summary::-webkit-details-marker { display: none; }
+.cr-summary::before { content: "+"; flex: none; width: 1rem; font-family: var(--font-mono); color: var(--color-fg-weak); }
+.cr-group[open] > .cr-summary::before { content: "\2212"; }
+@media (min-width: 768px) { .cr-summary { padding-inline: 3rem; } }
+html[data-pointer] .cr-summary:hover { background: var(--color-surface); }
+.cr-license { flex: 1; min-width: 0; font-weight: 600; color: var(--color-fg-strong); overflow-wrap: anywhere; }
+.cr-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.25rem 1.5rem; margin: 0; padding: 0.25rem 1.75rem 1.75rem; list-style: none; }
+@media (min-width: 768px) { .cr-list { padding-inline: 3rem; } }
+.cr-item { min-width: 0; padding-block: 0.375rem; font-size: 0.8125rem; line-height: 1.45; }
+.cr-name { color: var(--color-fg-strong); font-weight: 500; overflow-wrap: anywhere; }
+html[data-pointer] .cr-name:hover, html[data-pointer] .cr-table a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.cr-version { font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-fg-weak); }
+.cr-by, .cr-use { display: block; color: var(--color-fg-secondary); overflow-wrap: anywhere; }
+.cr-use { color: var(--color-fg-weak); }
+.cr-tables { display: grid; gap: 2rem; padding: 1.75rem; }
+@media (min-width: 768px) { .cr-tables { padding: 2.5rem 3rem 3rem; } }
+.cr-table-wrap { min-width: 0; }
+.cr-table-title { margin-bottom: 0.75rem; color: var(--color-fg-weak); }
+.cr-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+.cr-table th, .cr-table td { padding: 0.5rem 1rem 0.5rem 0; border-top: 1px solid var(--color-line); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.cr-table thead th { border-top: 0; font-family: var(--font-mono); font-size: 10.5px; font-weight: 400; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-fg-weak); }
+.cr-table tbody th { font-weight: 500; color: var(--color-fg-strong); }
+.cr-table td { color: var(--color-fg-secondary); }
+/* Phones: each row stacks, the column names dropped (the cells say what they are). */
+@media (max-width: 40rem) {
+  .cr-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .cr-table, .cr-table tbody, .cr-table tr, .cr-table th, .cr-table td { display: block; }
+  .cr-table tr { padding-block: 0.625rem; border-top: 1px solid var(--color-line); }
+  .cr-table th, .cr-table td { padding: 0; border: 0; } }
+.cr-assets { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1rem 1.5rem; padding: 0; list-style: none; font-size: 0.8125rem; line-height: 1.45; }
 .dl-tab-input:checked + .dl-tab { color: var(--color-fg-strong); background: var(--color-surface); box-shadow: inset 0 -2px 0 var(--color-ink); }
 .dl-tab-input:focus-visible + .dl-tab { outline: 2px solid var(--color-ink); outline-offset: -2px; }
 html[data-pointer] .dl-tab:hover { color: var(--color-fg-strong); }

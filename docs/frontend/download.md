@@ -15,7 +15,7 @@ everything below.
 | `marketing/content.py` | `DOWNLOAD_PAGE` (every word of the page's frame), `DOWNLOAD_BUILDS` (the kinds of file a release carries, with their labels, hints, commands and icons) and `DOWNLOAD_SYSTEM_ICONS` |
 | `templates/partials/icon.html` | The systems' icons (`windows`, `macos`, `linux`, `files`) and the files' (`installer`, `disk`, `app`, `package`, `archive`, `hash`, `manifest`, `key`, `history`, `file`) |
 | `templates/marketing/download.html` | The page; `download/panel.html` is a system's panel, `download/build.html` one file, `download/agreement.html` the license agreement (also `download_agree.html`, its page) |
-| `marketing/legal/LICENSE`, `NOTICE` | The engine's, copied in unchanged, shown in full in the agreement |
+| `marketing/legal/LICENSE`, `NOTICE` | The engine's, copied in unchanged by `refresh_credits` ([credits.md](credits.md)), shown in full in the agreement |
 | `tests/fixtures/github/releases.json` | The real release list (v0.3.0-alpha.1, v0.2.0-alpha.1, v0.1.0-alpha.3), trimmed to the fields the Hub reads |
 
 How the release is chosen and validated, the cache, the ETag, the
@@ -164,10 +164,14 @@ joins each paragraph's lines and keeps what the layout meant:
 - numbered section titles in bold ("4. Redistribution.")
 - indented definitions and (a)–(d) items
 - the centred title block
+- a `---` line between entries, drawn as a divider ([credits.md](credits.md#notice-dividers))
+
+The blocks are drawn by `templates/marketing/legal_blocks.html`, which
+`/credits/` shares. Under the texts, a line links to the Credits page.
 
 A test checks that every word of each file is shown, in order.
 `test_the_copied_license_and_notice_match_the_engines` fails when the
-engine's copies change: copy them in again.
+engine's last commit changes them: run `manage.py refresh_credits`.
 
 ## The `.dl-*` classes
 

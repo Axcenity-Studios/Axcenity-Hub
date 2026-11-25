@@ -1,0 +1,387 @@
+{
+ "packages": [
+  {
+   "name": "asgiref",
+   "version": "3.13.0",
+   "group": "runtime",
+   "license": "BSD-3-Clause",
+   "authors": [
+    "Django Software Foundation"
+   ],
+   "url": "https://github.com/django/asgiref/"
+  },
+  {
+   "name": "certifi",
+   "version": "2026.11.20",
+   "group": "runtime",
+   "license": "MPL-2.0",
+   "authors": [
+    "Kenneth Reitz"
+   ],
+   "url": "https://github.com/certifi/python-certifi"
+  },
+  {
+   "name": "cffi",
+   "version": "2.1.1",
+   "group": "runtime",
+   "license": "MIT-0",
+   "authors": [
+    "Armin Rigo",
+    "Maciej Fijalkowski"
+   ],
+   "url": "https://github.com/python-cffi/cffi"
+  },
+  {
+   "name": "charset-normalizer",
+   "version": "3.5.3",
+   "group": "runtime",
+   "license": "MIT",
+   "authors": [
+    "Ahmed R. TAHRI"
+   ],
+   "url": "https://pypi.org/project/charset-normalizer/"
+  },
+  {
+   "name": "click",
+   "version": "8.5.1",
+   "group": "runtime",
+   "license": "BSD-3-Clause",
+   "authors": [
+    "Pallets"
+   ],
+   "url": "https://github.com/pallets/click/"
+  },
+  {
+   "name": "colorama",
+   "version": "0.4.6",
+   "group": "runtime",
+   "license": "BSD-3-Clause",
+   "authors": [
+    "Jonathan Hartley"
+   ],
+   "url": "https://github.com/tartley/colorama"
+  },
+  {
+   "name": "cryptography",
+   "version": "50.0.2",
+   "group": "runtime",
+   "license": "Apache-2.0 OR BSD-3-Clause",
+   "authors": [
+    "The Python Cryptographic Authority and individual contributors"
+   ],
+   "url": "https://github.com/pyca/cryptography/"
+  },
+  {
+   "name": "django",
+   "version": "6.1.3",
+   "group": "runtime",
+   "license": "BSD-3-Clause",
+   "authors": [
+    "Django Software Foundation"
+   ],
+   "url": "https://github.com/django/django"
+  },
+  {
+   "name": "django-allauth",
+   "version": "65.22.1",
+   "group": "runtime",
+   "license": "MIT",
+   "authors": [
+    "Raymond Penners"
+   ],
+   "url": "https://codeberg.org/allauth/django-allauth"
+  },
+  {
+   "name": "django-click",
+   "version": "2.5.0",
+   "group": "runtime",
+   "license": "MIT",
+   "authors": [
+    "Jonathan Stoppani"
+   ],
+   "url": "https://github.com/django-commons/django-click"
+  },
+  {
+   "name": "django-tailwind-cli",
+   "version": "4.10.0",
+   "group": "runtime",
+   "license": "MIT",
+   "authors": [
+    "Oliver Andrich"
+   ],
+   "url": "https://github.com/django-commons/django-tailwind-cli"
+  },
+  {
+   "name": "fido2",
+   "version": "2.2.1",
+   "group": "runtime",
+   "license": "BSD License OR Apache Software License OR MPL-2.0",
+   "authors": [
+    "Dain Nilsson"
+   ],
+   "url": "https://github.com/Yubico/python-fido2"
+  },
+  {
+   "name": "greenlet",
+   "version": "3.5.6",
+   "group": "development",
+   "license": "MIT AND PSF-2.0",
+   "authors": [
+    "Alexey Borzenkov"
+   ],
+   "url": "https://github.com/python-greenlet/greenlet"
+  },
+  {
+   "name": "idna",
+   "version": "3.20",
+   "group": "runtime",
+   "license": "BSD-3-Clause",
+   "authors": [
+    "Kim Davies"
+   ],
+   "url": "https://github.com/kjd/idna"
+  },
+  {
+   "name": "iniconfig",
+   "version": "2.3.1",
+   "group": "development",
+   "license": "MIT",
+   "authors": [
+    "Ronny Pfannschmidt",
+    "Holger Krekel"
+   ],
+   "url": "https://github.com/pytest-dev/iniconfig"
+  },
+  {
+   "name": "markdown-it-py",
+   "version": "4.3.0",
+   "group": "runtime",
+   "license": "MIT",
+   "authors": [
+    "Chris Sewell"
+   ],
+   "url": "https://github.com/executablebooks/markdown-it-py"
+  },
+  {
+   "name": "mdurl",
+   "version": "0.1.2",
+   "group": "runtime",
+   "license": "MIT",
+   "authors": [
+    "Taneli Hukkinen"
+   ],
+   "url": "https://github.com/executablebooks/mdurl"
+  },
+  {
+   "name": "packaging",
+   "version": "26.3",
+   "group": "development",
+   "license": "Apache-2.0 OR BSD-2-Clause",
+   "authors": [
+    "Donald Stufft"
+   ],
+   "url": "https://github.com/pypa/packaging"
+  },
+  {
+   "name": "pillow",
+   "version": "13.0.0",
+   "group": "runtime",
+   "license": "MIT-CMU",
+   "authors": [
+    "Jeffrey 'Alex' Clark"
+   ],
+   "url": "https://github.com/python-pillow/Pillow"
+  },
+  {
+   "name": "playwright",
+   "version": "1.65.2",
+   "group": "development",
+   "license": "Apache-2.0",
+   "authors": [
+    "Microsoft Corporation"
+   ],
+   "url": "https://github.com/Microsoft/playwright-python"
+  },
+  {
+   "name": "pluggy",
+   "version": "1.7.0",
+   "group": "development",
+   "license": "MIT",
+   "authors": [
+    "Holger Krekel"
+   ],
+   "url": "https://github.com/pytest-dev/pluggy"
+  },
+  {
+   "name": "pycparser",
+   "version": "3.12",
+   "group": "runtime",
+   "license": "BSD-3-Clause",
+   "authors": [
+    "Eli Bendersky"
+   ],
+   "url": "https://github.com/eliben/pycparser"
+  },
+  {
+   "name": "pygments",
+   "version": "2.21.0",
+   "group": "runtime",
+   "license": "BSD-2-Clause",
+   "authors": [
+    "Georg Brandl"
+   ],
+   "url": "https://github.com/pygments/pygments"
+  },
+  {
+   "name": "pytest",
+   "version": "9.2.0",
+   "group": "development",
+   "license": "MIT",
+   "authors": [
+    "Brianna Laugher",
+    "Bruno Oliveira",
+    "Floris Bruynooghe",
+    "Freya Bruhin",
+    "Holger Krekel",
+    "Others (See AUTHORS)",
+    "Ronny Pfannschmidt"
+   ],
+   "url": "https://github.com/pytest-dev/pytest"
+  },
+  {
+   "name": "pytest-django",
+   "version": "4.14.0",
+   "group": "development",
+   "license": "BSD License",
+   "authors": [
+    "Andreas Pelme"
+   ],
+   "url": "https://github.com/pytest-dev/pytest-django"
+  },
+  {
+   "name": "pytest-playwright",
+   "version": "0.10.0",
+   "group": "development",
+   "license": "Apache Software License",
+   "authors": [
+    "Microsoft"
+   ],
+   "url": "https://github.com/microsoft/playwright-pytest"
+  },
+  {
+   "name": "python-slugify",
+   "version": "9.2.0",
+   "group": "development",
+   "license": "MIT",
+   "authors": [
+    "Val Neekman"
+   ],
+   "url": "https://github.com/un33k/python-slugify"
+  },
+  {
+   "name": "pyyaml",
+   "version": "6.0.4",
+   "group": "runtime",
+   "license": "MIT",
+   "authors": [
+    "Kirill Simonov"
+   ],
+   "url": "https://github.com/yaml/pyyaml"
+  },
+  {
+   "name": "qrcode",
+   "version": "8.2",
+   "group": "runtime",
+   "license": "BSD",
+   "authors": [
+    "Lincoln Loop"
+   ],
+   "url": "https://github.com/lincolnloop/python-qrcode"
+  },
+  {
+   "name": "requests",
+   "version": "2.34.2",
+   "group": "runtime",
+   "license": "Apache-2.0",
+   "authors": [
+    "Kenneth Reitz"
+   ],
+   "url": "https://github.com/psf/requests"
+  },
+  {
+   "name": "responses",
+   "version": "0.26.3",
+   "group": "development",
+   "license": "Apache-2.0",
+   "authors": [
+    "David Cramer"
+   ],
+   "url": "https://github.com/getsentry/responses"
+  },
+  {
+   "name": "ruff",
+   "version": "0.17.6",
+   "group": "development",
+   "license": "MIT",
+   "authors": [
+    "Astral Software Inc."
+   ],
+   "url": "https://github.com/astral-sh/ruff"
+  },
+  {
+   "name": "semver",
+   "version": "3.1.2",
+   "group": "runtime",
+   "license": "BSD-3-Clause",
+   "authors": [
+    "Kostiantyn Rybnikov",
+    "Tom Schraitle"
+   ],
+   "url": "https://pypi.org/project/semver/"
+  },
+  {
+   "name": "sqlparse",
+   "version": "0.6.1",
+   "group": "runtime",
+   "license": "BSD License",
+   "authors": [
+    "Andi Albrecht"
+   ],
+   "url": "https://github.com/andialbrecht/sqlparse"
+  },
+  {
+   "name": "text-unidecode",
+   "version": "1.3",
+   "group": "development",
+   "license": "Artistic License",
+   "authors": [
+    "Mikhail Korobov"
+   ],
+   "url": "https://github.com/kmike/text-unidecode/"
+  },
+  {
+   "name": "tzdata",
+   "version": "2026.6",
+   "group": "runtime",
+   "license": "Apache-2.0",
+   "authors": [
+    "Python Software Foundation"
+   ],
+   "url": "https://github.com/python/tzdata"
+  },
+  {
+   "name": "urllib3",
+   "version": "2.8.0",
+   "group": "runtime",
+   "license": "MIT",
+   "authors": [
+    "Andrey Petrov"
+   ],
+   "url": "https://pypi.org/project/urllib3/"
+  }
+ ],
+ "tools": {
+  "tailwindcss": "4.3.5",
+  "daisyui": "5.8.2"
+ }
+}

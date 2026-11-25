@@ -1,0 +1,7 @@
+{# A legal text's blocks (marketing/legal.py's reflow) set as prose, inside a .dl-legal box. #}
+{% for block in blocks %}
+  {% if block.kind == "heading" %}<h3 class="dl-legal-heading">{{ block.text }}</h3>
+  {% elif block.kind == "rule" %}<hr class="dl-legal-rule">
+  {% elif block.kind == "lines" %}<p class="dl-legal-lines{% if block.centred %} text-center{% endif %}">{% for line in block.lines %}{{ line }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</p>
+  {% else %}<p{% if block.level %} class="dl-legal-sub"{% endif %}>{% if block.lead %}<strong>{{ block.lead }}</strong> {% endif %}{{ block.text }}</p>{% endif %}
+{% endfor %}

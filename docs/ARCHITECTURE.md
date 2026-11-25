@@ -16,12 +16,12 @@ index:** the rules below apply everywhere; topic files under
 | Path | Holds |
 |---|---|
 | `config/` | Settings, root URLs, WSGI/ASGI, site-wide context processors, `theme.py` (the colour-scheme cookie), `errors.py` (every error page) |
-| `marketing/` | Public signed-out pages: Home, Toolbox and Download. `content.py` holds their copy, links and media manifest as data; `drawings.py` computes the drawn media; `media.py` cuts captures into derivatives (`manage.py make_media`); `github.py` is the one GitHub request (the engine's release list) and `releases.py` chooses the release, groups its builds and caches it; `legal.py` reflows the engine's LICENSE and NOTICE into prose for the download agreement ([frontend/download.md](frontend/download.md)) |
+| `marketing/` | Public signed-out pages: Home, Toolbox, Download and Credits. `content.py` holds their copy, links and media manifest as data; `drawings.py` computes the drawn media; `media.py` cuts captures into derivatives (`manage.py make_media`); `github.py` is the one GitHub request (the engine's release list) and `releases.py` chooses the release, groups its builds and caches it; `legal.py` reflows the engine's LICENSE and NOTICE into prose for the download agreement ([frontend/download.md](frontend/download.md)); `credits.py` generates the crate and package lists for `/credits/` (`manage.py refresh_credits`, [frontend/credits.md](frontend/credits.md)) |
 | `documentation/` | The engine docs at `/docs/`: `sync.py` (`sync_engine_docs`), `navigation.py`, `links.py`, `rendering.py`, `highlight.py`, `library.py` (the snapshot as served, and its build check), `api.py` (API pages as structure), `search.py` (the index and ranking), `diagrams.py`, `strings.py`. See [frontend/documentation.md](frontend/documentation.md) |
 | `documentation/content/` | The committed snapshot of the engine's `documentation/` folder, with `SOURCE.json` (commit and tree). Only `sync_engine_docs` writes it |
 | `accounts/` | Profiles and the sign-in policy around django-allauth: the verification gate (`access.py`), the signup-only verification stage, case-insensitive unique indexes, the rate-limit backstop, Turnstile, session lifetimes ([architecture/accounts.md](architecture/accounts.md)); GitHub linking: `GitHubLink`, `crypto.py`, `github.py` ([architecture/github-linking.md](architecture/github-linking.md)); `limits.py`, the lock behind every count-based limit |
 | `projects/` | Projects, their teams and their GitHub repositories: `models.py` (roles and `PERMISSIONS`), `services.py` (the limit, linking, refreshing), `teams.py` (invitations, roles, the last Owner), `github.py` (the member's repository calls and permission), `webhooks.py` ([architecture/projects.md](architecture/projects.md)) |
-| `marketing/legal/` | The engine's `LICENSE` and `NOTICE`, copied in unchanged (`content.LEGAL_COMMIT`), shown in full in the download agreement |
+| `marketing/legal/` | The engine's `LICENSE` and `NOTICE`, copied in unchanged from `content.LEGAL_COMMIT`, and the generated `engine.json` (its crates) and `hub.json` (the Hub's packages). Only `refresh_credits` writes it |
 | `marketing/media_sources/` | Captures as copied in (never served, never edited): the sources `make_media` reads, and `toolbox-capture.json`, the Toolbox screenshots' capture record |
 | `templates/` | `base.html` (shared by every shell), `marketing/` (the marketing shell and its pages), `documentation/` (the docs layout and pages), `app/` (the app shell and the entrance), `allauth/` (allauth's layouts and elements), `accounts/`, `projects/`, `partials/` |
 | `styles/source.css` | The Tailwind source; built into `static/css/tailwind.css` (git-ignored) |
@@ -66,6 +66,7 @@ Later phases add `forums`, `showcases`, `reports`,
 | `/` | `marketing:home` | `HomeView` |
 | `/toolbox/` | `marketing:toolbox` | `ToolboxView`: the Toolbox overview ([frontend/toolbox.md](frontend/toolbox.md)) |
 | `/download/agree/` | `marketing:download_agree` | `DownloadAgreeView`: the license agreement for `?file=<name>` (GET: terms and form; POST with CSRF and `agree=yes`: 303 to that file on GitHub). A file not in the current release is a 404 |
+| `/credits/` | `marketing:credits` | `CreditsView`: the engine's NOTICE, every Rust crate and every Python package ([frontend/credits.md](frontend/credits.md)) |
 | `/download/` | `marketing:download` | `DownloadView`: the engine's newest release from GitHub, its builds by system ([frontend/download.md](frontend/download.md)); varies on `User-Agent` and `Sec-CH-UA-Platform` |
 | `/docs/` | `documentation:index` | `DocsIndexView`: the docs' README and a panel per section |
 | `/docs/search/` | `documentation:search` | `DocsSearchView`: `?q=` search over the snapshot's index, `&page=` (20 a page) |
@@ -178,7 +179,7 @@ locally, copy it to `.env` (git-ignored) and run `uv run --env-file .env …`.
 | `GITHUB_TOKEN_KEYS` | none | Comma-separated Fernet keys for GitHub tokens at rest (first encrypts); required in production when the app is set |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | none | Cloudflare Turnstile on signup and reset; off unless both are set |
 | `DJANGO_MEDIA_ROOT` | `media/` in the repo (git-ignored) | Where members' uploads (profile photos) are stored; production's web server serves it at `/media/` |
-| `AXCENITY_ENGINE_DIR` | `~/Documents/VSCode Projects/Axcenity-Engine` | The engine checkout `sync_engine_docs` reads (never at request time) |
+| `AXCENITY_ENGINE_DIR` | `~/Documents/VSCode Projects/Axcenity-Engine` | The engine checkout `sync_engine_docs` and `refresh_credits` read (never at request time) |
 
 `DOCS_SNAPSHOT_DIR` is `documentation/content/`; its `images/` are served
 at `/static/docs/images/` (a `STATICFILES_DIRS` prefix).

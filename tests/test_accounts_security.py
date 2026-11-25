@@ -488,7 +488,7 @@ def test_a_reset_request_reads_the_same_whether_or_not_the_account_exists():
 # Pages anyone may open: the marketing site, the docs, and the way in.
 PUBLIC = {
     "marketing:home", "marketing:toolbox", "marketing:download", "marketing:download_agree",
-    "marketing:theme", "documentation:index", "documentation:search", "documentation:page",
+    "marketing:theme", "marketing:credits", "documentation:index", "documentation:search", "documentation:page",
     "account_login", "account_logout", "account_signup", "account_inactive",
     "account_email_verification_sent", "account_confirm_email", "account_confirm_login_code",
     "account_reset_password", "account_reset_password_done", "account_reset_password_from_key",

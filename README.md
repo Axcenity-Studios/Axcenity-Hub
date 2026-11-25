@@ -255,7 +255,8 @@ The full rules (per-repository secrets, replays, permissions and rate limits) ar
 | Every test | `uv run pytest` |
 | Lint and format | `uv run ruff check . && uv run ruff format .` |
 | Rebuild media derivatives after adding a capture | `uv run python manage.py make_media` |
-| Add a dependency | `uv add <package>` (or `uv add --dev <package>`) |
+| Refresh `/credits/` and the engine's LICENSE and NOTICE (after a dependency or NOTICE change) | `uv run python manage.py refresh_credits` |
+| Add a dependency | `uv add <package>` (or `uv add --dev <package>`), then `refresh_credits` |
 
 ## Testing
 

@@ -38,13 +38,10 @@
       </div>
       {% for tab in agreement.full_text.tabs %}
         <div class="dl-fulltext-body dl-legal" data-fulltext="{{ tab.key }}" tabindex="0" role="document" aria-label="{{ tab.label }}">
-          {% for block in tab.blocks %}
-            {% if block.kind == "heading" %}<h3 class="dl-legal-heading">{{ block.text }}</h3>
-            {% elif block.kind == "lines" %}<p class="dl-legal-lines{% if block.centred %} text-center{% endif %}">{% for line in block.lines %}{{ line }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</p>
-            {% else %}<p{% if block.level %} class="dl-legal-sub"{% endif %}>{% if block.lead %}<strong>{{ block.lead }}</strong> {% endif %}{{ block.text }}</p>{% endif %}
-          {% endfor %}
+          {% include "marketing/legal_blocks.html" with blocks=tab.blocks %}
         </div>
       {% endfor %}
+      <p class="dl-credits">{{ agreement.full_text.credits_lede }} {% include "partials/nav_link.html" with link=agreement.full_text.credits class="dl-credits-link" %}</p>
     </div>
   </div>
 </div>

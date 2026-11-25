@@ -9,12 +9,11 @@ a dead link.
 
 import json
 from dataclasses import dataclass, field
-from pathlib import Path
 
 from django.templatetags.static import static
 from django.urls import reverse
 
-from marketing import drawings, github, legal, media, releases
+from marketing import credits, drawings, github, legal, media, releases
 
 # The engine's canonical repository (the README's older account redirects here).
 ENGINE_REPO_URL = github.ENGINE_REPO_URL
@@ -837,7 +836,11 @@ FOOTER_SIGNATURE = "Axcenity Studios · 2026"
 FOOTER_COLUMNS = [
     FooterColumn(
         "Engine",
-        [Link("Download", url_name="marketing:download"), Link("GitHub", external=ENGINE_REPO_URL)],
+        [
+            Link("Download", url_name="marketing:download"),
+            Link("GitHub", external=ENGINE_REPO_URL),
+            Link("Credits", url_name="marketing:credits"),
+        ],
     ),
     FooterColumn(
         "Learn",
@@ -1175,9 +1178,12 @@ TOOLBOX_PAGE = {
 
 # ---------- Download page (/download/) ----------
 # The engine's LICENSE and NOTICE, copied in unchanged (the engine repository is read only)
-# from LEGAL_COMMIT, shown in full in the download agreement.
-LEGAL_DIR = Path(__file__).resolve().parent / "legal"
-LEGAL_COMMIT = "cae2e6c01144f2ed92f25381e90737e3290b357b"
+# from LEGAL_COMMIT by `manage.py refresh_credits`, shown in full in the download agreement
+# and on /credits/, with the crate and package lists it generates (marketing/credits.py).
+LEGAL_DIR = credits.LEGAL_DIR
+ENGINE_CREDITS = credits.load(LEGAL_DIR / "engine.json")
+HUB_CREDITS = credits.load(LEGAL_DIR / "hub.json")
+LEGAL_COMMIT = ENGINE_CREDITS["commit"]
 ENGINE_LICENSE = (LEGAL_DIR / "LICENSE").read_text(encoding="utf-8")
 ENGINE_NOTICE = (LEGAL_DIR / "NOTICE").read_text(encoding="utf-8")
 
@@ -1394,6 +1400,8 @@ DOWNLOAD_PAGE = {
                 {"key": "license", "label": "LICENSE", "blocks": legal.reflow(ENGINE_LICENSE)},
                 {"key": "notice", "label": "NOTICE", "blocks": legal.reflow(ENGINE_NOTICE)},
             ],
+            "credits_lede": "Every crate, package and font the engine is built from:",
+            "credits": Link("Credits", url_name="marketing:credits"),
         },
         "checkbox": (
             "I have read and agree to the Apache License 2.0 and the Axcenity trademark terms."
@@ -1451,6 +1459,122 @@ DOWNLOAD_PAGE = {
 }
 
 
+# ---------- Credits (/credits/) ----------
+# Who made what the engine and the Hub are built from. The crate and package lists are
+# generated (marketing/credits.py); the fonts and build tools below are the Hub's own.
+_CRATES = ENGINE_CREDITS["crates"]
+_PACKAGES = HUB_CREDITS["packages"]
+_TOOLS = HUB_CREDITS.get("tools", {})
+
+CREDITS_PAGE = {
+    "title": "Credits",
+    "description": (
+        "Everyone whose code, fonts and assets Axcenity Engine and the Axcenity Hub are "
+        "built on: the engine's NOTICE, every Rust crate and every Python package."
+    ),
+    "eyebrow": "Credits",
+    "headline": "Built on other people's work",
+    "lede": (
+        "Axcenity Engine and this Hub stand on open-source code, fonts and assets made by "
+        "thousands of people. Every one of them is listed here, from their own records."
+    ),
+    "note": (
+        f"Generated from the engine's Cargo.lock at commit {LEGAL_COMMIT[:12]} and the "
+        "Hub's uv.lock, and checked against both, so a new dependency can't go uncredited."
+    ),
+    "jump_label": "On this page",
+    "sections": {
+        "notice": {
+            "number": "01",
+            "label": "NOTICE",
+            "title": "In the engine",
+            "body": (
+                "The models, programs, code and characters the engine's NOTICE file credits, "
+                "in its own words."
+            ),
+            "blocks": legal.reflow(ENGINE_NOTICE),
+            "source": Link(
+                "Read NOTICE on GitHub", external=f"{ENGINE_REPO_URL}/blob/{LEGAL_COMMIT}/NOTICE"
+            ),
+        },
+        "crates": {
+            "number": "02",
+            "label": "Crates",
+            "title": f"{len(_CRATES)} Rust crates",
+            "body": (
+                "Every crate the engine's Cargo.lock resolves, for every system it builds for "
+                "and with every optional feature on, grouped by licence. A crate that names "
+                "no authors is credited to its contributors."
+            ),
+            "groups": credits.by_license(_CRATES),
+            "count_label": "crates",
+            "contributors": "Its contributors",
+            "vendored": "Patched copy in the engine's vendor/",
+        },
+        "hub": {
+            "number": "03",
+            "label": "Hub",
+            "title": "In this Hub",
+            "body": (
+                "The Python packages this website runs on and is tested with, from their own "
+                "package metadata, and the fonts and stylesheet tools it ships."
+            ),
+            "groups": [
+                {
+                    "title": "Runs the site",
+                    "entries": [p for p in _PACKAGES if p["group"] == "runtime"],
+                },
+                {
+                    "title": "Builds and tests it",
+                    "entries": [p for p in _PACKAGES if p["group"] != "runtime"],
+                },
+            ],
+            "columns": ["Package", "Version", "Licence", "By"],
+            "assets_title": "Fonts and styles",
+            "assets": [
+                {
+                    "name": "Plus Jakarta Sans",
+                    "by": "The Plus Jakarta Sans Project Authors (Tokotype)",
+                    "license": "OFL-1.1",
+                    "url": "https://github.com/tokotype/PlusJakartaSans",
+                    "use": "Headings",
+                },
+                {
+                    "name": "Inter",
+                    "by": "The Inter Project Authors (Rasmus Andersson)",
+                    "license": "OFL-1.1",
+                    "url": "https://github.com/rsms/inter",
+                    "use": "Body text",
+                },
+                {
+                    "name": "JetBrains Mono",
+                    "by": "The JetBrains Mono Project Authors (JetBrains)",
+                    "license": "OFL-1.1",
+                    "url": "https://github.com/JetBrains/JetBrainsMono",
+                    "use": "Labels and code",
+                },
+                {
+                    "name": "Tailwind CSS",
+                    "version": _TOOLS.get("tailwindcss", ""),
+                    "by": "Tailwind Labs",
+                    "license": "MIT",
+                    "url": "https://github.com/tailwindlabs/tailwindcss",
+                    "use": "The stylesheet's base and utilities",
+                },
+                {
+                    "name": "daisyUI",
+                    "version": _TOOLS.get("daisyui", ""),
+                    "by": "Pouya Saadeghi",
+                    "license": "MIT",
+                    "url": "https://github.com/saadeghi/daisyui",
+                    "use": "Buttons and form controls",
+                },
+            ],
+        },
+    },
+}
+
+
 def all_links() -> list[Link]:
     """Every link in this module, for the link checks in the tests."""
     links = [*NAV_LINKS, SIGN_IN, ACCOUNT, DOWNLOAD, HOME_TOOLBOX["cta"]]
@@ -1461,6 +1585,8 @@ def all_links() -> list[Link]:
         DOWNLOAD_PAGE["unavailable"]["link"],
         DOWNLOAD_PAGE["tips"]["other"]["link"],
         DOWNLOAD_PAGE["agreement"]["back"],
+        DOWNLOAD_PAGE["agreement"]["full_text"]["credits"],
+        CREDITS_PAGE["sections"]["notice"]["source"],
         *DOWNLOAD_PAGE["from_source"]["links"],
     ]
     links += [TOOLBOX_PAGE["primary"], TOOLBOX_PAGE["secondary"], TOOLBOX_PAGE["run"]["readme"]]

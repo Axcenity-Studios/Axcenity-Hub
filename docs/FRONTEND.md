@@ -14,6 +14,7 @@ its code).
 | [frontend/home.md](frontend/home.md) | the Home's sections, copy as data, the media manifest and drawn media, the rotating headline, reveals, the pillars' sticky stage |
 | [frontend/media.md](frontend/media.md) | the media manifest, captures and `make_media`'s derivatives, `<picture>`, the hero's film (its cut, encodes and playback), where each animated loop sits, their playback, fallbacks and the screenshot test |
 | [frontend/download.md](frontend/download.md) | the download page (`/download/`): the release from GitHub, the build kinds and their copy, system detection, the cache and fallbacks, the `.dl-*` classes |
+| [frontend/credits.md](frontend/credits.md) | the credits page (`/credits/`): the engine's NOTICE, every crate and Python package, `refresh_credits` and the lists it generates, NOTICE dividers, the `.cr-*` classes |
 | [frontend/toolbox.md](frontend/toolbox.md) | the Toolbox page (`/toolbox/`): its sections, the `.tb-*` panel classes, the commands and demo credentials, its screenshots and their capture record |
 | [frontend/documentation.md](frontend/documentation.md) | the docs at `/docs/`: re-syncing the snapshot, rendering and its link rules, heading ids, Luau highlighting, the three-column layout, the sidebar, `docs.js`, the API reference's layouts and type links, search |
 | [frontend/projects.md](frontend/projects.md) | the project pages: the setup checklist and its states, showing the webhook's values, copy buttons (`projects.js`), the cards, each step's help, the `.pj-*` classes |

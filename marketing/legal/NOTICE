@@ -43,3 +43,85 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+
+---
+crates/avatar/src/fit/inpaint.rs implements two-stage biharmonic skin-weight
+and morph-delta inpainting adapted from "Robust Skin Weights Transfer via
+Weight Inpainting" (SIGGRAPH Asia 2023; RobustSkinWeightsTransferCode),
+licensed under the MIT License:
+
+Copyright (c) 2023 Rinat Abdrashitov
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+---
+crates/avatar uses the `faer` sparse linear algebra library
+(https://github.com/sarah-ek/faer-rs), licensed under the MIT License:
+
+Copyright (c) 2023 sarah-ek
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+Public-domain character base data (CC0 1.0 Universal)
+-----------------------------------------------------
+assets/characters/realistic/source/ and assets/characters/humanoid/source/
+derive base body geometry from Blender Studio Human Base Meshes v1.4.1 and
+body shape targets from MakeHuman (hm08), both released under CC0 1.0
+Universal (see assets/characters/transfer/shapes/LICENCE-RECORD.md).
+
+MakeHuman
+---------
+assets/characters/human/ (the human base body, its eyes, teeth, tongue,
+brows and lashes, its skin texture, and the garments in its wardrobe/
+folder) is made from MakeHuman's base mesh, targets and system assets
+(http://www.makehumancommunity.org), released under CC0 1.0 Universal by
+their copyright holders: Data Collection AB, Joel Palmius and Jonas
+Hauquier. CC0 asks for no attribution; the MakeHuman project and its
+community are credited here with thanks.
+
+Garments converted from the MakeHuman community's asset packs
+(https://static.makehumancommunity.org/assets/assetpacks.html) keep their
+authors' licences, CC0 1.0 or Creative Commons Attribution 4.0
+(https://creativecommons.org/licenses/by/4.0/), recorded per item in its
+manifest's "source" and in the CREDITS.md beside the items
+(assets/characters/human/wardrobe/CREDITS.md for those shipped here).
+They were re-posed, re-skinned to the Axcenity Humanoid skeleton and
+given the body's shapes; their textures are unchanged.
+
+These assets were made with MPFB (https://static.makehumancommunity.org/mpfb.html),
+the MakeHuman Plugin For Blender by Joel Palmius and the MakeHuman
+community, licensed GPL-3.0-or-later. MPFB is used as a tool: no MPFB or
+MakeHuman source code is included in this repository or in anything built
+from it (assets/characters/human/README.md, "Sources and credit").

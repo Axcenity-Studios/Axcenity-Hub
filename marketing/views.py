@@ -66,6 +66,18 @@ class ToolboxView(MarketingPageMixin, TemplateView):
         return context
 
 
+class CreditsView(MarketingPageMixin, TemplateView):
+    """/credits/: the engine's NOTICE, every Rust crate and every Python package the
+    engine and the Hub are built from (marketing/credits.py generates the lists)."""
+
+    template_name = "marketing/credits.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["credits"] = content.CREDITS_PAGE
+        return context
+
+
 # A full-width download panel lays its builds out this many to a row (from 1024 px).
 DOWNLOAD_COLUMNS = 3
 

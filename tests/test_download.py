@@ -5,6 +5,7 @@ trimmed to the fields the Hub reads (tests/fixtures/github/releases.json)."""
 import copy
 import json
 import re
+import subprocess
 from datetime import UTC, datetime, timedelta
 from html import unescape
 from pathlib import Path
@@ -899,6 +900,9 @@ def _assert_full_text(html: str) -> None:
     )
     assert "<p><strong>7. Disclaimer of Warranty.</strong> Unless required" in pane
     assert '<h3 class="dl-legal-heading">Third-party code</h3>' in pane
+    assert pane.count('<hr class="dl-legal-rule">') == content.ENGINE_NOTICE.count("\n---\n")
+    # Under the texts, the way to every crate and package.
+    assert f'<a href="{reverse("marketing:credits")}" class="dl-credits-link">Credits</a>' in pane
     assert (
         '<input type="radio" name="fulltext" id="fulltext-license" class="dl-tab-input sr-only" checked>'
         in pane
@@ -1019,8 +1023,15 @@ def test_the_full_texts_are_the_apache_license_and_the_engines_notice():
 
 @pytest.mark.skipif(not ENGINE_DIR.exists(), reason="the engine's checkout isn't on this machine")
 def test_the_copied_license_and_notice_match_the_engines():
+    # The engine's last commit, not its working tree: an edit in progress there isn't
+    # the engine's NOTICE yet.
     for name, text in (("LICENSE", content.ENGINE_LICENSE), ("NOTICE", content.ENGINE_NOTICE)):
-        assert (ENGINE_DIR / name).read_text("utf-8") == text, f"re-copy {name} from the engine"
+        committed = subprocess.run(
+            ["git", "--no-optional-locks", "-C", str(ENGINE_DIR), "show", f"HEAD:{name}"],
+            capture_output=True,
+            check=True,
+        ).stdout.decode("utf-8")
+        assert committed == text, f"{name} changed in the engine: run manage.py refresh_credits"
 
 
 # ---------- The legal texts as prose ----------
@@ -1074,7 +1085,13 @@ def test_the_notice_reflows_its_underlined_headings():
         "Third-party sample assets",
         "Bundled programs",
         "Third-party code",
+        "Public-domain character base data (CC0 1.0 Universal)",
+        "MakeHuman",
     ]
+    # Each "---" between two credited works is a divider, never a word or a heading.
+    rules = [i for i, b in enumerate(blocks) if b.kind == "rule"]
+    assert len(rules) == content.ENGINE_NOTICE.count("\n---\n") == 2
+    assert all(blocks[i + 1].text.startswith("crates/avatar") for i in rules)
 
 
 def test_reflow_handles_the_edges():
@@ -1086,3 +1103,27 @@ def test_reflow_handles_the_edges():
         legal.Block("paragraph", text=f"{first} and its continuation."),
         legal.Block("lines", lines=("Short", "lines")),
     ]
+
+
+def test_reflow_divides_entries_at_a_line_of_dashes_but_keeps_underlines():
+    """New credits can be added to the NOTICE in any of these layouts and still set right:
+    a "---" between entries (alone, or running into the next entry), "***" or "___", and a
+    long rule; a rule under a paragraph's only line still underlines it as a heading."""
+    long_line = "Permission is hereby granted, free of charge, to any person obtaining a"
+    text = (
+        f"First work\n----------\n{long_line}\ncopy.\n\n"
+        "---\n\n"
+        f"---\n{long_line}\nsecond.\n\n"
+        f"{long_line}\ncontinued.\n***\n"
+        "Third work\n==========\n\n"
+        "___\n"
+    )
+    blocks = legal.reflow(text)
+    assert [b.kind for b in blocks] == [
+        "heading", "paragraph", "rule", "rule", "paragraph", "paragraph", "rule",
+        "heading", "rule",
+    ]  # fmt: skip
+    assert blocks[0].text == "First work" and blocks[7].text == "Third work"
+    assert blocks[4].text == f"{long_line} second."
+    # Words are unchanged and in order; the rules carry none.
+    assert _block_words(blocks) == [w for w in text.split() if not re.fullmatch(r"[-=*_]{3,}", w)]
