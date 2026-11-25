@@ -1,0 +1,17 @@
+{# One field of a form, in the app shell's style: {% include "partials/form_field.html" with field=form.name %} #}
+{% if field.name == "website" %}
+{# The honeypot: invisible and unreachable for people (aria-hidden, tabindex -1); bots fill it. #}
+<div class="app-honeypot" aria-hidden="true">{{ field.label_tag }}{{ field }}</div>
+{% elif field.widget_type == "checkbox" %}
+<div class="app-field app-field-check">
+  {{ field }}<label for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {% if field.errors %}<div class="app-field-errors" role="alert">{{ field.errors }}</div>{% endif %}
+</div>
+{% else %}
+<div class="app-field">
+  <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {{ field }}
+  {% if field.errors %}<div class="app-field-errors" role="alert">{{ field.errors }}</div>{% endif %}
+  {% if field.help_text %}<div class="app-help">{{ field.help_text|safe }}</div>{% endif %}
+</div>
+{% endif %}

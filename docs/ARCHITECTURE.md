@@ -70,7 +70,7 @@ Later phases add `forums`, `showcases`, `reports`,
 | `/docs/` | `documentation:index` | `DocsIndexView`: the docs' README and a panel per section |
 | `/docs/search/` | `documentation:search` | `DocsSearchView`: `?q=` search over the snapshot's index, `&page=` (20 a page) |
 | `/docs/<path>/` | `documentation:page` | `DocsPageView`: a snapshot page by its lower-cased path without `.md` (`/docs/api/classes/part/`); a README is its folder; API pages get their own templates; unknown paths 404 |
-| `/accounts/profile/` | `accounts:profile` | `ProfileView`: the member's own profile and its form (members only) |
+| `/accounts/profile/` | `accounts:profile` | `ProfileView`: the member's own profile, its photo and its form (members only); the first tab of Account settings |
 | `/accounts/verify-email/` | `accounts:verify_email` | `VerifyEmailView`: where the contribution gate sends an unverified member (`?next=`, same-site only) |
 | `/accounts/email/` | `account_email` | `EmailView`: the address, its status and a resend button (replaces allauth's page) |
 | `/accounts/3rdparty/` | `socialaccount_connections` | `ConnectionsView`: Connected accounts, the linked GitHub account's state (checked with GitHub), link, reconnect, and unlink (POST, after re-authentication); replaces allauth's page |
@@ -79,12 +79,12 @@ Later phases add `forums`, `showcases`, `reports`,
 | `/accounts/…` | `account_*`, `mfa_*`, `socialaccount_*` | allauth: sign in, sign up, sign out, confirm email, password change and reset, re-authenticate, two-factor (`/accounts/2fa/…`), a cancelled or failed link (`/accounts/3rdparty/login/…`) |
 | `/projects/` | `projects:list` | `ProjectListView`: the member's own projects and the count against the limit |
 | `/projects/new/` | `projects:create` | `ProjectCreateView`: verified members, at most 5 projects each |
-| `/projects/guide/` | `projects:guide` | `ProjectGuideView`: the setup guide (public) ([frontend/projects.md](frontend/projects.md)) |
 | `/projects/<slug>/` | `projects:detail` | `ProjectDetailView`: the setup checklist and the repository (refetched when over an hour old); `?webhook=show` shows the webhook's URL and secret after an admin check, never cached; owner only, others 404 |
 | `/projects/<slug>/edit/`, `/delete/` | `projects:edit`, `projects:delete` | Rename (the slug follows) or describe; delete after confirming |
 | `/projects/<slug>/repository/link/`, `/unlink/`, `/refresh/` | `projects:link_repository`, `projects:unlink_repository`, `projects:refresh_repository` | POST: link (needs admin on GitHub), unlink (GitHub not asked), refresh (needs read) |
 | `/projects/hooks/github/<hook_id>/` | `projects:webhook` | `GitHubWebhookView`: POST only, CSRF-exempt, signed deliveries ([architecture/projects.md](architecture/projects.md#webhooks)) |
 | `/errors/<kind>/` | `errors:preview` | A development server's preview of an error page (`400`, `403`, `csrf`, `404`, `405`, `429`, `500`); a 404 when `DEBUG` is off |
+| `/media/<path>` | `media` | `config.media.development_media`: members' uploads from `MEDIA_ROOT` on a development server; a 404 when `DEBUG` is off (production's web server serves the folder) |
 | `/theme/` | `marketing:theme` | `ThemeView`: POST only, the no-JavaScript fallback for the theme switch |
 | `/admin/` | `admin:*` | Django admin |
 
@@ -173,6 +173,7 @@ locally, copy it to `.env` (git-ignored) and run `uv run --env-file .env …`.
 | `HUB_PUBLIC_URL` | none | The Hub's address on the internet (scheme and host only): webhook payload URLs are built on it, its host is allowed, and it's a trusted CSRF origin (behind a tunnel or TLS proxy Django sees http while the browser posts from https); in development, a tunnel's address |
 | `GITHUB_TOKEN_KEYS` | none | Comma-separated Fernet keys for GitHub tokens at rest (first encrypts); required in production when the app is set |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | none | Cloudflare Turnstile on signup and reset; off unless both are set |
+| `DJANGO_MEDIA_ROOT` | `media/` in the repo (git-ignored) | Where members' uploads (profile photos) are stored; production's web server serves it at `/media/` |
 | `AXCENITY_ENGINE_DIR` | `~/Documents/VSCode Projects/Axcenity-Engine` | The engine checkout `sync_engine_docs` reads (never at request time) |
 
 `DOCS_SNAPSHOT_DIR` is `documentation/content/`; its `images/` are served

@@ -1,4 +1,4 @@
-{% extends "app/shell.html" %}
+{% extends "accounts/base.html" %}
 {% load app_shell %}
 {% block head_title %}Connected accounts{% endblock %}
 {% block content %}
@@ -9,45 +9,59 @@
     <p class="app-lede">{{ copy.CONNECTIONS_LEDE }}</p>
   </header>
 
-  <section class="app-panel panel" aria-labelledby="github-title" data-github-state="{{ state|default:'none' }}">
-    <h2 id="github-title" class="app-heading">{{ copy.GITHUB }}</h2>
-    {% if account %}
-    <dl class="app-rows">
-      <div><dt>{{ copy.GITHUB_ACCOUNT }}</dt><dd><span class="app-mono">{{ login|default:"—" }}</span></dd></div>
-      <div><dt>{{ copy.GITHUB_STATUS }}</dt><dd><span class="app-badge micro">{% if state == "needs_reconnect" %}{{ copy.GITHUB_STATE_NEEDS_RECONNECT }}{% elif state == "unavailable" %}{{ copy.GITHUB_STATE_UNAVAILABLE }}{% else %}{{ copy.GITHUB_STATE_OK }}{% endif %}</span></dd></div>
-    </dl>
-    {% if state == "needs_reconnect" %}
-    <p class="app-notice" role="status">{{ copy.GITHUB_RECONNECT_PROMPT }}</p>
-    {% elif state == "unavailable" %}
-    <p class="app-help">{{ copy.GITHUB_UNAVAILABLE_NOTE }}</p>
-    {% endif %}
-    <div class="app-actions">
-      {% if state == "needs_reconnect" and linking_on %}
-      <form method="post" action="{% url 'github_login' %}">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-primary">{{ copy.GITHUB_RECONNECT }}</button>
-      </form>
+  <section class="panel pj-panel" aria-labelledby="github-title" data-github-state="{{ state|default:'none' }}">
+    <div class="pj-bar">
+      <h2 id="github-title" class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="link" size=14 %}{{ copy.GITHUB }}</h2>
+      <span class="pj-tag micro"{% if account and not state == "needs_reconnect" %} data-complete{% endif %}>{% if not account %}{{ copy.GITHUB_NOT_LINKED_SHORT }}{% elif state == "needs_reconnect" %}{{ copy.GITHUB_STATE_NEEDS_RECONNECT }}{% else %}{{ copy.GITHUB_STATE_OK }}{% endif %}</span>
+    </div>
+    <div class="ac-body">
+      {% if account %}
+      <dl class="pj-facts ac-facts-2">
+        <div><dt class="micro">{{ copy.GITHUB_ACCOUNT }}</dt><dd><span class="app-mono">{{ login|default:"—" }}</span></dd></div>
+        <div><dt class="micro">{{ copy.GITHUB_STATUS }}</dt><dd>{% if state == "needs_reconnect" %}{{ copy.GITHUB_STATE_NEEDS_RECONNECT }}{% elif state == "unavailable" %}{{ copy.GITHUB_STATE_UNAVAILABLE }}{% else %}{{ copy.GITHUB_STATE_OK }}{% endif %}</dd></div>
+      </dl>
+      {% if state == "needs_reconnect" %}
+      <p class="app-notice" role="status">{{ copy.GITHUB_RECONNECT_PROMPT }}</p>
+      {% elif state == "unavailable" %}
+      <p class="app-help">{{ copy.GITHUB_UNAVAILABLE_NOTE }}</p>
       {% endif %}
-      <form method="post" action="{% url 'socialaccount_connections' %}">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-quiet">{{ copy.GITHUB_UNLINK }}</button>
-      </form>
+      <div class="app-actions">
+        {% if state == "needs_reconnect" and linking_on %}
+        <form method="post" action="{% url 'github_login' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary">{{ copy.GITHUB_RECONNECT }}</button>
+        </form>
+        {% endif %}
+        <form method="post" action="{% url 'socialaccount_connections' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-quiet">{{ copy.GITHUB_UNLINK }}</button>
+        </form>
+      </div>
+      <p class="app-help">{{ copy.GITHUB_UNLINK_NOTE }}</p>
+      {% else %}
+      <p class="text-fg">{{ copy.GITHUB_NOT_LINKED }}</p>
+      {% if linking_on %}
+      <div class="app-actions">
+        <form method="post" action="{% url 'github_login' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary">{{ copy.GITHUB_CONNECT }}</button>
+        </form>
+      </div>
+      {% else %}
+      <p class="app-help">{{ copy.GITHUB_OFF }}</p>
+      {% endif %}
+      {% endif %}
+      <p class="app-help">{{ copy.GITHUB_ACCESS_NOTE }}</p>
     </div>
-    <p class="app-help">{{ copy.GITHUB_UNLINK_NOTE }}</p>
-    {% else %}
-    <p>{{ copy.GITHUB_NOT_LINKED }}</p>
-    {% if linking_on %}
-    <div class="app-actions">
-      <form method="post" action="{% url 'github_login' %}">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-primary">{{ copy.GITHUB_CONNECT }}</button>
-      </form>
-    </div>
-    {% else %}
-    <p class="app-help">{{ copy.GITHUB_OFF }}</p>
-    {% endif %}
-    {% endif %}
-    <p class="app-help">{{ copy.GITHUB_ACCESS_NOTE }}</p>
+  </section>
+
+  <section class="panel pj-panel" aria-labelledby="github-what-title">
+    <div class="pj-bar"><h2 id="github-what-title" class="tb-chip tb-chip-current">{{ copy.GITHUB_WHAT_TITLE }}</h2></div>
+    <ul class="ac-points">
+      {% for icon, title, text in copy.GITHUB_WHAT %}
+      <li><span class="pj-icon">{% include "partials/icon.html" with name=icon size=18 %}</span><div><p class="ac-point-title">{{ title }}</p><p class="ac-point-text">{{ text }}</p></div></li>
+      {% endfor %}
+    </ul>
   </section>
 </div>
 {% endblock %}

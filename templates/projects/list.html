@@ -2,14 +2,13 @@
 {% block head_title %}{{ text.LIST_TITLE }}{% endblock %}
 {% block content %}
 {# The member's projects as cards, each with its repository and setup progress. #}
-<div class="app-page app-page-wide">
+<div class="app-page">
   <div class="pj-head">
     <header class="app-page-head">
       <h1 class="headline app-title">{{ text.LIST_TITLE }}</h1>
       <p class="app-lede">{{ text.LIST_LEDE }}</p>
     </header>
     <div class="app-actions">
-      <a class="btn btn-quiet btn-sm" href="{% url 'projects:guide' %}">{% include "partials/icon.html" with name="guide" size=14 %}{{ text.GUIDE_LINK }}</a>
       {% if cards and not at_limit %}<a class="btn btn-primary btn-sm" href="{% url 'projects:create' %}">{% include "partials/icon.html" with name="plus" size=14 %}{{ text.NEW_PROJECT }}</a>{% endif %}
     </div>
   </div>
@@ -53,7 +52,6 @@
       </ol>
       <div class="app-actions">
         <a class="btn btn-primary" href="{% url 'projects:create' %}">{% include "partials/icon.html" with name="plus" size=16 %}{{ text.NEW_PROJECT }}</a>
-        <a class="btn btn-quiet" href="{% url 'projects:guide' %}">{{ text.GUIDE_LINK }}</a>
       </div>
     </div>
   </section>

@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 from accounts.urls import allauth_overrides
-from config import errors
+from config import errors, media
 
 # Every error status renders the Hub's own page (config/errors.py).
 handler400 = "config.errors.bad_request"
@@ -26,5 +26,7 @@ urlpatterns = [
         "errors/",
         include(([path("<slug:kind>/", errors.preview, name="preview")], "errors")),
     ),
+    # Members' uploads, served by a development server only (config/media.py).
+    path("media/<path:path>", media.development_media, name="media"),
     path("", include("marketing.urls")),
 ]

@@ -18,10 +18,9 @@ GitHub call made with a member's token. Linking the GitHub account itself:
 ## Projects
 
 - **Owner only** in this phase: every project URL is a 404 for anyone else (Phase 11 adds
-  members). Views fetch through `Project.objects.owned_by(user)`. The setup guide
-  (`/projects/guide/`) is the one public project page.
+  members). Views fetch through `Project.objects.owned_by(user)`.
 - **Names** are unique across the Hub whatever their case: `Project.clean` checks it (and
-  that the slug is free, non-empty and not `new`, `guide` or `hooks`), and the database holds a
+  that the slug is free, non-empty and not `new` or `hooks`), and the database holds a
   unique index on `LOWER(name)` plus the unique slug. "Space Game", "space game" and
   "space-game" are the same name. Renaming changes the address; old addresses 404.
 - Creating, editing and linking need a **verified email** (`VerifiedEmailRequiredMixin`,
@@ -129,7 +128,8 @@ page was opened at.
 and `HUB_PUBLIC_URL` (the tunnel's `https://` address), restart,
 open the project's checklist at step 3 (**Show webhook settings**), and add a webhook in the
 repository's settings with that payload URL, `application/json`, the secret, and the Pushes
-and Repositories events. Members' own walkthrough is the public guide, `/projects/guide/`.
+and Repositories events. Members get the same walkthrough as each step's help on the
+checklist.
 
 ## Tests
 

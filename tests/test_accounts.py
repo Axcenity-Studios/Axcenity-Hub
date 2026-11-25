@@ -5,14 +5,17 @@ import re
 
 import pytest
 from allauth.account.models import EmailAddress
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.cache import cache
 from django.db import IntegrityError, connection, transaction
 from django.db.migrations.executor import MigrationExecutor
+from django.db.models.signals import post_delete, post_save
 from django.test import Client
 from django.urls import reverse
 
+from accounts import signals as account_signals
 from accounts.access import EmailNotVerified, ensure_can_contribute
 from accounts.integrity import CaseDuplicatesFound
 from accounts.models import Profile
@@ -122,6 +125,10 @@ def _migrate_accounts(to: str = "") -> None:
 @pytest.mark.django_db(transaction=True)
 def test_the_index_migration_stops_on_existing_case_duplicates_and_changes_nothing():
     _migrate_accounts("0001_initial")  # before the indexes
+    # Profiles at 0001 have no photo column yet: the receivers that read the current model
+    # stay out of the way until the migrations are back at the latest.
+    post_save.disconnect(account_signals.create_profile, sender=settings.AUTH_USER_MODEL)
+    post_delete.disconnect(account_signals.delete_photo, sender=Profile)
     try:
         ann = User.objects.create_user("ann", "ann@example.com", PASSWORD)
         ann2 = User.objects.create_user("Ann", "ANN@example.com", PASSWORD)
@@ -146,6 +153,8 @@ def test_the_index_migration_stops_on_existing_case_duplicates_and_changes_nothi
     finally:
         User.objects.filter(username="Ann").delete()
         _migrate_accounts()  # back to the latest, for the tests after this one
+        post_save.connect(account_signals.create_profile, sender=settings.AUTH_USER_MODEL)
+        post_delete.connect(account_signals.delete_photo, sender=Profile)
 
 
 # ---------- The verification policy end to end, through allauth's real views ----------
@@ -416,7 +425,7 @@ def test_the_verify_page_explains_the_gate_and_continues_once_verified(client):
 
 
 @pytest.mark.django_db
-def test_the_app_shell_frames_account_pages(client):
+def test_the_app_shell_frames_account_pages_as_tabs_of_account_settings(client):
     client.force_login(make_member(verified=True))
     for name, current in [
         ("accounts:profile", "Profile"),
@@ -427,21 +436,29 @@ def test_the_app_shell_frames_account_pages(client):
     ]:
         html = client.get(reverse(name)).content.decode()
         assert 'class="app-bar"' in html and 'id="app-rail"' in html, name
+        assert "Account center" in html  # the bar names the place, not "Hub"
         rail = html[
             html.index('id="app-rail"') : html.index("</details>", html.index('id="app-rail"'))
         ]
+        # The rail has one Account item; every account page is its current page.
         assert re.findall(
             r'class="app-rail-link"[^>]*>\s*<svg.*?</svg>\s*([^<]+?)\s*<', rail, re.S
-        ) == [
-            "Projects",
-            "Setup guide",
+        ) == ["Projects", "Account settings"]
+        assert re.findall(r'aria-current="page">\s*<svg.*?</svg>\s*([^<]+?)\s*<', rail, re.S) == [
+            "Account settings"
+        ], name
+        # The page itself shows the settings' tabs, with its own tab current.
+        tabs = html[
+            html.index('class="ac-tabs"') : html.index("</nav>", html.index('class="ac-tabs"'))
+        ]
+        assert re.findall(r'class="ac-tab"[^>]*>\s*<svg.*?</svg>\s*([^<]+?)\s*<', tabs, re.S) == [
             "Profile",
             "Email",
             "Password",
             "Two-factor",
             "Connected accounts",
         ]
-        assert re.findall(r'aria-current="page">\s*<svg.*?</svg>\s*([^<]+?)\s*<', rail, re.S) == [
+        assert re.findall(r'aria-current="page">\s*<svg.*?</svg>\s*([^<]+?)\s*<', tabs, re.S) == [
             current
         ], name
         # Signing out is a POST with a CSRF token, never a link.
@@ -454,8 +471,42 @@ def test_the_app_shell_frames_account_pages(client):
 
 
 @pytest.mark.django_db
+def test_the_settings_header_shows_the_account_at_a_glance(client):
+    member = make_member(verified=True)
+    client.force_login(member)
+    html = client.get(reverse("account_email")).content.decode()
+    head = html[html.index('class="panel pj-panel ac-head"') : html.index('class="ac-tabs"')]
+    assert "@" + member.username in head and "Member since" in head
+    # Each state links to its tab: verified email, two-factor off, no GitHub.
+    stats = re.findall(
+        r'href="([^"]+)" class="ac-stat">.*?class="ac-stat-value"( data-on)?>([^<]+)<', head, re.S
+    )
+    assert stats == [
+        (reverse("account_email"), " data-on", "Verified"),
+        (reverse("mfa_index"), "", "Off"),
+        (reverse("socialaccount_connections"), "", "Not linked"),
+    ]
+
+
+@pytest.mark.django_db
 def test_entrance_pages_use_the_slim_entrance_layout(client):
     for name in ["account_login", "account_signup", "account_reset_password"]:
         html = client.get(reverse(name)).content.decode()
         assert 'class="entrance grid-bg"' in html and 'class="entrance-panel panel"' in html, name
         assert 'id="app-rail"' not in html and 'id="site-nav"' not in html, name
+
+
+@pytest.mark.django_db
+def test_the_settings_header_shows_a_github_link_that_needs_reconnecting(client):
+    from allauth.socialaccount.models import SocialAccount
+
+    member = make_member(verified=True)
+    # A link with no stored token can't be used (as on Connected accounts): it needs reconnecting.
+    SocialAccount.objects.create(user=member, provider="github", uid="1", extra_data={})
+    client.force_login(member)
+    html = client.get(reverse("accounts:profile")).content.decode()
+    assert re.search(
+        rf'href="{reverse("socialaccount_connections")}" class="ac-stat">.*?class="ac-stat-value">Reconnect<',
+        html,
+        re.S,
+    )

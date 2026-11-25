@@ -3,7 +3,7 @@
 # Names and the limit.
 NAME_TAKEN = "A project with this name already exists."
 NAME_REQUIRED = "Give the project a name."
-NAME_UNUSABLE = "Use at least one letter or digit, and not just “new”, “guide” or “hooks”."
+NAME_UNUSABLE = "Use at least one letter or digit, and not just “new” or “hooks”."
 LIMIT_REACHED = "You already own 5 projects, the most one member can. Delete one to create another."
 
 # Repository actions refused by the Hub's own rules.
@@ -50,8 +50,8 @@ LIST_COUNT = "{count} of {limit} projects"
 NEW_PROJECT = "New project"
 EMPTY_TITLE = "Start your first project."
 EMPTY_LEDE = (
-    "Create a project, then connect its GitHub repository in four short steps. The setup "
-    "guide walks through each one."
+    "Create a project, then connect its GitHub repository in four short steps. Each step "
+    "explains what to do as you reach it."
 )
 SETUP_LABEL = "Repository setup"
 SETUP_COMPLETE = "Connected"
@@ -74,7 +74,6 @@ NO_DESCRIPTION = "No description yet."
 CREATED = "Project created. Next, connect its GitHub repository."
 SAVED = "Project saved."
 DELETED = "Project deleted."
-GUIDE_LINK = "Setup guide"
 
 # The repository panel.
 REPOSITORY = "Repository"
@@ -161,7 +160,7 @@ STEPS = {
         ),
         "off_operator": (
             "Running this Hub yourself? Set GITHUB_WEBHOOK_SECRET in its .env and restart it to "
-            "turn webhooks on. The guide's “Testing on your own computer” has the steps."
+            "turn webhooks on."
         ),
         "show": "Show webhook settings",
         "show_again": "Show settings again",
@@ -176,10 +175,9 @@ STEPS = {
             "linking again gives a new address and secret."
         ),
         "local": (
-            "GitHub can't reach {host}: it's this computer. Put the Hub behind a tunnel and set "
-            "HUB_PUBLIC_URL in its .env to the tunnel's https:// address, then restart it: the "
-            "payload URL here will use that address. See the guide's “Testing on your own "
-            "computer”."
+            "GitHub can't reach {host}: it's this computer. Set HUB_PUBLIC_URL in the Hub's .env "
+            "to an https:// address GitHub can reach, then restart it: the payload URL here "
+            "will use that address."
         ),
     },
     "delivery": {
@@ -193,7 +191,7 @@ STEPS = {
         "done": "First delivery {first}. Latest {last}.",
         "off": "Comes after the webhook, once live updates are turned on for this Hub.",
         "trouble": (
-            "Nothing yet? On GitHub, open the webhook's Recent Deliveries tab: the guide "
+            "Nothing yet? On GitHub, open the webhook's Recent Deliveries tab. This step's help "
             "explains each response."
         ),
         "action": "Check again",
@@ -212,40 +210,32 @@ COPIED = "Copied"
 COPY_FAILED = "Press Ctrl+C"
 COPY_LABEL = "Copy {field}"
 
-# The setup guide (/projects/guide/): public, so it can be shared and read before signing up.
-GUIDE_TITLE = "Connect a GitHub repository"
-GUIDE_LEDE = (
-    "Link a Hub project to its repository on GitHub, and the Hub keeps the repository's "
-    "details current as you push, rename or archive it. It takes four steps and a couple of "
-    "minutes."
-)
-GUIDE_START = "Go to your projects"
-GUIDE_SIGN_IN = "Sign in to start"
-GUIDE_BEFORE_TITLE = "Before you start"
-GUIDE_BEFORE = [
+# Help on the setup checklist: each step's own (folded, unless it's the member's first
+# repository and the step is current), and what to have ready before starting.
+HELP_LABEL = "Help with this step"
+HELP_BEFORE_TITLE = "Before you start"
+HELP_BEFORE = [
     "A Hub account with a verified email address.",
     "A GitHub account.",
     "A public repository on GitHub that you're an admin of (you created it, or its owner made "
     "you an admin).",
-    "A Hub project to connect it to: create one from Projects.",
 ]
-GUIDE_STEPS_TITLE = "The four steps"
-GUIDE_STEPS = {
+HELP_STEPS = {
     "account": [
-        "In the Hub, open Connected accounts (in the menu under Account) and press Link GitHub.",
+        "Press Go to Connected accounts (it's also a tab of Account settings), then Link GitHub.",
         "GitHub asks you to authorise Axcenity Hub. It asks for no extra permissions: the Hub "
         "can read only public information, and it can never change anything on GitHub.",
         "You come back to Connected accounts, showing your GitHub username.",
     ],
     "repository": [
-        "Open your project and enter the repository as owner/name (for example "
+        "Enter the repository as owner/name (for example "
         "axcenity-studios/space-game), or paste its github.com address.",
         "The Hub asks GitHub whether you're an admin of it. If you're not, or it's private, "
         "the Hub says so and links nothing.",
         "Each repository can belong to one Hub project, and each project has one repository.",
     ],
     "webhook": [
-        "On your project, press Show webhook settings. The Hub shows a payload URL and a secret "
+        "Press Show webhook settings. The Hub shows a payload URL and a secret "
         "made for this repository alone.",
         "Press Open GitHub's Add webhook page (or go to the repository's Settings, then "
         "Webhooks, then Add webhook).",
@@ -254,13 +244,13 @@ GUIDE_STEPS = {
         "Add webhook.",
     ],
     "delivery": [
-        "GitHub sends a ping straight away. Reload your project: the last step turns Done and "
+        "GitHub sends a ping straight away. Reload this page: the last step turns Done and "
         "the repository shows Live updates.",
         "From then on, pushes, renames, archiving and deletion reach the Hub within seconds.",
     ],
 }
-GUIDE_ACCESS_TITLE = "What the Hub can and can't do"
-GUIDE_ACCESS = [
+HELP_ACCESS_TITLE = "What the Hub can and can't do"
+HELP_ACCESS = [
     "It reads the repository's public details: its name, description, default branch, "
     "visibility and when it was last pushed to.",
     "It checks your role on the repository with GitHub before anything that depends on it. "
@@ -270,13 +260,13 @@ GUIDE_ACCESS = [
     "Without a webhook, the details refresh from GitHub when you open the project (at most "
     "hourly).",
 ]
-GUIDE_TROUBLE_TITLE = "If a delivery fails"
-GUIDE_TROUBLE_LEDE = (
+HELP_TROUBLE_TITLE = "If a delivery fails"
+HELP_TROUBLE_LEDE = (
     "On GitHub, open the repository's Settings, then Webhooks, choose the Hub's webhook and "
     "open Recent Deliveries. Each delivery shows the Hub's response:"
 )
-GUIDE_TROUBLE_HEAD = ("Response", "What it means", "What to do")
-GUIDE_TROUBLE = [
+HELP_TROUBLE_HEAD = ("Response", "What it means", "What to do")
+HELP_TROUBLE = [
     ("200 ok", "Received and applied.", "Nothing: it works."),
     (
         "202 ignored",
@@ -307,32 +297,11 @@ GUIDE_TROUBLE = [
     (
         "Couldn't connect",
         "GitHub couldn't reach the Hub.",
-        "Check the payload URL. A Hub running on your own computer needs a tunnel (below).",
+        "Check the payload URL: it must be the Hub's address on the internet.",
     ),
 ]
-GUIDE_UNLINK_TITLE = "Unlinking"
-GUIDE_UNLINK = (
-    "Unlink from the repository panel on your project. The Hub forgets the repository at once, "
-    "and asks GitHub nothing, so it works even if you've lost access. Then delete the webhook on "
-    "GitHub (Settings, Webhooks), since the Hub can't."
+HELP_UNLINK = (
+    "Unlinking makes the Hub forget the repository at once. It asks GitHub nothing, so it works "
+    "even if you've lost access. Then delete the webhook on GitHub (Settings, Webhooks), since "
+    "the Hub can't."
 )
-GUIDE_LOCAL_TITLE = "Testing on your own computer"
-GUIDE_LOCAL = [
-    "GitHub can only deliver to an address on the internet, not to localhost or 127.0.0.1.",
-    "Turn webhooks on: set GITHUB_WEBHOOK_SECRET in the Hub's .env to a long random value "
-    "(the first command below makes one). Keep it: every repository's secret is made from it.",
-    "Start a tunnel to the Hub. A quick tunnel (the second command) needs no account and "
-    "prints a new https://….trycloudflare.com address each time. A named tunnel on a domain "
-    "you have in Cloudflare keeps one address, such as https://hub-dev.example.com.",
-    "Set HUB_PUBLIC_URL in the .env to the tunnel's https:// address (scheme and host only) "
-    "and restart the Hub. Its host is allowed, and the payload URL the project page shows "
-    "uses it.",
-    "A quick tunnel's address changes each time: update HUB_PUBLIC_URL and the webhook's "
-    "payload URL on GitHub to match.",
-]
-GUIDE_LOCAL_COMMANDS = [
-    'uv run python -c "import secrets; print(secrets.token_hex(32))"',
-    "cloudflared tunnel --url http://127.0.0.1:8000",
-    "uv run --env-file .env python manage.py tailwind runserver",
-]
-GUIDE_LOCAL_NOTE = "Only for running the Hub yourself: members of a hosted Hub never need this."

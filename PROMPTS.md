@@ -28,6 +28,75 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-24 — One Account settings page, profile photos, centred pages, and the setup guide folded into each step
+
+### Prompts
+
+1. "Ok everything so far is coming together functionally, however appearance-wise I feel like
+   there could be some additional improvements. In all of the profile menus they are shifted
+   to the left, I would like them to be centered liekt he rest of the application. There also
+   is not really too much going on with each of the pages. I like the work gode with the
+   setup guide for additing additional content to the page. As for profile and account I can
+   not change my photo. I think it would laos be a good idea to put the profile email
+   password 2FA and connected accounts into one page menu, also the setup guide while it is
+   nice I feel like it should ultimately just be included when setting up a repository for
+   the first time or if they would like further assistance on the steps. Also it says
+   Axcenity then hub really this is more of an an account center than anything. remove the
+   testing on your own computer section as well."
+2. "Go ahead and append this conversation to PROMPTS.md then commit and push"
+
+### Summary
+
+- **Outcome:** All seven asks built. 1160 fast tests and 85 browser tests pass; Ruff is
+  clean and `makemigrations --check` shows nothing new.
+- **Changes:**
+  - Centring: every signed-in page sits in one 60rem column (`.app-column`) centred beside
+    the rail.
+  - One page: the rail has a single **Account settings** item. Profile, Email, Password,
+    Two-factor and Connected accounts are tabs (`strings.ACCOUNT_TABS`) under one header
+    (`templates/accounts/base.html`): photo, name, "Member since", and status tiles for
+    email, two-factor and GitHub, each linking to its tab. allauth's pages join through
+    `layouts/manage.html` and new overrides of `account/password_change.html` and
+    `mfa/index.html`. Every tab keeps its own URL.
+  - Fuller pages, in the setup checklist's panel style: Profile has a live "As others see
+    you" preview; Email has "What we send"; Password has "A good password"; Two-factor shows
+    the app and recovery codes as numbered steps; Connected accounts has "What linking does".
+  - Photos: `accounts/avatars.py` checks size (2 MB), format (PNG, JPEG, WebP, GIF) and
+    dimensions (64–4096 px) before decoding. It then crops to a 256 px square and re-saves as
+    WebP, so no metadata is kept, under a random name. Migration `0005_profile_avatar`. Old
+    files are deleted on replace, remove or account deletion. `MEDIA_ROOT` (`DJANGO_MEDIA_ROOT`)
+    is git-ignored, and `/media/` is served only while `DEBUG` is on (`config/media.py`).
+    The photo, or an initial, shows in the bar, the menu, the header and the preview.
+  - Setup guide: the `/projects/guide/` page is gone. Each checklist step ends in "Help with
+    this step". On a member's first repository, the current step's help and a "Before you
+    start" list open by themselves. Troubleshooting is in step 4's help; unlinking is under
+    the repository panel. `guide` is now a usable project name.
+  - "Testing on your own computer" removed, with the copy that pointed to it.
+  - Bar label "Hub" → "Account center"; rail headings "Workspace" and "Account".
+  - Tests: `test_accounts_photos.py` (new); the shell, header, help and browser tests were
+    rewritten. Docs: app-shell, projects, accounts, ARCHITECTURE, TESTING, README.
+- **Decisions:** One rail item with tabs rather than one long page, so allauth's flows and
+  links keep working. The header reads only what the Hub recorded and never asks GitHub; a
+  token GitHub refused shows "Reconnect", not "Linked". Photo uploads were planned for
+  Phase 13 and built early because they were asked for. Production must serve `MEDIA_ROOT`
+  at `/media/` from the web server. The README's Cloudflare Tunnel notes were kept, since
+  they are for whoever runs the Hub, not for members. Product sentences still say "the Hub".
+- **Deviations:** None; the ambiguous asks were settled by the decisions above.
+- **Sideways:**
+  - The migration test failed ("no such column: accounts_profile.avatar") because the profile
+    signals fired at schema 0001; they are now disconnected for that window.
+  - `static()`'s unnamed media route broke the URL walk test; it was replaced with a named
+    development-only view.
+  - Playwright locators matched two elements, and a menu toggle closed itself; both were
+    fixed in the tests.
+  - Screenshots caught: truncated status tiles and a wrapping bar label on phones; the
+    GitHub tile saying "Linked" for a refused token; a cramped phone trouble table; a
+    duplicate "Forgot password" link; help copy that said "Open your project" while already
+    on it. All were fixed.
+  - At commit time `test_the_copied_license_and_notice_match_the_engines` failed. The
+    engine's `NOTICE` has uncommitted edits in its own checkout. The Hub's copy still
+    matches the engine's last commit, so it was left alone.
+
 ## 2026-11-24 — Custom error pages for every status
 
 ### Prompts

@@ -3,7 +3,6 @@
 from allauth.account.decorators import reauthentication_required
 from allauth.account.internal.flows.email_verification import send_verification_email_for_user
 from allauth.account.models import EmailAddress
-from allauth.mfa.models import Authenticator
 from allauth.socialaccount.adapter import get_adapter as get_social_adapter
 from allauth.socialaccount.internal.flows import connect as connect_flows
 from allauth.socialaccount.models import SocialAccount
@@ -26,7 +25,7 @@ from .models import GitHubLink, Profile
 
 
 class ProfileView(LoginRequiredMixin, UpdateView):
-    """The signed-in member's own profile: what others see, and its edit form."""
+    """The signed-in member's own profile: what others see, its photo, and its edit form."""
 
     form_class = ProfileForm
     template_name = "accounts/profile.html"
@@ -41,17 +40,6 @@ class ProfileView(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, strings.PROFILE_SAVED)
         return super().form_valid(form)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
-        context.update(
-            verified=has_verified_email(user),
-            two_factor=Authenticator.objects.filter(
-                user=user, type=Authenticator.Type.TOTP
-            ).exists(),
-        )
-        return context
 
 
 class EmailView(LoginRequiredMixin, TemplateView):

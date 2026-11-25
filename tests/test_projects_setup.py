@@ -1,5 +1,5 @@
 """The repository setup checklist (projects.setup) on the project page and the cards, and the
-public setup guide."""
+help each step carries."""
 
 import json
 import re
@@ -133,7 +133,7 @@ def test_the_checklist_opens_the_current_step_and_folds_once_done(client):
     RepositoryLink.objects.filter(pk=link.pk).update(webhook_shown_at=NOW)
     page = unescape(client.get(project.get_absolute_url()).content.decode())
     assert step_state(page, "delivery") == "current"
-    assert strings.STEPS["delivery"]["trouble"] in page and reverse("projects:guide") in page
+    assert strings.STEPS["delivery"]["trouble"] in page
 
     RepositoryLink.objects.filter(pk=link.pk).update(first_webhook_at=NOW, webhook_at=NOW)
     page = unescape(client.get(project.get_absolute_url()).content.decode())
@@ -267,44 +267,63 @@ def test_the_list_shows_each_projects_setup_progress(client):
     assert "2 of 5 projects" in page
 
 
-# ---------- The guide ----------
+# ---------- Each step's help ----------
+
+
+def help_open(page: str) -> dict[str, bool]:
+    """Each help disclosure on the page, by its key: whether it's open."""
+    return {
+        key: bool(is_open)
+        for key, is_open in re.findall(r'<details class="pj-help" data-help="(\w+)"( open)?>', page)
+    }
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("signed_in", [False, True])
-def test_the_guide_is_public_and_covers_every_step_and_response(client, signed_in):
-    if signed_in:
-        client.force_login(make_member())
-    response = client.get(reverse("projects:guide"))
-    assert response.status_code == 200
-    page = unescape(response.content.decode())
-    assert strings.GUIDE_TITLE in page
+def test_every_step_carries_its_help_and_the_troubleshooting_lives_in_the_last(client):
+    ada = make_member()
+    client.force_login(ada)
+    project = Project.objects.create(owner=ada, name="Space Game")
+    make_link(project, webhook_shown_at=NOW)
+    page = unescape(client.get(project.get_absolute_url()).content.decode())
+    assert set(help_open(page)) == {"before", "account", "repository", "webhook", "delivery"}
     for key in strings.STEPS:
-        assert strings.STEPS[key]["title"] in page
-        assert all(paragraph in page for paragraph in strings.GUIDE_STEPS[key])
-    for code, _, _ in strings.GUIDE_TROUBLE:
-        assert code in page
-    for anchor in ["before", "steps", "access", "trouble", "unlink", "local"]:
-        assert f'id="{anchor}"' in page
-    # The guide's responses are the webhook's real ones.
+        assert all(paragraph in page for paragraph in strings.HELP_STEPS[key])
+    assert all(item in page for item in strings.HELP_ACCESS)
+    assert strings.HELP_UNLINK in page
+    # The responses in the last step's help are the webhook's real ones.
     from projects.webhooks import ACCEPTED, IGNORED, MALFORMED, REPLAYED, UNSIGNED
 
     for outcome in [ACCEPTED, IGNORED, MALFORMED, REPLAYED, UNSIGNED]:
         assert f"{outcome.status} {outcome.text}" in page
-    rail = page[page.index('id="app-rail"') : page.index("</details>", page.index('id="app-rail"'))]
-    if signed_in:
-        assert strings.GUIDE_START in page and "Profile" in rail
-    else:
-        # A visitor sees the Hub's items, a way to sign in, and no account pages.
-        assert strings.GUIDE_SIGN_IN in page and "Profile" not in rail and "Setup guide" in rail
-        assert f"{reverse('account_login')}?next=" in page
+    # Nothing about running the Hub on your own computer, and no separate guide.
+    assert "tunnel" not in page.lower() and "/projects/guide/" not in page
 
 
 @pytest.mark.django_db
-def test_guide_is_not_a_usable_project_name():
-    from django.core.exceptions import ValidationError
+def test_help_opens_by_itself_on_the_current_step_of_a_first_repository_only(client):
+    ada = make_member(github=False)
+    client.force_login(ada)
+    first = Project.objects.create(owner=ada, name="Space Game")
+    page = unescape(client.get(first.get_absolute_url()).content.decode())
+    # A first repository, nothing done: what to have ready, and step 1's help, are open.
+    assert help_open(page) == {
+        "before": True, "account": True, "repository": False, "webhook": False, "delivery": False,
+    }  # fmt: skip
 
+    make_link(first)
+    second = Project.objects.create(owner=ada, name="Moon Base")
+    page = unescape(client.get(second.get_absolute_url()).content.decode())
+    # The member has linked a repository before: no "before you start", every help folded.
+    assert "before" not in help_open(page)
+    assert not any(help_open(page).values())
+    assert strings.HELP_LABEL in page
+
+
+@pytest.mark.django_db
+def test_the_guide_page_is_gone_and_guide_is_a_usable_project_name(client):
     from projects import services
 
-    with pytest.raises(ValidationError):
-        services.create_project(make_member(), name="Guide")
+    client.force_login(make_member())
+    assert client.get("/projects/guide/").status_code == 404
+    project = services.create_project(make_member("bea"), name="Guide")
+    assert project.slug == "guide"

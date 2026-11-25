@@ -3,7 +3,7 @@
 from allauth.mfa import signals as mfa_signals
 from allauth.socialaccount import signals as social_signals
 from django.conf import settings
-from django.db.models.signals import post_save
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 from .models import Profile
@@ -14,6 +14,13 @@ def create_profile(sender, instance, created: bool, **kwargs) -> None:
     """Every user gets a Profile when they're created, however they're created."""
     if created:
         Profile.objects.get_or_create(user=instance)
+
+
+@receiver(post_delete, sender=Profile)
+def delete_photo(sender, instance: Profile, **kwargs) -> None:
+    """A deleted profile (or user) takes its photo's file with it."""
+    if instance.avatar:
+        instance.avatar.storage.delete(instance.avatar.name)
 
 
 @receiver(mfa_signals.authenticator_added)

@@ -1,0 +1,33 @@
+{% extends "app/shell.html" %}
+{% load app_shell %}
+{# Account settings: every account page (the Hub's and allauth's, through layouts/manage.html)  #}
+{# is a tab under one header: the member, their account's state at a glance, and the tabs.      #}
+{% block before_content %}
+{% account_copy as copy %}
+{% member as me %}
+{% if me %}
+<section class="panel pj-panel ac-head" aria-label="{{ copy.SETTINGS_LABEL }}">
+  <div class="ac-id">
+    {% include "partials/avatar.html" with person=me size=72 %}
+    <div class="ac-who">
+      <p class="micro text-fg-weak">{{ copy.SETTINGS_LABEL }}</p>
+      <p class="ac-name">{{ me.name }}</p>
+      <p class="ac-handle"><span class="app-mono">@{{ me.username }}</span><span aria-hidden="true"> · </span><span>{{ me.since }}</span></p>
+    </div>
+    <ul class="ac-status">
+      <li><a href="{% url 'account_email' %}" class="ac-stat"><span class="ac-stat-icon">{% include "partials/icon.html" with name="mail" size=16 %}</span><span class="micro ac-stat-label">{{ copy.STATUS_EMAIL }}</span><span class="ac-stat-value"{% if me.verified %} data-on{% endif %}>{% if me.verified %}{{ copy.VERIFIED }}{% else %}{{ copy.NOT_VERIFIED }}{% endif %}</span></a></li>
+      <li><a href="{% url 'mfa_index' %}" class="ac-stat"><span class="ac-stat-icon">{% include "partials/icon.html" with name="shield" size=16 %}</span><span class="micro ac-stat-label">{{ copy.STATUS_TWO_FACTOR }}</span><span class="ac-stat-value"{% if me.two_factor %} data-on{% endif %}>{% if me.two_factor %}{{ copy.TWO_FACTOR_ON_SHORT }}{% else %}{{ copy.TWO_FACTOR_OFF_SHORT }}{% endif %}</span></a></li>
+      <li><a href="{% url 'socialaccount_connections' %}" class="ac-stat"><span class="ac-stat-icon">{% include "partials/icon.html" with name="link" size=16 %}</span><span class="micro ac-stat-label">{{ copy.STATUS_GITHUB }}</span><span class="ac-stat-value"{% if me.github == "linked" %} data-on{% endif %}>{% if me.github == "linked" %}{{ copy.GITHUB_LINKED_SHORT }}{% elif me.github == "attention" %}{{ copy.GITHUB_RECONNECT_SHORT }}{% else %}{{ copy.GITHUB_NOT_LINKED_SHORT }}{% endif %}</span></a></li>
+    </ul>
+  </div>
+  <nav class="ac-tabs" aria-label="{{ copy.SETTINGS_LABEL }}">
+    {% account_tabs as tabs %}
+    <ul>
+      {% for tab in tabs %}
+      <li><a href="{{ tab.href }}" class="ac-tab"{% if tab.current %} aria-current="page"{% endif %}>{% include "partials/icon.html" with name=tab.icon size=14 %}{{ tab.label }}</a></li>
+      {% endfor %}
+    </ul>
+  </nav>
+</section>
+{% endif %}
+{% endblock %}

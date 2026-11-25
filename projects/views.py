@@ -1,4 +1,4 @@
-"""Project pages, in the app shell, the public setup guide, and the repository webhook.
+"""Project pages, in the app shell, and the repository webhook.
 
 Every project page is its owner's only: anyone else gets a 404 (Phase 11 adds members).
 Views are thin; the rules live in projects.services, projects.github and projects.webhooks.
@@ -24,7 +24,6 @@ from django.views.generic import (
     DetailView,
     FormView,
     ListView,
-    TemplateView,
     UpdateView,
 )
 
@@ -87,8 +86,21 @@ def project_setup(user, link: RepositoryLink | None) -> dict:
     }
 
 
-def step_rows(request, setup: Setup, link: RepositoryLink | None) -> list[dict]:
-    """Each setup step as the page shows it: its number, words, state and summary line."""
+def first_repository(user, project: Project) -> bool:
+    """Whether this is the member's first repository: none of their other projects has one.
+    The setup's help opens by itself on the current step until then."""
+    return not (
+        RepositoryLink.objects.filter(project__in=Project.objects.owned_by(user))
+        .exclude(project=project)
+        .exists()
+    )
+
+
+def step_rows(
+    request, setup: Setup, link: RepositoryLink | None, *, first_time: bool = False
+) -> list[dict]:
+    """Each setup step as the page shows it: its number, words, state and summary line, and
+    its help (open on the current step of a member's first repository)."""
     account = github.member_link(request.user)
     rows = []
     for step in setup.steps:
@@ -114,6 +126,8 @@ def step_rows(request, setup: Setup, link: RepositoryLink | None) -> list[dict]:
                 "summary": summary,
                 "open": step.open,
                 "words": copy,
+                "help": strings.HELP_STEPS[step.key],
+                "help_open": first_time and step.state in (State.CURRENT, State.ATTENTION),
             }
         )
     return rows
@@ -232,6 +246,7 @@ class ProjectDetailView(OwnedProjectMixin, DetailView):
                 self.secret_shown = True
                 link.refresh_from_db()
         setup = setup_for(request.user, link)
+        first_time = first_repository(request.user, project)
         fields = []
         if hook is not None:
             values = {
@@ -251,7 +266,8 @@ class ProjectDetailView(OwnedProjectMixin, DetailView):
             link=link,
             notice=notice,
             setup=setup,
-            steps=step_rows(request, setup, link),
+            steps=step_rows(request, setup, link, first_time=first_time),
+            first_time=first_time,
             link_form=LinkRepositoryForm(),
             hook=hook,
             webhook_fields=fields,
@@ -265,28 +281,6 @@ class ProjectDetailView(OwnedProjectMixin, DetailView):
             ),
             # Only a development server's own developer can act on this hint.
             show_operator_hint=settings.DEBUG,
-        )
-        return context
-
-
-class ProjectGuideView(TemplateView):
-    """The setup guide: connecting a GitHub repository, step by step (public)."""
-
-    template_name = "projects/guide.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update(
-            text=strings,
-            steps=[
-                {
-                    "number": f"{n:02d}",
-                    "title": strings.STEPS[key]["title"],
-                    "icon": strings.STEPS[key]["icon"],
-                    "paragraphs": strings.GUIDE_STEPS[key],
-                }
-                for n, key in enumerate(strings.STEPS, start=1)
-            ],
         )
         return context
 

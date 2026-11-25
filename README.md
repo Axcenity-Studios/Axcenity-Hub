@@ -44,7 +44,7 @@ Ticked boxes in [plans/axcenity-hub.md](plans/axcenity-hub.md) are the source of
 | **6C** | The API reference's layout and docs search | Done |
 | **7** | `/download/`: releases from the GitHub API | Done |
 | **8–9** | Accounts, two-factor sign-in, GitHub linking | Done |
-| **10** | Projects, repository linking, webhooks and the setup guide | Done |
+| **10** | Projects, repository linking, webhooks and the setup checklist's help | Done |
 | **11** | Project teams (Owner, Maintainer, Viewer) | Next |
 | **12–15** | Forums, showcases, bug reports, moderation | Planned |
 | **16–17** | REST API, and porting the Toolbox into the Hub | Planned |
@@ -132,13 +132,14 @@ Add `export UV_ENV_FILE=.env` to your shell profile to load it on every `uv run`
 | `GITHUB_WEBHOOK_SECRET` | none | The root secret for repository webhooks; each linked repository's own secret is derived from it. Webhooks are off unless it's set |
 | `HUB_PUBLIC_URL` | none | The Hub's address on the internet (`https://hub.example.com`), scheme and host only. Webhook payload URLs are built on it, its host is allowed, and sign-in forms posted from it pass the CSRF check |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | none | Other comma-separated `https://` origins allowed to post forms |
+| `DJANGO_MEDIA_ROOT` | `media/` (git-ignored) | Where members' profile photos are stored. The development server serves it at `/media/`; in production, the web server must |
 
 Production settings (HSTS, SSL redirect, `check --deploy`) are hardened in Phase 8; see [docs/architecture/accounts.md](docs/architecture/accounts.md#production-settings).
 
 ## Connecting GitHub repositories
 
 Members link a Hub project to a public GitHub repository they're an admin of. The project page
-walks them through four steps, and the public guide at `/projects/guide/` explains each one. The
+walks them through four steps, each with its own help (open by itself on a first repository). The
 Hub asks GitHub for **no extra permissions**: it reads the repository's public details with the
 member's own linked account, and GitHub sends updates through a **webhook** the member adds by
 hand. This section is for whoever runs the Hub: what the server needs, and how to try webhooks

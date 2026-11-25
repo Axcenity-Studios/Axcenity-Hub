@@ -1,30 +1,54 @@
-{% extends "app/shell.html" %}
+{% extends "accounts/base.html" %}
 {% load app_shell %}
 {% block head_title %}Profile{% endblock %}
 {% block content %}
 {% account_copy as copy %}
+{% member as me %}
 <div class="app-page">
   <header class="app-page-head">
     <h1 class="headline app-title">{{ copy.PROFILE_TITLE }}</h1>
     <p class="app-lede">{{ copy.PROFILE_LEDE }}</p>
   </header>
 
-  <section class="app-panel panel" aria-labelledby="profile-form-title">
-    <h2 id="profile-form-title" class="app-heading">{{ object.name }}</h2>
-    <form method="post" class="app-form" novalidate>
-      {% csrf_token %}
-      {% include "partials/form_fields.html" with form=form %}
-      <div class="app-actions"><button type="submit" class="btn btn-primary">{{ copy.PROFILE_SAVE }}</button></div>
-    </form>
-  </section>
+  <div class="ac-split">
+    <section class="panel pj-panel" aria-labelledby="profile-form-title">
+      <div class="pj-bar"><h2 id="profile-form-title" class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="user" size=14 %}{{ copy.PROFILE_EDIT }}</h2></div>
+      <form method="post" enctype="multipart/form-data" class="ac-body app-form" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="app-form-errors" role="alert">{% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+        <div class="ac-photo" data-photo="{% if me.photo %}set{% else %}none{% endif %}">
+          {% include "partials/avatar.html" with person=me size=96 %}
+          <div class="ac-photo-fields">
+            {% include "partials/form_field.html" with field=form.photo %}
+            {% if me.photo %}{% include "partials/form_field.html" with field=form.remove_photo %}{% else %}<p class="app-help">{{ copy.PHOTO_NONE }}</p>{% endif %}
+          </div>
+        </div>
+        {% include "partials/form_field.html" with field=form.display_name %}
+        {% include "partials/form_field.html" with field=form.bio %}
+        <div class="app-actions"><button type="submit" class="btn btn-primary">{{ copy.PROFILE_SAVE }}</button></div>
+      </form>
+    </section>
 
-  <section class="app-panel panel" aria-labelledby="account-title">
-    <h2 id="account-title" class="app-heading">{{ copy.ACCOUNT_DETAILS }}</h2>
-    <dl class="app-rows">
-      <div><dt>{{ copy.USERNAME }}</dt><dd><span class="app-mono">{{ user.get_username }}</span> <span class="app-help">{{ copy.USERNAME_NOTE }}</span></dd></div>
-      <div><dt>{{ copy.EMAIL }}</dt><dd><span class="app-mono">{{ user.email }}</span> <span class="app-badge micro">{% if verified %}{{ copy.VERIFIED }}{% else %}{{ copy.NOT_VERIFIED }}{% endif %}</span>{% if not verified %} <a class="app-link" href="{% url 'account_email' %}">{{ copy.MANAGE }}</a>{% endif %}</dd></div>
-      <div><dt>{{ copy.TWO_FACTOR }}</dt><dd>{% if two_factor %}{{ copy.TWO_FACTOR_ON }}{% else %}{{ copy.TWO_FACTOR_OFF }}{% endif %} <a class="app-link" href="{% url 'mfa_index' %}">{{ copy.MANAGE }}</a></dd></div>
-    </dl>
-  </section>
+    <aside class="panel pj-panel" aria-labelledby="preview-title">
+      <div class="pj-bar">
+        <h2 id="preview-title" class="tb-chip tb-chip-current">{{ copy.PROFILE_PREVIEW }}</h2>
+        <span class="pj-tag micro">{{ copy.PROFILE_PREVIEW_TAG }}</span>
+      </div>
+      <div class="ac-preview">
+        <div class="ac-preview-id">
+          {% include "partials/avatar.html" with person=me size=56 %}
+          <div class="min-w-0">
+            <p class="ac-preview-name">{{ me.name }}</p>
+            <p class="app-mono text-fg-secondary">@{{ me.username }}</p>
+          </div>
+        </div>
+        <p class="ac-preview-bio{% if not me.bio %} text-fg-weak{% endif %}">{% if me.bio %}{{ me.bio|linebreaksbr }}{% else %}{{ copy.PROFILE_NO_BIO }}{% endif %}</p>
+      </div>
+      <dl class="ac-facts">
+        <div><dt class="micro">{{ copy.USERNAME }}</dt><dd><span class="app-mono">{{ me.username }}</span><span class="app-help">{{ copy.USERNAME_NOTE }}</span></dd></div>
+        <div><dt class="micro">{{ copy.JOINED }}</dt><dd>{{ user.date_joined|date:"j F Y" }}</dd></div>
+      </dl>
+    </aside>
+  </div>
 </div>
 {% endblock %}

@@ -1,0 +1,3 @@
+{# A member's photo, or their initial on a tile. Usage: {% include "partials/avatar.html" with person=me size=40 %} #}
+{# `person` has name, photo (a URL or "") and initial ({% member %}). Decorative beside the name it sits with, unless alt is given. #}
+{% if person.photo %}<img class="app-avatar" src="{{ person.photo }}" width="{{ size }}" height="{{ size }}" alt="{{ alt|default:'' }}" style="--avatar: {{ size }}px" decoding="async">{% else %}<span class="app-avatar app-avatar-initial" style="--avatar: {{ size }}px"{% if alt %} role="img" aria-label="{{ alt }}"{% else %} aria-hidden="true"{% endif %}>{{ person.initial }}</span>{% endif %}

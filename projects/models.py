@@ -36,8 +36,8 @@ class Project(models.Model):
     NAME_MAX = 60
     DESCRIPTION_MAX = 500
     LIMIT_PER_OWNER = 5
-    # Slugs that would shadow the app's own URLs (/projects/new/, /projects/guide/, hooks).
-    RESERVED_SLUGS = frozenset({"new", "guide", "hooks"})
+    # Slugs that would shadow the app's own URLs (/projects/new/, /projects/hooks/).
+    RESERVED_SLUGS = frozenset({"new", "hooks"})
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="projects"

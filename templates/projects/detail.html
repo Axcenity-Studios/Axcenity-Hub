@@ -3,7 +3,7 @@
 {% block head_title %}{{ project.name }}{% endblock %}
 {% block content %}
 {# A project: its repository setup checklist (projects.setup), then the linked repository. #}
-<div class="app-page app-page-wide" data-repository="{% if link %}linked{% else %}none{% endif %}">
+<div class="app-page" data-repository="{% if link %}linked{% else %}none{% endif %}">
   <div class="pj-head">
     <header class="app-page-head">
       <p class="micro text-fg-weak"><a class="app-link" href="{% url 'projects:list' %}">{{ text.LIST_TITLE }}</a></p>
@@ -25,6 +25,14 @@
         <span class="pj-setup-toggle" aria-hidden="true"><span class="pj-when-open">{{ text.SETUP_HIDE }}</span><span class="pj-when-closed">{{ text.SETUP_SHOW }}</span></span>
       </span>
     </summary>
+    {% if first_time and not setup.complete %}
+    <div class="pj-before">
+      <details class="pj-help" data-help="before"{% if setup.done == 0 %} open{% endif %}>
+        <summary>{% include "partials/icon.html" with name="check" size=16 %}{{ text.HELP_BEFORE_TITLE }}</summary>
+        <div class="pj-help-body"><ul class="pj-guide-list">{% for item in text.HELP_BEFORE %}<li>{{ item }}</li>{% endfor %}</ul></div>
+      </details>
+    </div>
+    {% endif %}
     <ol class="pj-steps">
       {% for step in steps %}
       <li id="setup-{{ step.key }}" class="pj-step" data-state="{{ step.state }}">
@@ -56,7 +64,7 @@
           </form>
 
           {% elif step.key == "webhook" and step.state == "off" %}
-          {% if show_operator_hint %}<p class="pj-step-body app-help" data-operator-hint>{{ step.words.off_operator }} <a class="app-link" href="{% url 'projects:guide' %}#local">{{ text.GUIDE_LINK }}</a></p>{% endif %}
+          {% if show_operator_hint %}<p class="pj-step-body app-help" data-operator-hint>{{ step.words.off_operator }}</p>{% endif %}
 
           {% elif step.key == "webhook" and step.state != "waiting" %}
           <div class="pj-step-body">
@@ -89,18 +97,38 @@
 
           {% elif step.key == "delivery" and step.state == "current" %}
           <div class="pj-step-body">
-            <p class="app-help">{{ step.words.trouble }} <a class="app-link" href="{% url 'projects:guide' %}#trouble">{{ text.GUIDE_LINK }}</a></p>
+            <p class="app-help">{{ step.words.trouble }}</p>
             <div class="app-actions"><a class="btn btn-quiet" href="{{ project.get_absolute_url }}#setup-delivery">{{ step.words.action }}</a></div>
           </div>
           {% endif %}
+
+          {# The step's help: open by itself on the current step of a member's first repository. #}
+          <details class="pj-help" data-help="{{ step.key }}"{% if step.help_open %} open{% endif %}>
+            <summary>{% include "partials/icon.html" with name="guide" size=16 %}{{ text.HELP_LABEL }}</summary>
+            <div class="pj-help-body">
+              <ul class="pj-guide-list">{% for paragraph in step.help %}<li>{{ paragraph }}</li>{% endfor %}</ul>
+              {% if step.key == "account" %}
+              <p class="micro pj-help-title">{{ text.HELP_ACCESS_TITLE }}</p>
+              <ul class="pj-guide-list">{% for item in text.HELP_ACCESS %}<li>{{ item }}</li>{% endfor %}</ul>
+              {% elif step.key == "delivery" %}
+              <p class="micro pj-help-title">{{ text.HELP_TROUBLE_TITLE }}</p>
+              <p class="text-fg">{{ text.HELP_TROUBLE_LEDE }}</p>
+              <div class="pj-table-wrap">
+                <table class="pj-table">
+                  <thead><tr>{% for heading in text.HELP_TROUBLE_HEAD %}<th scope="col">{{ heading }}</th>{% endfor %}</tr></thead>
+                  <tbody>{% for code, meaning, fix in text.HELP_TROUBLE %}<tr><td>{{ code }}</td><td>{{ meaning }}</td><td>{{ fix }}</td></tr>{% endfor %}</tbody>
+                </table>
+              </div>
+              {% endif %}
+            </div>
+          </details>
         </div>
       </li>
       {% endfor %}
     </ol>
-    <p class="pj-foot micro">
-      <span>{% if setup.complete %}{{ text.SETUP_DONE_NOTE }}{% elif setup.live_updates_off %}{{ text.SETUP_OFF_NOTE }}{% endif %}</span>
-      <a class="app-link inline-flex items-center gap-2" href="{% url 'projects:guide' %}">{% include "partials/icon.html" with name="guide" size=14 %}{{ text.GUIDE_LINK }}</a>
-    </p>
+    {% if setup.complete or setup.live_updates_off %}
+    <p class="pj-foot micro">{% if setup.complete %}{{ text.SETUP_DONE_NOTE }}{% else %}{{ text.SETUP_OFF_NOTE }}{% endif %}</p>
+    {% endif %}
   </details>
 
   {% if link %}
@@ -134,6 +162,7 @@
           <button type="submit" class="btn btn-quiet btn-sm">{{ text.REPOSITORY_UNLINK }}</button>
         </form>
       </div>
+      <p class="app-help">{{ text.HELP_UNLINK }}</p>
     </div>
   </section>
   {% endif %}

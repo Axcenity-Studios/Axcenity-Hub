@@ -18,7 +18,7 @@ from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
 
-from . import throttle, turnstile
+from . import avatars, throttle, turnstile
 from .models import Profile
 
 Kind = throttle.Kind
@@ -128,7 +128,19 @@ class MFAReauthenticateForm(MFABackstopMixin, mfa_forms.ReauthenticateForm):
 
 
 class ProfileForm(forms.ModelForm):
-    """The parts of a profile its owner can change."""
+    """The parts of a profile its owner can change, and its photo.
+
+    The photo is checked and remade by accounts.avatars; the stored file is only ever the
+    Hub's own square WebP. A replaced or removed photo's file is deleted.
+    """
+
+    photo = forms.FileField(
+        required=False,
+        label="Photo",
+        help_text="PNG, JPEG, WebP or GIF, up to 2 MB. It's cropped to a square.",
+        widget=forms.FileInput(attrs={"accept": "image/png,image/jpeg,image/webp,image/gif"}),
+    )
+    remove_photo = forms.BooleanField(required=False, label="Remove my photo")
 
     class Meta:
         model = Profile
@@ -137,3 +149,25 @@ class ProfileForm(forms.ModelForm):
 
     def clean_display_name(self) -> str:
         return " ".join(self.cleaned_data["display_name"].split())
+
+    def clean_photo(self):
+        """The photo the Hub will store (made here, so an image that won't decode is a form
+        error, never a failed save), or None."""
+        upload = self.cleaned_data.get("photo")
+        if not upload:
+            return None
+        avatars.check(upload)
+        return avatars.process(upload)
+
+    def save(self, commit: bool = True) -> Profile:
+        profile = super().save(commit=False)
+        old = profile.avatar.name or ""
+        if photo := self.cleaned_data.get("photo"):
+            profile.avatar.save(photo.name, photo, save=False)
+        elif self.cleaned_data.get("remove_photo"):
+            profile.avatar = ""
+        if commit:
+            profile.save()
+            if old and old != profile.avatar.name:
+                profile.avatar.storage.delete(old)
+        return profile

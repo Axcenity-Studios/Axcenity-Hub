@@ -1,5 +1,5 @@
 """The project pages in headless Chromium: the empty list, the setup checklist at each stage,
-the webhook values and their copy buttons, the cards and the public guide fit every screen
+the webhook values and their copy buttons, each step's help and the cards fit every screen
 from a phone to a desktop, in dark and light, with no sideways scroll.
 
 Screenshots go to screenshots/projects/ for review by eye. GitHub is mocked with `responses`
@@ -49,6 +49,15 @@ def fits(page, width: int) -> None:
     )
 
 
+def centred(page) -> None:
+    """The page's column sits centred in the main area (beside the rail on a desktop)."""
+    assert page.evaluate(
+        "(() => { const main = document.querySelector('.app-main').getBoundingClientRect();"
+        "  const col = document.querySelector('.app-column').getBoundingClientRect();"
+        "  return Math.abs((col.left - main.left) - (main.right - col.right)) <= 1; })()"
+    )
+
+
 def shot(page, path: str) -> None:
     """A full-page screenshot once the motifs in view have drawn in."""
     page.wait_for_timeout(1600)
@@ -88,6 +97,11 @@ def test_the_project_pages_guide_setup_and_fit_the_screen(open_home, settings, w
     project = Project.objects.create(owner=user, name="Space Game", description="A game in space.")
     page.goto(page.url.split("/projects/")[0] + project.get_absolute_url())
     assert page.locator("#setup-repository[data-state=current] input[name=repository]").is_visible()
+    # A first repository: the current step's help is open, the others folded.
+    assert page.locator("#setup-repository .pj-help[open]").is_visible()
+    assert page.locator("#setup-webhook .pj-help[open]").count() == 0
+    # The page sits in the middle of the space beside the rail.
+    centred(page)
     fits(page, width)
     shot(page, shots.format("step-repository"))
 
@@ -112,6 +126,10 @@ def test_the_project_pages_guide_setup_and_fit_the_screen(open_home, settings, w
     )
     url = page.locator("#webhook-value-0").inner_text().strip()
     assert page.evaluate("navigator.clipboard.readText()") == url
+    # The last step's help holds the responses table, which scrolls in its own box.
+    # (Showing the settings made step 4 current, so on a first repository it's already open.)
+    assert page.evaluate("document.querySelector('#setup-delivery .pj-help').open") is True
+    assert page.locator("#setup-delivery .pj-table").is_visible()
     fits(page, width)
     shot(page, shots.format("step-webhook"))
 
@@ -128,15 +146,4 @@ def test_the_project_pages_guide_setup_and_fit_the_screen(open_home, settings, w
     assert page.locator(".pj-card").count() == 2
     fits(page, width)
     shot(page, shots.format("list"))
-    assert errors == []
-
-
-@pytest.mark.parametrize("scheme", ["dark", "light"])
-@pytest.mark.parametrize("width", [360, 1280])
-def test_the_guide_reads_well_signed_out_on_any_screen(open_home, width, scheme):
-    page, errors = open_home(path="/projects/guide/", width=width, scheme=scheme)
-    assert page.locator(".pj-guide-steps .pj-step").count() == 4
-    # The troubleshooting table scrolls inside its own box, never the page.
-    assert page.evaluate("document.documentElement.scrollWidth") <= width
-    shot(page, f"screenshots/projects/guide-{width}-{scheme}.png")
     assert errors == []

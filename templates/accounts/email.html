@@ -1,4 +1,4 @@
-{% extends "app/shell.html" %}
+{% extends "accounts/base.html" %}
 {% load app_shell %}
 {% block head_title %}Email{% endblock %}
 {% block content %}
@@ -8,25 +8,46 @@
     <h1 class="headline app-title">{% block page_title %}{{ copy.EMAIL_TITLE }}{% endblock %}</h1>
     <p class="app-lede">{% if lede %}{{ lede }}{% else %}{{ copy.EMAIL_LEDE }}{% endif %}</p>
   </header>
-  <section class="app-panel panel" aria-labelledby="email-title">
-    <h2 id="email-title" class="app-heading">{{ copy.EMAIL }}</h2>
-    <ul class="app-list">
-      {% for address in addresses %}
-      <li><span class="app-mono">{{ address.email }}</span> <span class="app-badge micro">{% if address.verified %}{{ copy.VERIFIED }}{% else %}{{ copy.NOT_VERIFIED }}{% endif %}</span></li>
+
+  <section class="panel pj-panel" aria-labelledby="email-title">
+    <div class="pj-bar">
+      <h2 id="email-title" class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="mail" size=14 %}{{ copy.EMAIL_ADDRESS }}</h2>
+      <span class="pj-tag micro"{% if verified %} data-complete{% endif %}>{% if verified %}{{ copy.VERIFIED }}{% else %}{{ copy.NOT_VERIFIED }}{% endif %}</span>
+    </div>
+    <div class="ac-body">
+      <ul class="ac-addresses">
+        {% for address in addresses %}
+        <li><span class="ac-address">{{ address.email }}</span> <span class="app-badge micro">{% if address.verified %}{{ copy.VERIFIED }}{% else %}{{ copy.NOT_VERIFIED }}{% endif %}</span></li>
+        {% endfor %}
+      </ul>
+      <dl class="pj-facts ac-facts-2">
+        <div><dt class="micro">{{ copy.EMAIL_STATUS }}</dt><dd>{% if verified %}{{ copy.VERIFIED }}{% else %}{{ copy.NOT_VERIFIED }}{% endif %}</dd></div>
+        <div><dt class="micro">{{ copy.EMAIL_USED_FOR }}</dt><dd>{{ copy.EMAIL_USED_FOR_VALUE }}</dd></div>
+      </dl>
+      {% if not verified or next_url %}
+      <div class="app-actions">
+        {% if not verified %}
+        <form method="post">
+          {% csrf_token %}
+          {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+          <button type="submit" class="btn btn-primary">{{ copy.RESEND }}</button>
+        </form>
+        {% elif next_url %}
+        <a class="btn btn-primary" href="{{ next_url }}">{{ copy.CONTINUE }}</a>
+        {% endif %}
+      </div>
+      {% endif %}
+      <p class="app-help">{{ copy.EMAIL_ONE_ADDRESS }}</p>
+    </div>
+  </section>
+
+  <section class="panel pj-panel" aria-labelledby="sends-title">
+    <div class="pj-bar"><h2 id="sends-title" class="tb-chip tb-chip-current">{{ copy.EMAIL_SENDS_TITLE }}</h2></div>
+    <ul class="ac-points">
+      {% for icon, title, text in copy.EMAIL_SENDS %}
+      <li><span class="pj-icon">{% include "partials/icon.html" with name=icon size=18 %}</span><div><p class="ac-point-title">{{ title }}</p><p class="ac-point-text">{{ text }}</p></div></li>
       {% endfor %}
     </ul>
-    <p class="app-help">{{ copy.EMAIL_ONE_ADDRESS }}</p>
-    <div class="app-actions">
-      {% if not verified %}
-      <form method="post">
-        {% csrf_token %}
-        {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
-        <button type="submit" class="btn btn-primary">{{ copy.RESEND }}</button>
-      </form>
-      {% elif next_url %}
-      <a class="btn btn-primary" href="{{ next_url }}">{{ copy.CONTINUE }}</a>
-      {% endif %}
-    </div>
   </section>
 </div>
 {% endblock %}

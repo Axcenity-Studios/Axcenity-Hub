@@ -22,6 +22,25 @@ pytestmark = pytest.mark.browser
 PASSWORD = "a-Long-pass-7731"
 
 
+@pytest.fixture(autouse=True)
+def media(settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path
+    settings.DEBUG = True  # the development server serves the uploaded photo (config/media.py)
+
+
+def photo() -> dict:
+    """A 400 × 300 PNG, as Playwright uploads it."""
+    from io import BytesIO
+
+    from PIL import Image, ImageDraw
+
+    image = Image.new("RGB", (400, 300), "#2a3d52")
+    ImageDraw.Draw(image).ellipse((130, 70, 270, 230), fill="#e9c46a")
+    out = BytesIO()
+    image.save(out, "PNG")
+    return {"name": "ada.png", "mimeType": "image/png", "buffer": out.getvalue()}
+
+
 @pytest.mark.parametrize("scheme", ["dark", "light"])
 @pytest.mark.parametrize("width", [360, 1280])
 def test_a_member_signs_in_and_the_app_shell_fits_the_screen(open_home, width, scheme):
@@ -35,27 +54,65 @@ def test_a_member_signs_in_and_the_app_shell_fits_the_screen(open_home, width, s
     page.click("button[type=submit].btn-primary")
     page.wait_for_url("**/accounts/profile/")
 
-    # The rail: a closed disclosure on a phone, an open column on a desktop.
+    # The rail: a closed disclosure on a phone, an open column on a desktop. Every account
+    # page is its one Account settings item; the page's own tab is current.
     phone = width < 1024
+    current = "Account settings"
     assert page.evaluate("document.getElementById('app-rail').open") is (not phone)
     assert (
-        page.locator(".app-rail-link[aria-current=page]").inner_text().strip() == "Profile" or phone
+        page.locator(".app-rail-link[aria-current=page]").inner_text().strip() == current or phone
     )
     if phone:
         page.click(".app-rail-toggle")
-        assert page.locator(".app-rail-link[aria-current=page]").inner_text().strip() == "Profile"
+        assert page.locator(".app-rail-link[aria-current=page]").inner_text().strip() == current
+        page.click(".app-rail-toggle")
+    assert page.locator(".ac-tab[aria-current=page]").inner_text().strip() == "Profile"
+    # The tabs scroll in their own strip on a phone; the page never scrolls sideways.
+    assert page.evaluate("document.documentElement.scrollWidth") <= width
+    # The column sits centred in the space beside the rail.
+    assert page.evaluate(
+        "(() => { const main = document.querySelector('.app-main').getBoundingClientRect();"
+        "  const col = document.querySelector('.app-column').getBoundingClientRect();"
+        "  return Math.abs((col.left - main.left) - (main.right - col.right)) <= 1; })()"
+    )
+
+    # A photo: uploaded through the form, remade by the Hub, shown in the bar and header.
+    page.set_input_files("input[name=photo]", files=[photo()])
+    page.click("form.app-form button[type=submit]")
+    page.wait_for_selector("img.app-avatar")
+    page.wait_for_load_state("load")
+    assert page.evaluate(
+        "[...document.querySelectorAll('img.app-avatar')].every(img => img.complete && img.naturalWidth === 256)"
+    )
     # The account menu opens and holds the sign-out button; nothing pushes the page sideways.
     page.click(".app-user-button")
-    assert page.locator(".app-menu-item").is_visible()
+    assert page.locator(".app-user-menu").get_by_role("link", name="Account settings").is_visible()
+    assert page.get_by_role("button", name="Sign out").is_visible()
     assert page.evaluate("document.documentElement.scrollWidth") <= width
     assert page.evaluate(
         "[...document.querySelectorAll('.app-user-menu, .app-panel')]"
         ".every(box => box.getBoundingClientRect().right <= innerWidth + 0.5)"
     )
+    page.evaluate("document.querySelector('.app-user').open = false")  # a clear screenshot
     page.screenshot(path=f"screenshots/accounts/profile-{width}-{scheme}.png", full_page=True)
 
+    # Every other tab: its own tab current, centred, nothing sideways.
+    for tab, name in [("Email", "email"), ("Password", "password"), ("Two-factor", "two-factor")]:
+        if phone:
+            page.locator(".ac-tab", has_text=tab).scroll_into_view_if_needed()
+        page.locator(".ac-tab", has_text=tab).click()
+        page.wait_for_load_state("load")
+        assert page.locator(".ac-tab[aria-current=page]").inner_text().strip() == tab
+        assert page.evaluate("document.documentElement.scrollWidth") <= width
+        assert page.evaluate(
+            "[...document.querySelectorAll('.pj-panel .btn, .pj-tag')]"
+            ".every(box => box.getBoundingClientRect().right <= innerWidth + 0.5)"
+        )
+        page.screenshot(path=f"screenshots/accounts/{name}-{width}-{scheme}.png", full_page=True)
+    page.click(".app-user-button")
+
     # Signing out returns to Home, signed out: the nav offers Sign in again.
-    page.click(".app-menu-item")
+    page.get_by_role("button", name="Sign out").click()
     page.wait_for_url(lambda url: urlsplit(url).path == "/")
     assert page.locator("#site-nav a.nav-sign-in").inner_text() == "Sign in" or width < 768
     assert errors == []

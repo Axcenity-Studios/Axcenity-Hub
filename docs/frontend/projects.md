@@ -10,7 +10,6 @@ or the `.pj-*` classes. The rules behind them (the limit, permissions, webhooks)
 | `projects/list.html` | `/projects/`: a card per project, or the empty state |
 | `projects/detail.html` | `/projects/<slug>/`: the setup checklist, then the repository panel |
 | `projects/form.html`, `confirm_delete.html` | New, edit and delete |
-| `projects/guide.html` | `/projects/guide/`: the setup guide (public) |
 
 Every word is in `projects/strings.py` (copy as data). The app shell already sets `copy`, so
 these pages get theirs as `text`.
@@ -49,8 +48,7 @@ each step's words and summary ("Linked as octocat.", "First delivery …").
 - **Open GitHub's Add webhook page** links to `<repository>/settings/hooks/new` in a new tab.
 - The payload URL is built on `HUB_PUBLIC_URL` when set (`views.payload_url`). When the
   URL's host is `localhost`, `127.0.0.1` or `::1`, the step warns that GitHub can't reach it,
-  says to set `HUB_PUBLIC_URL` to a tunnel's address, and points at the guide's "Testing on
-  your own computer" (which covers quick and named Cloudflare tunnels).
+  says to set `HUB_PUBLIC_URL` to an `https://` address GitHub can reach.
 
 ## Copy buttons
 
@@ -59,18 +57,24 @@ the text of the element its `data-copy` names, then reads "Copied" (`data-copied
 seconds. The buttons are `hidden` until the script shows them; without JavaScript the values
 are plain selectable text.
 
-## The guide
+## Each step's help
 
-`/projects/guide/` (`ProjectGuideView`) is public, so it can be shared and read before
-signing up. Sections, each with an anchor: `#before`, `#steps` (the four steps, the same
-numerals and icons as the checklist), `#access`, `#trouble` (every response the webhook gives,
-from `webhooks.Outcome`; a test keeps them in step), `#unlink`, `#local` (the tunnel).
-Signed out, the app shell shows **Sign in** in its bar and only the rail's Hub section.
+There's no separate guide page: the walkthrough lives in the checklist. Every step ends in a
+`<details class="pj-help" data-help="<key>">` "Help with this step" (`strings.HELP_STEPS`).
+Step 1's adds what the Hub can and can't do (`HELP_ACCESS`); step 4's adds every response
+the webhook gives (`HELP_TROUBLE`, from `webhooks.Outcome`; a test keeps them in step), as a
+table that stacks into blocks on a phone.
+
+- **A first repository** (`views.first_repository`: none of the member's other projects has
+  one): the current (or attention) step's help opens by itself, and "Before you start"
+  (`HELP_BEFORE`, `data-help="before"`) heads the checklist, open until a step is done.
+- **Later repositories**: every help is folded, and there's no "Before you start".
+- The repository panel ends with what unlinking does (`HELP_UNLINK`).
 
 ## Icons
 
 New line icons in `partials/icon.html`, each a motif (draws in when seen): `chain` (step 1),
-`repo` (step 2, the repository panel), `hook` (step 3), `ping` (step 4), `guide`; plain ones:
+`repo` (step 2, the repository panel), `hook` (step 3), `ping` (step 4), `guide` (the help); plain ones:
 `copy`, `external`, `plus`, `check`, `folder`.
 
 ## The `.pj-*` classes
@@ -79,7 +83,7 @@ Monochrome tokens only, every `:hover` behind the hover gate. The bars use the T
 chips (`.tb-chip`, `.tb-chip-current`) inside `.pj-bar` (not `.tb-bar`, which the drawn
 Toolbox restyles).
 
-- `.app-page-wide`: a 60rem column for these pages. `.pj-head`: title beside its actions.
+- `.pj-head`: title beside its actions (the shell's `.app-column` centres the page).
 - `.pj-panel`, `.pj-bar`, `.pj-foot`, `.pj-tag` (`[data-state]`, `[data-complete]` invert it).
 - `.pj-meter`: one segment per step, filled when done.
 - `.pj-cards`, `.pj-card` (the title's link stretches over the card), `.pj-card-*`,
@@ -88,14 +92,15 @@ Toolbox restyles).
   `.pj-step-head`, `.pj-step-title`, `.pj-step-summary`, `.pj-step-body`, `.pj-icon`.
 - `.pj-fields`, `.pj-value`, `.pj-copy`: the webhook's values.
 - `.pj-repo-body`, `.pj-repo-name`, `.pj-facts`: the repository panel.
-- `.pj-section`, `.pj-guide-list`, `.pj-table` (scrolls in its own box), `.pj-terminal`.
+- `.pj-help`, `.pj-help-body`, `.pj-help-title`, `.pj-before`: the help; `.pj-guide-list`,
+  `.pj-table` (scrolls in its own box; stacks on a phone).
 - Below 40rem: the checklist's progress wraps under its title, a step's tag sits by its icon,
   numerals shrink, each value takes its row, and a step's buttons wrap their words.
 
 ## Tests
 
 `tests/test_projects_setup.py` (the steps' states, the checklist at each stage, a real ping
-completing it, the webhook values and copy markup, the local warning, the cards, the guide
-signed in and out). `tests/test_projects_browser.py` (`browser`): every page at 360 and
-1280 px, dark and light: nothing scrolls sideways or spills past its panel, the copy button
-copies; screenshots in `screenshots/projects/` for review by eye.
+completing it, the webhook values and copy markup, the local warning, the cards, each step's
+help and when it opens). `tests/test_projects_browser.py` (`browser`): every page at 360 and
+1280 px, dark and light: centred, nothing scrolls sideways or spills past its panel, the
+current step's help open on a first repository, the copy button copies; screenshots in `screenshots/projects/` for review by eye.

@@ -368,6 +368,11 @@ else:
 DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_DEFAULT_FROM_EMAIL", "Axcenity Hub <noreply@localhost>")
 
 STATIC_URL = "static/"
+
+# Members' uploads (profile photos, accounts.avatars). The development server serves them
+# (config/urls.py); in production the web server serves MEDIA_ROOT at /media/.
+MEDIA_URL = "/media/"
+MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", BASE_DIR / "media"))
 # The docs snapshot's diagrams are served from /static/docs/images/ straight from the
 # snapshot (documentation/content/images/), so there's one copy of each.
 DOCS_SNAPSHOT_DIR = BASE_DIR / "documentation" / "content"

@@ -811,7 +811,17 @@ html[data-pointer] .app-user-button:hover, .app-user[open] > .app-user-button { 
 .app-user-name { max-width: 10rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .app-user-menu { position: absolute; right: 0; top: calc(100% + 0.375rem); width: 15rem; padding: 0.375rem; border-radius: 0.5rem;
   background: var(--color-elevated); box-shadow: inset 0 0 0 1px var(--color-line-strong), var(--lift-shadow); }
-.app-user-email { padding: 0.5rem 0.625rem; font-size: 0.8125rem; color: var(--color-fg-secondary); overflow-wrap: anywhere; }
+.app-user-button:has(.app-avatar) { padding-left: 0.25rem; }
+.app-user-card { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.375rem; padding: 0.5rem 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--color-line); }
+.app-user-display { font-size: 0.875rem; font-weight: 600; color: var(--color-fg-strong); overflow-wrap: anywhere; }
+.app-user-email { font-size: 0.8125rem; color: var(--color-fg-secondary); overflow-wrap: anywhere; }
+/* A member's photo, or their initial on a tile (partials/avatar.html); --avatar is its size. */
+.app-avatar { display: inline-grid; flex: none; place-items: center; width: var(--avatar); height: var(--avatar); border-radius: 50%;
+  object-fit: cover; background: var(--color-inset); box-shadow: inset 0 0 0 1px var(--color-line-strong); }
+img.app-avatar { outline: 1px solid var(--color-line-strong); outline-offset: -1px; }
+.app-avatar-initial { font-family: var(--font-display); font-size: calc(var(--avatar) * 0.42); font-weight: 700; line-height: 1;
+  color: var(--color-fg-strong); user-select: none; }
 .app-menu-item { display: flex; width: 100%; align-items: center; gap: 0.5rem; padding: 0.5rem 0.625rem; border-radius: 0.25rem;
   font-size: 0.875rem; color: var(--color-fg-strong); cursor: pointer; }
 html[data-pointer] .app-menu-item:hover { color: var(--color-on-ink); background: var(--color-ink); }
@@ -838,19 +848,20 @@ html[data-pointer] .app-rail-link:hover { color: var(--color-fg-strong); backgro
   .app-rail-body { position: sticky; top: 2.75rem; } }
 .app-main { min-width: 0; padding: 1.5rem 1rem 4rem; }
 @media (min-width: 40rem) { .app-main { padding: 2.5rem 2.5rem 5rem; } }
-.app-page { display: grid; max-width: 46rem; gap: 1.5rem; }
-/* allauth's own pages (two-factor, password) put their parts straight in <main>: the same
-   measure and rhythm as .app-page. */
-.app-main > :not(.app-page) { max-width: 46rem; }
-.app-main > .app-title { margin-bottom: 1.25rem; }
-.app-main > .app-text + .app-panel, .app-main > .app-title + .app-panel { margin-top: 0.25rem; }
+/* One centred column for every signed-in page. allauth's own pages (activating two-factor,
+   recovery codes) put their parts straight in it; their forms and panels keep a reading measure. */
+.app-column { display: grid; width: 100%; max-width: 60rem; gap: 1.5rem; margin-inline: auto; }
+.app-column > * { min-width: 0; }
+.app-column > :is(.app-form, .app-panel, .app-text) { max-width: 46rem; }
+.app-column > .app-text + .app-text, .app-column > .app-text + .app-form, .app-column > .app-form + .app-text { margin-top: 0; }
+.app-page { display: grid; gap: 1.5rem; }
 .app-page-head { display: grid; gap: 0.5rem; }
 .app-title { font-size: clamp(1.75rem, 4vw, 2.25rem); color: var(--color-fg-strong); }
 .app-lede, .app-text { color: var(--color-fg-secondary); line-height: 1.6; }
 .app-text + .app-text, .app-text + .app-form, .app-form + .app-text { margin-top: 1rem; }
 .app-heading { font-weight: 600; color: var(--color-fg-strong); }
 .app-panel { display: grid; gap: 1rem; padding: 1.5rem; border-radius: 0.5rem; }
-:not(.app-page) > .app-panel + .app-panel { margin-top: 1rem; }
+:not(.app-page, .app-column) > .app-panel + .app-panel { margin-top: 1rem; }
 .app-rows { display: grid; gap: 0; }
 .app-rows > div { display: grid; gap: 0.25rem; padding-block: 0.875rem; border-top: 1px solid var(--color-line); }
 @media (min-width: 40rem) { .app-rows > div { grid-template-columns: 11rem minmax(0, 1fr); gap: 1rem; } }
@@ -872,6 +883,7 @@ html[data-pointer] .app-link:hover { text-decoration-color: var(--color-ink); }
 
 /* Messages and notices. */
 .app-messages { display: grid; gap: 0.5rem; margin-bottom: 1.25rem; padding: 0; list-style: none; }
+.app-column > .app-messages { margin-bottom: 0; }
 .app-message, .app-notice { padding: 0.75rem 1rem; border-radius: 0.375rem; color: var(--color-fg); background: var(--color-surface);
   box-shadow: inset 0 0 0 1px var(--color-line-strong); }
 
@@ -884,6 +896,10 @@ html[data-pointer] .app-link:hover { text-decoration-color: var(--color-ink); }
   background: var(--color-inset); box-shadow: inset 0 0 0 1px var(--color-line-strong); font-size: 1rem; }
 .app-field textarea { min-height: 7rem; line-height: 1.55; }
 .app-field input:focus-visible, .app-field textarea:focus-visible, .app-field select:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 0; }
+.app-field input[type="file"] { padding: 0.375rem; font-size: 0.875rem; color: var(--color-fg-secondary); cursor: pointer; }
+.app-field input[type="file"]::file-selector-button { height: 2rem; margin-right: 0.75rem; padding: 0 0.75rem; border: 0; border-radius: 0.25rem;
+  font: inherit; font-weight: 500; color: var(--color-fg-strong); background: var(--color-control); box-shadow: inset 0 0 0 1px var(--color-line-strong); cursor: pointer; }
+html[data-pointer] .app-field input[type="file"]::file-selector-button:hover { background: var(--color-control-hover); }
 .app-field input:disabled { color: var(--color-fg-secondary); font-family: var(--font-mono); font-size: 0.875rem; }
 .app-field-check { display: flex; align-items: center; gap: 0.625rem; }
 .app-field-check > label { font-weight: 400; color: var(--color-fg); }
@@ -902,11 +918,82 @@ html[data-pointer] .app-link:hover { text-decoration-color: var(--color-ink); }
 .app-actions-stack { flex-direction: column; align-items: stretch; }
 .app-actions > form { display: contents; }
 
-/* ---------- Projects (/projects/): cards, the setup checklist, the guide ----------
+/* ---------- Account settings (templates/accounts/base.html and its tabs) ----------
+   One header for every account page: the member, their account's state at a glance (each a
+   link to its tab) and the tabs. The tabs' bodies use the projects' panels (.pj-panel, .pj-bar,
+   .pj-facts, .pj-steps). Monochrome: "on" is a filled dot and stronger text, never a colour. */
+.ac-id { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 1.25rem; padding: 1.25rem; }
+@media (min-width: 52rem) { .ac-id { grid-template-columns: auto minmax(0, 1fr) auto; padding: 1.5rem; } }
+.ac-who { display: grid; gap: 0.3rem; min-width: 0; }
+.ac-name { font-family: var(--font-display); font-size: clamp(1.375rem, 3vw, 1.875rem); font-weight: 700; line-height: 1.15;
+  letter-spacing: -0.02em; color: var(--color-fg-strong); overflow-wrap: anywhere; }
+.ac-handle { display: flex; flex-wrap: wrap; gap: 0 0.25rem; font-size: 0.875rem; color: var(--color-fg-secondary); }
+.ac-status { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 0; padding: 0; list-style: none;
+  border-radius: 0.375rem; overflow: hidden; background: var(--color-line); box-shadow: inset 0 0 0 1px var(--color-line); }
+@media (min-width: 52rem) { .ac-status { grid-column: auto; grid-template-columns: repeat(3, 8.5rem); } }
+.ac-stat { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0.375rem 0.5rem; height: 100%; padding: 0.625rem 0.75rem;
+  background: var(--color-inset); transition: background-color 0.2s; }
+html[data-pointer] .ac-stat:hover { background: var(--color-surface); }
+.ac-stat:focus-visible { outline: 2px solid var(--color-ink); outline-offset: -2px; }
+.ac-stat-icon { display: flex; color: var(--color-fg-secondary); }
+.ac-stat-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--color-fg-weak); }
+.ac-stat-value { display: flex; grid-column: 1 / -1; align-items: center; gap: 0.4rem; font-size: 0.875rem; font-weight: 600; color: var(--color-fg-secondary); }
+.ac-stat-value::before { content: ""; flex: none; width: 0.5rem; height: 0.5rem; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--color-fg-weak); }
+.ac-stat-value[data-on] { color: var(--color-fg-strong); }
+.ac-stat-value[data-on]::before { background: var(--color-fg-strong); box-shadow: none; }
+/* On a phone the states are rows: icon and name, then the state at the end. */
+@media (max-width: 29.99rem) {
+  .ac-status { grid-template-columns: minmax(0, 1fr); }
+  .ac-stat { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .ac-stat-value { grid-column: auto; }
+  .app-user-name { display: none; }
+  .app-user-button:has(.app-avatar) { padding-right: 0.25rem; }
+}
+.app-bar-place { white-space: nowrap; }
+/* The tabs scroll in their own strip on a phone, never the page. */
+.ac-tabs { border-top: 1px solid var(--color-line); background: var(--color-app); }
+.ac-tabs > ul { display: flex; gap: 2px; margin: 0; padding: 0 0.5rem; list-style: none; overflow-x: auto; scrollbar-width: none; }
+.ac-tabs > ul::-webkit-scrollbar { display: none; }
+.ac-tab { display: flex; align-items: center; gap: 0.5rem; height: 2.75rem; padding-inline: 0.875rem; white-space: nowrap; font-size: 0.875rem; color: var(--color-fg-secondary); }
+html[data-pointer] .ac-tab:hover { color: var(--color-fg-strong); background: var(--color-panel); }
+.ac-tab[aria-current="page"] { color: var(--color-fg-strong); background: var(--color-surface); box-shadow: inset 0 -2px 0 var(--color-ink); }
+.ac-tab:focus-visible { outline: 2px solid var(--color-ink); outline-offset: -2px; }
+
+/* A tab's panels: a main panel and an aside beside it on wide screens. */
+.ac-split { display: grid; gap: 1.5rem; align-items: start; }
+@media (min-width: 56rem) { .ac-split { grid-template-columns: minmax(0, 1fr) 19rem; } }
+.ac-body { display: grid; gap: 1.25rem; padding: 1.25rem; }
+@media (min-width: 40rem) { .ac-body { padding: 1.5rem; } }
+.ac-photo { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--color-line); }
+.ac-photo-fields { display: grid; flex: 1 1 14rem; gap: 0.75rem; min-width: 0; }
+.ac-preview { display: grid; gap: 1rem; padding: 1.25rem; }
+.ac-preview-id { display: flex; align-items: center; gap: 0.875rem; }
+.ac-preview-name { font-weight: 600; color: var(--color-fg-strong); overflow-wrap: anywhere; }
+.ac-preview-bio { font-size: 0.9375rem; line-height: 1.6; color: var(--color-fg); overflow-wrap: anywhere; }
+.ac-facts { display: grid; margin: 0; border-top: 1px solid var(--color-line); }
+.ac-facts > div { display: grid; gap: 0.375rem; padding: 0.875rem 1.25rem; border-top: 1px solid var(--color-line); }
+.ac-facts > div:first-child { border-top: 0; }
+.ac-facts dt { color: var(--color-fg-weak); }
+.ac-facts dd { display: grid; gap: 0.25rem; margin: 0; min-width: 0; color: var(--color-fg-strong); }
+.pj-facts.ac-facts-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 29.99rem) { .pj-facts.ac-facts-2 { grid-template-columns: minmax(0, 1fr); } }
+.ac-addresses { display: grid; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.ac-address { font-family: var(--font-mono); font-size: 1.0625rem; color: var(--color-fg-strong); overflow-wrap: anywhere; }
+/* A row of points, each with its icon tile: stacked on a phone, side by side when wide. */
+.ac-points { display: grid; margin: 0; padding: 0; list-style: none; }
+.ac-points > li { display: flex; gap: 1rem; padding: 1.125rem 1.25rem; border-top: 1px solid var(--color-line); }
+.ac-points > li:first-child { border-top: 0; }
+@media (min-width: 48rem) {
+  .ac-points { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ac-points > li { flex-direction: column; gap: 0.875rem; padding: 1.25rem 1.5rem 1.5rem; border-top: 0; border-left: 1px solid var(--color-line); }
+  .ac-points > li:first-child { border-left: 0; } }
+.ac-point-title { font-weight: 600; color: var(--color-fg-strong); }
+.ac-point-text { margin-top: 0.25rem; font-size: 0.875rem; line-height: 1.55; color: var(--color-fg-secondary); }
+
+/* ---------- Projects (/projects/): cards, the setup checklist and its help ----------
    The Toolbox's title-bar language (a bar with an uppercase mono chip), Home's outlined
    numerals at step size, and the motifs as each step's icon. Monochrome tokens only: a
    step's state is told by its tag, its numeral and an ink rule, never by colour. */
-.app-page-wide { max-width: 60rem; }
 .pj-panel { display: flex; min-width: 0; flex-direction: column; padding: 1px; border-radius: 0.5rem; overflow: hidden; }
 .pj-bar { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; min-height: 2.75rem;
   padding: 0 0.75rem 0 0.5rem; border-bottom: 1px solid var(--color-line); background: var(--color-app); }
@@ -1012,22 +1099,30 @@ html[data-pointer] .pj-copy:hover { background: var(--color-control-hover); }
 .pj-facts dt { color: var(--color-fg-weak); }
 .pj-facts dd { margin: 0; min-width: 0; color: var(--color-fg-strong); overflow-wrap: anywhere; }
 
-/* The guide. */
-.pj-guide-steps .pj-step { background: none; box-shadow: none; }
-.pj-guide-steps .pj-num { -webkit-text-stroke-color: var(--color-fg-secondary); }
+/* A step's help: the setup guide's words for it, folded unless it's a member's first
+   repository and the step is current (a <details>, no JavaScript). */
+.pj-help { margin-top: 1rem; border-radius: 0.375rem; background: var(--color-inset); box-shadow: inset 0 0 0 1px var(--color-line); }
+.pj-help > summary { display: flex; align-items: center; gap: 0.5rem; padding: 0.625rem 0.875rem; border-radius: 0.375rem; cursor: pointer; list-style: none;
+  font-size: 0.875rem; font-weight: 500; color: var(--color-fg-strong); }
+.pj-help > summary::-webkit-details-marker { display: none; }
+.pj-help > summary::after { content: "+"; margin-left: auto; font-family: var(--font-mono); color: var(--color-fg-secondary); }
+.pj-help[open] > summary::after { content: "−"; }
+.pj-help > summary:focus-visible { outline: 2px solid var(--color-ink); outline-offset: -2px; }
+html[data-pointer] .pj-help > summary:hover { background: var(--color-surface); }
+.pj-help-body { display: grid; gap: 1rem; padding: 0.25rem 1rem 1.125rem; }
+.pj-help-title { color: var(--color-fg-weak); }
+.pj-before { padding: 1.25rem 1.25rem 0; }
+@media (min-width: 40rem) { .pj-before { padding: 1.5rem 1.5rem 0; } }
+.pj-before > .pj-help { margin-top: 0; }
 .pj-guide-list { display: grid; gap: 0.625rem; margin: 0; padding: 0; list-style: none; color: var(--color-fg); line-height: 1.6; }
 .pj-guide-list > li { position: relative; padding-left: 1.25rem; }
 .pj-guide-list > li::before { content: ""; position: absolute; left: 0; top: 0.75em; width: 0.5rem; height: 1px; background: var(--color-fg-weak); }
-.pj-section { display: grid; gap: 1rem; padding: 1.5rem; }
-@media (min-width: 40rem) { .pj-section { padding: 1.75rem 2rem; } }
 .pj-table-wrap { overflow-x: auto; border-radius: 0.375rem; box-shadow: inset 0 0 0 1px var(--color-line); }
 .pj-table { width: 100%; min-width: 34rem; border-collapse: collapse; font-size: 0.875rem; }
 .pj-table th, .pj-table td { padding: 0.75rem 1rem; text-align: left; vertical-align: top; border-top: 1px solid var(--color-line); }
 .pj-table thead th { border-top: 0; font-weight: 500; color: var(--color-fg-secondary); background: var(--color-inset); }
 .pj-table td:first-child { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--color-fg-strong); white-space: nowrap; }
 .pj-table td { color: var(--color-fg); }
-.pj-terminal { margin: 0; padding: 0.75rem 1rem; border-radius: 0.375rem; overflow-x: auto; font-family: var(--font-mono); font-size: 0.8125rem;
-  color: var(--color-fg-strong); background: var(--color-inset); box-shadow: inset 0 0 0 1px var(--color-line); white-space: pre; }
 /* On a phone the bar's title gets the whole first line; the progress wraps under it, and a
    step's tag sits beside its icon with the title on a line of its own. */
 @media (max-width: 39.99rem) {
@@ -1038,6 +1133,15 @@ html[data-pointer] .pj-copy:hover { background: var(--color-control-hover); }
   .pj-step-head > .pj-step-title { order: 3; flex-basis: 100%; }
   .pj-step { grid-template-columns: 2.25rem minmax(0, 1fr); gap: 0 0.75rem; padding: 1.125rem 1rem 1.25rem; }
   .pj-steps .pj-num { font-size: 2rem; }
+  /* The responses table: each response a block (the code, what it means, what to do). */
+  .pj-table-wrap { overflow: visible; }
+  .pj-table { min-width: 0; }
+  .pj-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .pj-table tr { display: grid; gap: 0.25rem; padding: 0.75rem 0.875rem; border-top: 1px solid var(--color-line); }
+  .pj-table tbody tr:first-child { border-top: 0; }
+  .pj-table td { padding: 0; border: 0; }
+  .pj-table td:first-child { white-space: normal; }
+  .pj-table td:last-child { color: var(--color-fg-secondary); }
   /* A value takes the row; its copy button sits under it. */
   .pj-fields dd { flex-wrap: wrap; }
   .pj-value { flex-basis: 100%; }

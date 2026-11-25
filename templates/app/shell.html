@@ -14,14 +14,19 @@
   <span class="app-bar-place micro">{{ copy.APP_PLACE }}</span>
   <div class="ml-auto flex items-center gap-2">
     {% include "partials/theme_switch.html" %}
-    {% if user.is_authenticated %}
+    {% member as me %}
+    {% if me %}
     <details class="app-user">
-      <summary class="app-user-button" aria-label="{{ copy.ACCOUNT_MENU }}: {{ user.get_username }}">
-        {% include "partials/icon.html" with name="user" size=16 %}
-        <span class="app-user-name">{{ user.get_username }}</span>
+      <summary class="app-user-button" aria-label="{{ copy.ACCOUNT_MENU }}: {{ me.username }}">
+        {% include "partials/avatar.html" with person=me size=24 %}
+        <span class="app-user-name">{{ me.username }}</span>
       </summary>
       <div class="app-user-menu">
-        <p class="app-user-email">{{ user.email }}</p>
+        <div class="app-user-card">
+          {% include "partials/avatar.html" with person=me size=40 %}
+          <div class="min-w-0"><p class="app-user-display">{{ me.name }}</p><p class="app-user-email">{{ me.email }}</p></div>
+        </div>
+        <a class="app-menu-item" href="{% url 'accounts:profile' %}">{% include "partials/icon.html" with name="user" size=16 %}{{ copy.MENU_SETTINGS }}</a>
         <form method="post" action="{% url 'account_logout' %}">
           {% csrf_token %}
           <button type="submit" class="app-menu-item">{% include "partials/icon.html" with name="sign-out" size=16 %}{{ copy.SIGN_OUT }}</button>
@@ -51,8 +56,12 @@
   </details>
   <script>if (!matchMedia("(min-width: 1024px)").matches) document.getElementById("app-rail").open = false;</script>
   <main id="content" tabindex="-1" class="app-main">
-    {% include "partials/messages.html" %}
-    {% block content %}{% endblock %}
+    {# One centred column for every page (and allauth's, which put their parts straight in it). #}
+    <div class="app-column">
+      {% include "partials/messages.html" %}
+      {% block before_content %}{% endblock %}
+      {% block content %}{% endblock %}
+    </div>
   </main>
 </div>
 {% block extra_body %}{% endblock %}

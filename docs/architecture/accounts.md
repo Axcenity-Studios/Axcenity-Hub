@@ -10,7 +10,8 @@ Hub's policy around it:
 
 | Module | Does |
 |---|---|
-| `models.py` | `Profile` (display name, bio; one per user, made by `signals.create_profile`), `AuthAttempt` (the rate-limit backstop's rows) |
+| `models.py` | `Profile` (display name, bio, photo; one per user, made by `signals.create_profile`), `AuthAttempt` (the rate-limit backstop's rows) |
+| `avatars.py` | Profile photos: `check` (an upload's rules) and `process` (the one image the Hub keeps) |
 | `stages.py`, `adapter.py` | The verification policy (below); `AccountAdapter`, `MFAAdapter` (QR code with its own white paper) |
 | `access.py` | The contribution gate: `has_verified_email`, `ensure_can_contribute`, `VerifiedEmailRequiredMixin` |
 | `integrity.py` | Case-insensitive unique indexes and the duplicate check migration 0002 runs first |
@@ -18,6 +19,25 @@ Hub's policy around it:
 | `throttle.py`, `turnstile.py` | The database rate-limit backstop; the Cloudflare Turnstile client |
 | `middleware.py` | `SessionAgeMiddleware`: idle and absolute session limits |
 | `views.py`, `urls.py`, `strings.py` | Profile, email status and verify pages; copy as data |
+
+## Profile photos
+
+`ProfileForm` takes a photo (`photo`, not a model field) and a `remove_photo` box.
+
+- **Checked before decoding** (`avatars.check`): at most 2 MB, read by Pillow as PNG, JPEG,
+  WebP or GIF (anything else, or anything it can't read, is refused), and 64 to 4096 pixels
+  on each side, from the header. Each refusal is a form error in plain words.
+- **Remade, never kept** (`avatars.process`, run in `clean_photo` so a file that won't
+  decode is a form error, not a failed save): the first frame, turned upright by its EXIF,
+  cropped to a centred square, scaled to 256 px and saved as WebP. The stored file carries
+  no metadata and none of the upload's bytes, under a fresh random name
+  (`avatars/<uuid>.webp`), so a new photo is never served from a cache.
+- **No file left behind:** replacing or removing a photo deletes the old file once the
+  profile is saved; deleting a profile (or its user) deletes its photo
+  (`signals.delete_photo`).
+- **Storage:** Django's default storage under `MEDIA_ROOT` (`DJANGO_MEDIA_ROOT`). A
+  development server serves `/media/` (`config/media.py`, only while `DEBUG` is on);
+  production's web server serves the folder. Photos are public: other members see them.
 
 ## Email verification policy
 

@@ -228,3 +228,6 @@ static/css/tailwind.css
 
 # Browser test screenshots, for review by eye (tests/test_media_browser.py)
 screenshots/
+
+# Members uploads (profile photos): MEDIA_ROOT in development
+/media/

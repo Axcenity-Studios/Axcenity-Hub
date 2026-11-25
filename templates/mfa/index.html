@@ -1,0 +1,72 @@
+{% extends "mfa/base_manage.html" %}
+{% load app_shell %}
+{# allauth's two-factor overview, as the Two-factor tab of Account settings: each method a step, #}
+{# in the setup checklist's language (numerals, icon tiles, a state tag). allauth's other two-   #}
+{# factor pages (activate, deactivate, the codes) keep its own templates.                        #}
+{% block head_title %}Two-factor sign-in{% endblock head_title %}
+{% block content %}
+{% account_copy as copy %}
+<div class="app-page">
+  <header class="app-page-head">
+    <h1 class="headline app-title">{{ copy.TWO_FACTOR_TITLE }}</h1>
+    <p class="app-lede">{{ copy.TWO_FACTOR_LEDE }}</p>
+  </header>
+
+  <section class="panel pj-panel" aria-labelledby="methods-title" data-two-factor="{% if authenticators.totp %}on{% else %}off{% endif %}">
+    <div class="pj-bar">
+      <h2 id="methods-title" class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="shield" size=14 %}{{ copy.TWO_FACTOR_METHODS }}</h2>
+      <span class="pj-tag micro"{% if is_mfa_enabled %} data-complete{% endif %}>{% if is_mfa_enabled %}{{ copy.STATE_ON }}{% else %}{{ copy.STATE_OFF }}{% endif %}</span>
+    </div>
+    <ol class="pj-steps">
+      {% if "totp" in MFA_SUPPORTED_TYPES %}
+      <li class="pj-step" data-state="{% if authenticators.totp %}done{% else %}current{% endif %}">
+        <span class="pj-num" aria-hidden="true">01</span>
+        <div class="min-w-0">
+          <div class="pj-step-head">
+            <span class="pj-icon">{% include "partials/icon.html" with name="key" size=20 %}</span>
+            <h3 class="pj-step-title">{{ copy.TOTP_TITLE }}</h3>
+            <span class="pj-tag micro" data-state="{% if authenticators.totp %}done{% else %}current{% endif %}">{% if authenticators.totp %}{{ copy.STATE_ON }}{% else %}{{ copy.STATE_OFF }}{% endif %}</span>
+          </div>
+          <p class="pj-step-summary">{% if authenticators.totp %}{{ copy.TOTP_ON }}{% else %}{{ copy.TOTP_OFF }}{% endif %}</p>
+          <div class="pj-step-body">
+            <div class="app-actions">
+              {% if authenticators.totp %}
+              <a class="btn btn-quiet" href="{% url 'mfa_deactivate_totp' %}">{{ copy.TOTP_DEACTIVATE }}</a>
+              {% else %}
+              <a class="btn btn-primary" href="{% url 'mfa_activate_totp' %}">{{ copy.TOTP_ACTIVATE }}</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </li>
+      {% endif %}
+      {% if "recovery_codes" in MFA_SUPPORTED_TYPES %}
+      {% with codes=authenticators.recovery_codes total=authenticators.recovery_codes.generate_codes|length unused=authenticators.recovery_codes.get_unused_codes|length %}
+      <li class="pj-step" data-state="{% if codes %}done{% else %}waiting{% endif %}">
+        <span class="pj-num" aria-hidden="true">02</span>
+        <div class="min-w-0">
+          <div class="pj-step-head">
+            <span class="pj-icon">{% include "partials/icon.html" with name="files" size=20 %}</span>
+            <h3 class="pj-step-title">{{ copy.CODES_TITLE }}</h3>
+            <span class="pj-tag micro" data-state="{% if codes %}done{% else %}waiting{% endif %}">{% if codes %}{% fill copy.CODES_LEFT unused=unused %}{% else %}{{ copy.CODES_NONE }}{% endif %}</span>
+          </div>
+          <p class="pj-step-summary">{% if codes %}{% fill copy.CODES_ON unused=unused total=total %}{% else %}{{ copy.CODES_OFF }}{% endif %}</p>
+          {% if is_mfa_enabled %}
+          <div class="pj-step-body">
+            <div class="app-actions">
+              {% if codes and unused > 0 and not MFA_RECOVERY_CODES_SHOW_ONCE %}
+              <a class="btn btn-quiet" href="{% url 'mfa_view_recovery_codes' %}">{{ copy.CODES_VIEW }}</a>
+              <a class="btn btn-quiet" href="{% url 'mfa_download_recovery_codes' %}">{{ copy.CODES_DOWNLOAD }}</a>
+              {% endif %}
+              <a class="btn btn-quiet" href="{% url 'mfa_generate_recovery_codes' %}">{{ copy.CODES_GENERATE }}</a>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </li>
+      {% endwith %}
+      {% endif %}
+    </ol>
+  </section>
+</div>
+{% endblock content %}

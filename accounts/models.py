@@ -13,7 +13,7 @@ from allauth.socialaccount.models import SocialAccount
 from django.conf import settings
 from django.db import models
 
-from . import crypto
+from . import avatars, crypto
 
 
 class Profile(models.Model):
@@ -33,6 +33,8 @@ class Profile(models.Model):
     bio = models.TextField(
         max_length=BIO_MAX, blank=True, help_text="A few words about you, in plain text."
     )
+    # Always a square WebP the Hub made itself (accounts.avatars.process), never the upload.
+    avatar = models.ImageField(upload_to=avatars.upload_to, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
@@ -43,6 +45,11 @@ class Profile(models.Model):
     def name(self) -> str:
         """The display name, or the username when there isn't one."""
         return self.display_name or self.user.get_username()
+
+    @property
+    def initial(self) -> str:
+        """The letter shown in place of a photo."""
+        return (self.name[:1] or "?").upper()
 
 
 class GitHubLinkManager(models.Manager):
