@@ -1,6 +1,7 @@
 """The project pages in headless Chromium: the empty list, the setup checklist at each stage,
-the webhook values and their copy buttons, each step's help and the cards fit every screen
-from a phone to a desktop, in dark and light, with no sideways scroll.
+the webhook values and their copy buttons, each step's help, the cards, and the team pages
+(an Owner's controls, invitations, a Viewer's read-only page) fit every screen from a phone to
+a desktop, in dark and light, with no sideways scroll.
 
 Screenshots go to screenshots/projects/ for review by eye. GitHub is mocked with `responses`
 (it patches `requests` for the live server's thread too); nothing reaches the network.
@@ -64,8 +65,8 @@ def shot(page, path: str) -> None:
     page.screenshot(path=path, full_page=True)
 
 
-def sign_in(page) -> None:
-    page.fill("input[name=login]", "ada@example.com")
+def sign_in(page, email: str = "ada@example.com") -> None:
+    page.fill("input[name=login]", email)
     page.fill("input[name=password]", PASSWORD)
     page.click("button[type=submit].btn-primary")
     page.wait_for_url("**/projects/")
@@ -94,7 +95,9 @@ def test_the_project_pages_guide_setup_and_fit_the_screen(open_home, settings, w
     shot(page, shots.format("empty"))
 
     # A new project: step 2 is the current one, with the link form.
-    project = Project.objects.create(owner=user, name="Space Game", description="A game in space.")
+    project = Project.objects.create_with_owner(
+        user, name="Space Game", description="A game in space."
+    )
     page.goto(page.url.split("/projects/")[0] + project.get_absolute_url())
     assert page.locator("#setup-repository[data-state=current] input[name=repository]").is_visible()
     # A first repository: the current step's help is open, the others folded.
@@ -141,9 +144,70 @@ def test_the_project_pages_guide_setup_and_fit_the_screen(open_home, settings, w
     shot(page, shots.format("connected"))
 
     # The cards.
-    Project.objects.create(owner=user, name="Moon Base")
+    Project.objects.create_with_owner(user, name="Moon Base")
     page.goto(page.url.split("/projects/")[0] + "/projects/")
     assert page.locator(".pj-card").count() == 2
     fits(page, width)
     shot(page, shots.format("list"))
+    assert errors == []
+
+
+def member(username: str):
+    user = get_user_model().objects.create_user(username, f"{username}@example.com", PASSWORD)
+    EmailAddress.objects.create(
+        user=user, email=f"{username}@example.com", primary=True, verified=True
+    )
+    return user
+
+
+@pytest.mark.parametrize("scheme", ["dark", "light"])
+@pytest.mark.parametrize("width", [360, 1280])
+def test_the_team_pages_fit_the_screen_for_owners_and_viewers(open_home, width, scheme):
+    from projects.models import ProjectInvitation, ProjectMembership
+
+    ada, grace, linus = member("ada"), member("grace_hopper_long_name"), member("linus")
+    member("zoe")
+    project = Project.objects.create_with_owner(ada, name="Space Game", description="In space.")
+    ProjectMembership.objects.create(project=project, user=grace, role="maintainer")
+    ProjectMembership.objects.create(project=project, user=linus, role="viewer")
+    theirs = Project.objects.create_with_owner(grace, name="Moon Base")
+    ProjectInvitation.objects.create(
+        project=theirs, invitee=ada, role="maintainer", invited_by=grace
+    )
+    shots = f"screenshots/projects/{{}}-{width}-{scheme}.png"
+
+    # The list: Ada's invitation to Grace's project, above her own card.
+    page, errors = open_home(path="/accounts/login/?next=/projects/", width=width, scheme=scheme)
+    sign_in(page)
+    assert page.locator("[data-invitations] [data-invitation]").count() == 1
+    fits(page, width)
+    shot(page, shots.format("invitations"))
+
+    # The Owner's team page: invite Zoe through the form; she's listed as pending.
+    base = page.url.split("/projects/")[0]
+    page.goto(base + f"/projects/{project.slug}/members/")
+    page.fill("input[name=username]", "zoe")
+    page.select_option("select[name=role]", "viewer")
+    page.click("[data-invite] button[type=submit]")
+    page.wait_for_selector('[data-invitee="zoe"]')
+    assert page.locator("[data-members] > li").count() == 3
+    centred(page)
+    fits(page, width)
+    shot(page, shots.format("team-owner"))
+
+    # Accepting the invitation opens Grace's project, where Ada is a Maintainer.
+    page.goto(base + "/projects/")
+    page.click("[data-invitation] .btn-primary")
+    page.wait_for_url(f"**/projects/{theirs.slug}/")
+    assert page.locator("[data-role-tag]").first.text_content().strip() == "Maintainer"
+
+    # A Viewer's team page: the team, no controls.
+    page.context.clear_cookies(name="sessionid")  # signed out; the theme cookie stays
+    page.goto(base + "/accounts/login/?next=/projects/")
+    sign_in(page, "linus@example.com")
+    page.goto(base + f"/projects/{project.slug}/members/")
+    assert page.locator("[data-invite]").count() == 0
+    assert page.locator("form[action$='/role/']").count() == 0
+    fits(page, width)
+    shot(page, shots.format("team-viewer"))
     assert errors == []

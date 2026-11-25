@@ -28,6 +28,89 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-25 — Axcenity Hub: Phase 11/17, Project teams
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub.md phase 11`.
+2. Changes to the brief before building: prevent self-lockout (an Owner must not be able to
+   demote, remove or leave as the last Owner), applied to account deletion too; make
+   invitation and membership changes transactional, with unique constraints in the database,
+   the project row locked before owner-count changes, and the membership and invitation
+   state re-checked inside the transaction; test the 5-project owner limit at both invitation
+   acceptance and role promotion (making someone an Owner at five must fail without changing
+   their membership); "Other than that proceed to TDD only stopping at red".
+3. "approved, keep rename on the edit page move to next red phase after making this one pass"
+   (approving TDD 1's RED test).
+4. "approved, make it pass and finish the build" (approving TDD 2's RED test).
+
+### Summary
+
+- **Outcome:** Projects have teams: Owner, Maintainer and Viewer memberships, invitations by
+  username that only the invitee accepts or declines, role changes, removal and leaving, a
+  Team page, invitations on `/projects/`, and every project page showing each role only what
+  it may do (everything else a 404). A project always keeps an Owner, account deletion
+  included. 1250 fast tests and 93 browser tests pass; Ruff is clean;
+  `makemigrations --check` shows nothing new. One fast test fails that this phase didn't
+  touch: `test_download.py::test_the_copied_license_and_notice_match_the_engines` (the
+  engine's NOTICE now differs from `marketing/legal/NOTICE`, both part of the uncommitted
+  credits work).
+- **Changes:**
+  - `projects/models.py` — `Role`, `Action`, `PERMISSIONS` and `allows`;
+    `ProjectMembership` and `ProjectInvitation` (unique per member and project, roles held by
+    check constraints); `Project.owner` removed; queryset `allowing`, `visible_to`,
+    `owned_by`, `create_with_owner`; `Project.role_of`; `protect_last_owner`, the
+    membership's `on_delete` that refuses to delete a project's last Owner (ProtectedError,
+    which the admin lists as the reason).
+  - `projects/migrations/0003_teams.py`, `0004_remove_project_owner.py` (new) — every owner
+    becomes an Owner member (the column goes nullable first, so both roll back), then the
+    column is dropped; tried forward, back and forward on a copy of the dev database.
+  - `projects/teams.py` (new) — `invite`, `accept`, `decline`, `cancel`, `change_role`,
+    `remove`, `leave`: one transaction each, the project row locked, then the actor's role and
+    the target re-read; locks always project then member; the last Owner kept; becoming an
+    Owner counts against the limit and changes nothing when refused.
+  - `projects/services.py` — the limit counts Owner memberships (`owned_count`); repository
+    actions check the role table instead of the owner.
+  - `projects/views.py`, `urls.py`, `forms.py`, `strings.py` — `ProjectAccessMixin` (each
+    view's `Action`); the team page and the POST views for inviting, roles, removing,
+    cancelling, leaving, accepting and declining; `DescriptionForm` for Maintainers; stale
+    repositories refreshed on view only for roles that may refresh; the copy.
+  - `projects/admin.py` — owners in the list; memberships and invitations read-only inlines.
+  - `templates/projects/members.html` (new), `detail.html`, `list.html` — the team page; role
+    tags; actions per role; the invitations panel.
+  - Tests: `tests/test_projects_teams.py` (new, 63 tests); a team-pages case in
+    `test_projects_browser.py`; the other project tests and `test_errors.py` moved from
+    `Project.objects.create(owner=…)` to `create_with_owner`.
+  - Docs: `docs/architecture/projects.md`, `docs/frontend/projects.md`, `docs/TESTING.md`,
+    `docs/ARCHITECTURE.md`; the plan's Phase 11 boxes ticked.
+- **TDD:** (1) the role matrix: five actions × Owner, Maintainer, Viewer and a non-member
+  through the real URLs, allowed changes happening and every refusal a 404 that changes
+  nothing (a Maintainer's rename is ignored by the edit page's form). (2) A project always
+  keeps an Owner: stepping down, removing themselves, leaving and deleting the account are
+  refused for the last Owner and change nothing, and two Owners doing it at the same moment
+  leave exactly one.
+- **Decisions:** Memberships are the only record of ownership (`Project.owner` dropped);
+  several Owners are allowed, and "transfer" is an explicit role change followed by stepping
+  down; invitations may carry any role, including Owner; invite by username, not email (no
+  enumeration); inviting needs a verified email, accepting doesn't; invitations are deleted
+  once answered; no notification email; Viewers never trigger GitHub calls; the team page
+  reuses existing classes, so `styles/source.css` (already modified) wasn't touched.
+- **Deviations:** The user turned "the last Owner's account deletion deletes the project"
+  (the brief) into "it's refused", and asked for transactional changes with database
+  constraints, project locks, re-checks, and limit tests at acceptance and promotion. Rename
+  stayed on the edit page at the user's choice.
+- **Sideways:** TDD 1's first run had a test bug (viewing "took effect" was always true),
+  fixed before RED. TDD 2's account-deletion case: Django's delete collector replaces an
+  `on_delete`'s ProtectedError message with its own, so the test identifies the refusal by
+  the protected objects (exactly the last Owner's membership) rather than the message, a
+  change to what the approved test asserts, flagged to the user. A first `accept` deleted an
+  already-used invitation and then raised inside the transaction, undoing the delete; the
+  error now comes after it. `accept` first locked the invitation before the project, which
+  could deadlock with a cancel; it now reads it unlocked, locks the project, then re-reads it.
+  A text replacement missed the team view's context after `ruff format` had rewrapped it
+  (caught by the tests). `.app-list`'s unlayered `padding: 0` beat a Tailwind utility, and
+  clearing cookies in the browser test also cleared the theme; both caught in screenshots.
+
 ## 2026-11-24 — One Account settings page, profile photos, centred pages, and the setup guide folded into each step
 
 ### Prompts

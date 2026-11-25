@@ -72,9 +72,9 @@ def test_a_sixth_project_is_rejected_one_at_a_time_and_concurrently_and_only_the
     created = [r for r in results if isinstance(r, Project)]
     refusals = [r for r in results if isinstance(r, LimitReached)]
     assert (len(created), len(refusals)) == (5, 3), results
-    assert Project.objects.filter(owner=linus).count() == 5
-    assert Project.objects.filter(owner=ada).count() == 5
-    assert Project.objects.filter(owner=grace).count() == 5
+    assert Project.objects.owned_by(linus).count() == 5
+    assert Project.objects.owned_by(ada).count() == 5
+    assert Project.objects.owned_by(grace).count() == 5
 
 
 # ---------- The limit and the lock ----------
@@ -137,10 +137,10 @@ def test_the_database_refuses_a_name_in_another_case_even_past_the_checks(monkey
     from django.core.exceptions import ValidationError
     from django.db import IntegrityError, transaction
 
-    Project.objects.create(owner=make_member("grace"), name="Space Game")
+    Project.objects.create_with_owner(make_member("grace"), name="Space Game")
     # Straight to the database: the LOWER(name) constraint holds whatever the route.
     with pytest.raises(IntegrityError), transaction.atomic():
-        Project.objects.create(owner=make_member("linus"), name="SPACE GAME!")
+        Project.objects.create_with_owner(make_member("linus"), name="SPACE GAME!")
     # And a race the model's check can't see comes back as the form's message.
     monkeypatch.setattr(Project, "clean", lambda self: None)
     with pytest.raises(ValidationError) as refused:
@@ -211,7 +211,7 @@ def test_an_owner_creates_edits_and_deletes_a_project(client):
         reverse("projects:create"), {"name": "Space Game", "description": "A game in space."}
     )
     project = Project.objects.get()
-    assert project.owner == owner
+    assert project.role_of(owner) == "owner"
     assert response["Location"] == "/projects/space-game/"
     page = client.get(response["Location"]).content.decode()
     assert "Space Game" in page and "A game in space." in page and strings.CREATED in page
@@ -242,7 +242,7 @@ def test_the_create_form_shows_the_name_rules_and_the_limit(client):
     assert strings.LIMIT_REACHED in page and 'name="name"' not in page
     response = client.post(reverse("projects:create"), {"name": "One more"})
     assert response.status_code == 200 and strings.LIMIT_REACHED in response.content.decode()
-    assert Project.objects.filter(owner=owner).count() == 5
+    assert Project.objects.owned_by(owner).count() == 5
     listing = client.get(reverse("projects:list")).content.decode()
     assert "5 of 5 projects" in listing and strings.LIMIT_REACHED in listing
     assert reverse("projects:create") not in listing
@@ -251,7 +251,7 @@ def test_the_create_form_shows_the_name_rules_and_the_limit(client):
 @pytest.mark.django_db
 def test_an_unverified_member_is_sent_to_verify_before_creating_editing_or_linking(client):
     owner = owner_client(client, verified=False)
-    project = Project.objects.create(owner=owner, name="Space Game")
+    project = Project.objects.create_with_owner(owner, name="Space Game")
     verify = reverse("accounts:verify_email")
     for method, url, data in [
         ("get", reverse("projects:create"), {}),
@@ -274,7 +274,7 @@ def test_every_project_post_without_a_csrf_token_is_refused(htmx):
     client = Client(enforce_csrf_checks=True)
     owner = make_member()
     client.force_login(owner)
-    project = Project.objects.create(owner=owner, name="Space Game")
+    project = Project.objects.create_with_owner(owner, name="Space Game")
     headers = {"HX-Request": "true"} if htmx else {}
     for url in [reverse("projects:list"), reverse("projects:create")] + project_urls(project.slug)[
         "post"
@@ -287,7 +287,7 @@ def test_every_project_post_without_a_csrf_token_is_refused(htmx):
 @pytest.mark.django_db
 def test_project_pages_sit_in_the_app_shell_under_projects(client):
     owner = owner_client(client)
-    project = Project.objects.create(owner=owner, name="Space Game")
+    project = Project.objects.create_with_owner(owner, name="Space Game")
     for url in [reverse("projects:list"), reverse("projects:create"), project.get_absolute_url()]:
         html = client.get(url).content.decode()
         assert 'id="app-rail"' in html
@@ -298,8 +298,8 @@ def test_project_pages_sit_in_the_app_shell_under_projects(client):
 @pytest.mark.django_db
 def test_project_copy_is_escaped(client):
     owner = owner_client(client)
-    project = Project.objects.create(
-        owner=owner, name="Space <b>Game</b>", description="<script>x</script>"
+    project = Project.objects.create_with_owner(
+        owner, name="Space <b>Game</b>", description="<script>x</script>"
     )
     response = client.get(project.get_absolute_url())
     assert response.status_code == 200

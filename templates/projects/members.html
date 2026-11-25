@@ -1,0 +1,104 @@
+{% extends "app/shell.html" %}
+{% block head_title %}{{ text.TEAM }} · {{ project.name }}{% endblock %}
+{% block content %}
+{# A project's team. Every member sees who's in it; Owners also change roles, remove #}
+{# members, invite, and see and cancel pending invitations (projects.teams).        #}
+<div class="app-page" data-role="{{ role }}">
+  <div class="pj-head">
+    <header class="app-page-head">
+      <p class="micro text-fg-weak"><a class="app-link" href="{% url 'projects:list' %}">{{ text.LIST_TITLE }}</a> / <a class="app-link" href="{{ project.get_absolute_url }}">{{ project.name }}</a></p>
+      <h1 class="headline app-title">{{ text.TEAM }}</h1>
+      <p class="app-lede">{{ text.TEAM_LEDE }}</p>
+    </header>
+  </div>
+
+  <section class="panel pj-panel" aria-labelledby="team-title">
+    <div class="pj-bar"><h2 id="team-title" class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="user" size=14 %}{{ text.TEAM }}</h2><span class="pj-tag micro">{{ members|length }}</span></div>
+    <ul class="app-list gap-0" data-members>
+      {% for row in members %}
+      <li class="grid gap-3 border-t border-line p-4 first:border-t-0 sm:flex sm:flex-wrap sm:items-center sm:justify-between md:px-5" data-member="{{ row.membership.user.username }}" data-role="{{ row.membership.role }}">
+        <div class="flex min-w-0 items-center gap-3">
+          {% include "partials/avatar.html" with person=row.person size=36 %}
+          <div class="grid min-w-0">
+            <p class="truncate font-semibold text-fg-strong">{{ row.person.name }}{% if row.me %} <span class="micro text-fg-weak">({{ text.YOU }})</span>{% endif %}</p>
+            {% if row.person.name != row.membership.user.username %}<p class="truncate font-mono text-sm text-fg-secondary">{{ row.membership.user.username }}</p>{% endif %}
+          </div>
+          <span class="pj-tag micro"{% if row.membership.role == "owner" %} data-complete{% endif %}>{{ row.role_label }}</span>
+        </div>
+        {% if manage %}
+        <div class="app-actions">
+          <form method="post" action="{% url 'projects:change_role' project.slug row.membership.pk %}" class="flex flex-wrap items-center gap-2">
+            {% csrf_token %}
+            <div class="app-field">
+              <label class="sr-only" for="{{ row.form.role.id_for_label }}">{{ text.CHANGE_ROLE }}: {{ row.membership.user.username }}</label>
+              {{ row.form.role }}
+            </div>
+            <button type="submit" class="btn btn-quiet btn-sm">{{ text.CHANGE_ROLE }}</button>
+          </form>
+          {% if not row.me %}
+          <form method="post" action="{% url 'projects:remove_member' project.slug row.membership.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-quiet btn-sm" aria-label="{{ text.REMOVE }} {{ row.membership.user.username }}">{{ text.REMOVE }}</button>
+          </form>
+          {% endif %}
+        </div>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    <div class="pj-foot grid gap-2">
+      {% if last_owner %}
+      <p class="app-help" data-last-owner>{{ text.LAST_OWNER_NOTE }}</p>
+      {% else %}
+      <form method="post" action="{% url 'projects:leave' project.slug %}" class="app-actions">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-quiet btn-sm" data-leave>{{ text.LEAVE }}</button>
+        <span class="app-help">{{ text.LEAVE_NOTE }}</span>
+      </form>
+      {% endif %}
+    </div>
+  </section>
+
+  {% if manage %}
+  {% if invitations %}
+  <section class="panel pj-panel" aria-labelledby="pending-title" data-pending>
+    <div class="pj-bar"><h2 id="pending-title" class="tb-chip tb-chip-current">{{ text.PENDING_TITLE }}</h2><span class="pj-tag micro">{{ invitations|length }}</span></div>
+    <ul class="app-list gap-0">
+      {% for row in invitations %}
+      <li class="flex flex-wrap items-center justify-between gap-3 border-t border-line p-4 first:border-t-0 md:px-5" data-invitee="{{ row.invitation.invitee.username }}">
+        <div class="flex min-w-0 items-center gap-3">
+          {% include "partials/avatar.html" with person=row.person size=36 %}
+          <div class="grid min-w-0">
+            <p class="truncate font-mono text-sm text-fg-strong">{{ row.invitation.invitee.username }}</p>
+            <p class="text-sm text-fg-secondary">{{ row.text }}</p>
+          </div>
+        </div>
+        <form method="post" action="{% url 'projects:cancel_invitation' project.slug row.invitation.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-quiet btn-sm" aria-label="{{ text.CANCEL_INVITATION }}: {{ row.invitation.invitee.username }}">{{ text.CANCEL_INVITATION }}</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <section class="panel pj-panel" aria-labelledby="invite-title" data-invite>
+    <div class="pj-bar"><h2 id="invite-title" class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="plus" size=14 %}{{ text.INVITE_TITLE }}</h2></div>
+    <form method="post" action="{% url 'projects:invite' project.slug %}" class="app-form p-4 md:p-5" novalidate>
+      {% csrf_token %}
+      <p class="app-help">{{ text.INVITE_LEDE }}</p>
+      {% include "partials/form_fields.html" with form=invite_form %}
+      <div class="app-actions"><button type="submit" class="btn btn-primary">{{ text.INVITE }}</button></div>
+    </form>
+  </section>
+  {% endif %}
+
+  <section class="panel pj-panel" aria-labelledby="roles-title">
+    <div class="pj-bar"><h2 id="roles-title" class="tb-chip tb-chip-current">{{ text.ROLES_TITLE }}</h2></div>
+    <dl class="app-rows px-4 md:px-5">
+      {% for name, note in roles %}<div><dt>{{ name }}</dt><dd>{{ note }}</dd></div>{% endfor %}
+    </dl>
+  </section>
+</div>
+{% endblock %}

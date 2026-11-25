@@ -7,12 +7,39 @@ or the `.pj-*` classes. The rules behind them (the limit, permissions, webhooks)
 
 | Template | Page |
 |---|---|
-| `projects/list.html` | `/projects/`: a card per project, or the empty state |
-| `projects/detail.html` | `/projects/<slug>/`: the setup checklist, then the repository panel |
+| `projects/list.html` | `/projects/`: the member's invitations, then a card per project they're in, or the empty state |
+| `projects/detail.html` | `/projects/<slug>/`: the role tag, Team link, the setup checklist (Owners), then the repository panel |
+| `projects/members.html` | `/projects/<slug>/members/`: the team, and for Owners the controls, pending invitations and the invite form |
 | `projects/form.html`, `confirm_delete.html` | New, edit and delete |
 
 Every word is in `projects/strings.py` (copy as data). The app shell already sets `copy`, so
 these pages get theirs as `text`.
+
+## Roles on the pages
+
+Each page shows a member only what their role may do (`can` in the project page's context,
+from `models.PERMISSIONS`): Edit for Owners and Maintainers, Delete, the setup checklist,
+Unlink and the webhook for Owners, Refresh for Owners and Maintainers. A Viewer, or a
+Maintainer on a project with no repository, gets a plain repository panel ("An Owner links
+it"). The role is a `.pj-tag` (`data-role-tag`) under the description and on each card;
+cards of projects the member doesn't own show their role instead of setup progress. The count
+("1 of 5 projects") counts owned projects only.
+
+## The team page
+
+- One row per member (`[data-members] > li[data-member][data-role]`): their avatar, name
+  (and username when it differs), "(You)" and role tag. Owners get a role `<select>` with
+  "Change role" and, for others, "Remove".
+- The panel's foot: "Leave project", or for the only Owner the reason they can't
+  (`data-last-owner`).
+- Owners also see **Pending invitations** (`[data-pending]`, each with Cancel) and **Invite a
+  member** (`[data-invite]`: username and role).
+- Everyone sees **Roles**: what each one may do (`strings.ROLE_NOTES`).
+- The invitee's **Invitations** panel heads `/projects/` (`[data-invitations]`): the project,
+  who invited them and as what, Accept (opens the project) and Decline.
+- Every change is a POST form with redirects and messages; no JavaScript. Rows reuse the
+  `.pj-panel`/`.pj-bar`/`.pj-tag` classes with Tailwind utilities (`.app-list` sets `padding: 0`
+  outside the layers, so rows carry their own padding).
 
 ## The setup checklist
 
@@ -99,8 +126,10 @@ Toolbox restyles).
 
 ## Tests
 
+`tests/test_projects_teams.py` (the pages per role, the team page, invitations on the list).
 `tests/test_projects_setup.py` (the steps' states, the checklist at each stage, a real ping
 completing it, the webhook values and copy markup, the local warning, the cards, each step's
 help and when it opens). `tests/test_projects_browser.py` (`browser`): every page at 360 and
 1280 px, dark and light: centred, nothing scrolls sideways or spills past its panel, the
-current step's help open on a first repository, the copy button copies; screenshots in `screenshots/projects/` for review by eye.
+current step's help open on a first repository, the copy button copies; the team pages (an Owner inviting
+through the form, the invitations panel and accepting, a Viewer's page without controls); screenshots in `screenshots/projects/` for review by eye.

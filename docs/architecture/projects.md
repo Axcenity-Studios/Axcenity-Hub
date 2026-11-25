@@ -6,30 +6,73 @@ GitHub call made with a member's token. Linking the GitHub account itself:
 
 | Module | Does |
 |---|---|
-| `models.Project` | A member's project: name (unique in any case), slug (the name, slugified; follows renames), description |
+| `models.Project` | A project: name (unique in any case), slug (the name, slugified; follows renames), description. No owner field: its team says who owns it |
+| `models.ProjectMembership` | A member of a project's team in one `Role` (Owner, Maintainer, Viewer); one per member and project |
+| `models.ProjectInvitation` | An Owner's pending invitation for a member, in a role; one per member and project |
+| `models.PERMISSIONS` | Each `Action` and the roles allowed it; `allows(role, action)`; `Project.objects.allowing(user, action)` |
 | `models.RepositoryLink` | The repository linked to a project, as GitHub last described it; `github_id` unique; `hook_id` |
 | `models.WebhookDelivery` | Each accepted delivery, to refuse replays (unique per link) |
-| `services.py` | `create_project` (the limit), `link_repository`, `refresh_repository`, `webhook_settings`, `unlink_repository` |
+| `services.py` | `create_project` (the limit), `owned_count`, `link_repository`, `refresh_repository`, `webhook_settings`, `unlink_repository` |
+| `teams.py` | `invite`, `accept`, `decline`, `cancel`, `change_role`, `remove`, `leave`: transactional, the last Owner kept |
 | `github.py` | `GET /repos/{owner}/{repo}` with the member's token; `require_permission`; rate limits, budget, ETags |
 | `webhooks.py` | Per-link secrets, `verify`, `receive` (replays, events) |
 | `setup.py` | The four setup steps' states for the project page ([../frontend/projects.md](../frontend/projects.md)) |
 | `accounts/limits.py` | `lock_member` and `LimitReached`: the pattern for every count-based limit |
 
-## Projects
+## Projects and teams
 
-- **Owner only** in this phase: every project URL is a 404 for anyone else (Phase 11 adds
-  members). Views fetch through `Project.objects.owned_by(user)`.
+- **Roles.** Every view names the `Action` it needs and fetches through
+  `Project.objects.allowing(user, action)`: anyone whose role doesn't allow it (non-members
+  included) gets a **404**, never a 403. The services check the same table.
+
+  | Action | Owner | Maintainer | Viewer |
+  |---|---|---|---|
+  | View the project, its repository's details and its team | ✓ | ✓ | ✓ |
+  | Edit the description; refresh the repository from GitHub | ✓ | ✓ | |
+  | Rename; delete; manage the team; link, unlink, the setup and the webhook | ✓ | | |
+  | Leave | ✓ (another Owner stays) | ✓ | ✓ |
+
+  Renaming goes through the edit page: a Maintainer's form (`DescriptionForm`) has no name, so
+  a posted one is ignored. A stale repository is refreshed on view only for roles that may
+  refresh, with their own GitHub permission; Viewers see the stored details.
 - **Names** are unique across the Hub whatever their case: `Project.clean` checks it (and
   that the slug is free, non-empty and not `new` or `hooks`), and the database holds a
   unique index on `LOWER(name)` plus the unique slug. "Space Game", "space game" and
   "space-game" are the same name. Renaming changes the address; old addresses 404.
-- Creating, editing and linking need a **verified email** (`VerifiedEmailRequiredMixin`,
-  and `ensure_can_contribute` in the services). Deleting and unlinking don't.
+- Creating, editing, linking and inviting need a **verified email** (`VerifiedEmailRequiredMixin`,
+  and `ensure_can_contribute` in the services). Deleting, unlinking, answering an invitation,
+  role changes and leaving don't.
+
+## Teams (`teams.py`)
+
+- **Invitations** are by username (case-insensitive; active members only), as any role. The
+  inviter can't invite themselves, a member, or someone already invited. Only the invitee
+  accepts or declines (a 404 for anyone else); Owners cancel. An invitation is deleted once
+  answered or cancelled. No email: the invitee sees it on `/projects/`.
+- **The last Owner.** A project always has at least one Owner. Stepping down, removing the
+  last Owner or leaving as them is refused (`TeamError`, `strings.LAST_OWNER`). Deleting the
+  account of a project's last Owner is refused too: `ProjectMembership.user`'s `on_delete` is
+  `models.protect_last_owner`, which raises `ProtectedError` (the admin lists it as the
+  reason). Ownership never moves by itself: an Owner makes another member an Owner, then steps
+  down, or deletes the project.
+- **Transactions and locks.** Every change runs in one transaction that locks the project row
+  (`SELECT … FOR UPDATE`; SQLite's IMMEDIATE transactions serialize instead), then re-reads
+  the actor's role and the membership or invitation it changes. Locks go in one order, the
+  project then a member (`lock_member`), so changes queue and never deadlock. Account deletion
+  locks the projects too when it runs in a transaction (the admin's does).
+- **Database constraints:** one membership and one invitation per member and project (unique
+  together), and a valid role (check constraints).
+- **Becoming an Owner counts against the limit.** Accepting an Owner invitation or being made
+  an Owner takes the member's lock and counts their Owner memberships; at five it's refused
+  (`LimitReached`) and nothing changes: the invitation stays pending, the role stays.
+- **The admin** shows teams read-only; they change only through `teams.py`.
+- **Migrations:** `0003_teams` makes every project's `owner` its first Owner member (the
+  owner column goes nullable first, so it rolls back); `0004` drops the column.
 
 ## The five-project limit (concurrency-safe)
 
-`create_project` counts the owner's projects and inserts inside one transaction, after
-`lock_member(owner)`:
+`create_project` counts the member's Owner memberships (`owned_count`) and inserts the project
+and its Owner membership inside one transaction, after `lock_member(owner)`:
 
 - **PostgreSQL:** `SELECT … FOR UPDATE` on the owner's `auth_user` row. Creations by the same
   member queue; other members never wait. Other members' projects never count.
@@ -60,9 +103,9 @@ Hub asks for no more:
 
 | Action | Needs |
 |---|---|
-| Link a repository | `ADMIN` (asked fresh) |
+| Link a repository (Owners) | `ADMIN` (asked fresh) |
 | Show the webhook's URL and secret (`?webhook=show`; records `webhook_shown_at`) | `ADMIN` |
-| Refresh the details (button, or a stale page view) | `PULL` (asked fresh) |
+| Refresh the details (Owners and Maintainers: button, or a stale page view) | `PULL` (asked fresh) |
 | Unlink, delete the project | Nothing: the Hub's own records; GitHub isn't asked |
 
 - A member's check is cached per member and repository with its `checked_at`, and reused only
@@ -134,7 +177,8 @@ checklist.
 ## Tests
 
 `tests/test_projects.py` (limit with concurrent creation, names, pages, 404s, the gate,
-CSRF), `tests/test_projects_github.py` (permission, failures, rate limits, budget, ETags,
+CSRF), `tests/test_projects_teams.py` (the role matrix and the last Owner (TDD), invitations,
+the limit on becoming an Owner, re-checks, constraints, pages per role, the migration), `tests/test_projects_github.py` (permission, failures, rate limits, budget, ETags,
 duplicates, pages), `tests/test_projects_webhooks.py` (signatures with GitHub's test vector,
 replays per link, events, refusals), `tests/test_projects_setup.py` and
 `tests/test_projects_browser.py` (the pages: [../frontend/projects.md](../frontend/projects.md)). GitHub is mocked with `responses`;

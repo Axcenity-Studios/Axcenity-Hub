@@ -28,7 +28,7 @@ def _webhooks_on(settings):
 
 def make_link(name="Space Game", owner="ada", github_id=REPOSITORY["id"], full_name=None):
     user = User.objects.filter(username=owner).first() or User.objects.create_user(owner)
-    project = Project.objects.create(owner=user, name=name)
+    project = Project.objects.create_with_owner(user, name=name)
     full_name = full_name or REPOSITORY["full_name"]
     return RepositoryLink.objects.create(
         project=project,
@@ -277,6 +277,6 @@ def test_hostile_strings_from_github_are_stored_as_text_and_escaped_on_the_page(
     assert signed(link, body).status_code == 200
     # Fresh, so the page shows the stored details without asking GitHub.
     RepositoryLink.objects.filter(pk=link.pk).update(fetched_at=datetime.now(UTC))
-    client.force_login(link.project.owner)
+    client.force_login(User.objects.get(username="ada"))
     page = client.get(link.project.get_absolute_url()).content.decode()
     assert "<script>alert(1)</script>" not in page and "&lt;script&gt;" in page

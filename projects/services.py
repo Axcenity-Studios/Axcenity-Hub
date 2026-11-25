@@ -1,5 +1,5 @@
 """Project workflows that span models: creating a project under the per-member limit, and
-linking, refreshing and unlinking its GitHub repository.
+linking, refreshing and unlinking its GitHub repository. (The team: projects.teams.)
 
 Every repository-dependent action (linking, refreshing, showing the webhook's secret) first
 resolves the member's current permission with GitHub (projects.github.require_permission)
@@ -18,7 +18,7 @@ from accounts.limits import LimitReached, lock_member
 
 from . import github, strings, webhooks
 from .github import Permission, Reason
-from .models import Project, RepositoryLink
+from .models import Action, Project, ProjectMembership, RepositoryLink, Role, allows
 
 
 class RepositoryError(Exception):
@@ -43,7 +43,7 @@ class WebhookSettings:
 
 
 def create_project(owner, *, name: str, description: str = "") -> Project:
-    """Create a project owned by `owner`.
+    """Create a project with `owner` as its first Owner.
 
     Raises accounts.access.EmailNotVerified for an unverified member,
     accounts.limits.LimitReached when they already own Project.LIMIT_PER_OWNER projects
@@ -55,18 +55,24 @@ def create_project(owner, *, name: str, description: str = "") -> Project:
         with transaction.atomic():
             # Serialize this member's creations, so concurrent requests can't all count four.
             lock_member(owner)
-            if Project.objects.filter(owner=owner).count() >= Project.LIMIT_PER_OWNER:
+            if owned_count(owner) >= Project.LIMIT_PER_OWNER:
                 raise LimitReached(strings.LIMIT_REACHED)
-            project = Project(owner=owner, name=name, description=description)
+            project = Project(name=name, description=description)
             project.full_clean()
             project.save()
+            ProjectMembership.objects.create(project=project, user=owner, role=Role.OWNER)
     except IntegrityError:  # another member took the name a moment ago
         raise ValidationError({"name": strings.NAME_TAKEN}) from None
     return project
 
 
-def _ensure_owner(user, project: Project) -> None:
-    if project.owner_id != getattr(user, "pk", None):
+def owned_count(user) -> int:
+    """How many projects `user` is an Owner of (what Project.LIMIT_PER_OWNER limits)."""
+    return ProjectMembership.objects.filter(user=user, role=Role.OWNER).count()
+
+
+def _ensure_allowed(user, project: Project, action: Action) -> None:
+    if not allows(project.role_of(user), action):
         raise Project.DoesNotExist  # the views' 404: never say whose it is
 
 
@@ -95,7 +101,7 @@ def link_repository(user, project: Project, text: str, *, now: datetime | None =
     """
     now = now or datetime.now(UTC)
     ensure_can_contribute(user)
-    _ensure_owner(user, project)
+    _ensure_allowed(user, project, Action.MANAGE_REPOSITORY)
     if RepositoryLink.objects.filter(project=project).exists():
         raise RepositoryError(strings.PROJECT_HAS_REPOSITORY)
     full_name = github.normalize_full_name(text)
@@ -119,7 +125,7 @@ def link_repository(user, project: Project, text: str, *, now: datetime | None =
 def refresh_repository(user, project: Project, *, now: datetime | None = None):
     """Fetch the linked repository's details from GitHub again (needs read permission)."""
     now = now or datetime.now(UTC)
-    _ensure_owner(user, project)
+    _ensure_allowed(user, project, Action.REFRESH)
     link = RepositoryLink.objects.filter(project=project).first()
     if link is None:
         raise RepositoryError(strings.NO_REPOSITORY)
@@ -136,7 +142,7 @@ def refresh_repository(user, project: Project, *, now: datetime | None = None):
 def webhook_settings(user, project: Project, *, now: datetime | None = None) -> WebhookSettings:
     """The linked repository's webhook URL and secret, for an admin of it on GitHub."""
     now = now or datetime.now(UTC)
-    _ensure_owner(user, project)
+    _ensure_allowed(user, project, Action.MANAGE_REPOSITORY)
     link = RepositoryLink.objects.filter(project=project).first()
     if link is None:
         raise RepositoryError(strings.NO_REPOSITORY)
@@ -150,5 +156,5 @@ def webhook_settings(user, project: Project, *, now: datetime | None = None) -> 
 
 def unlink_repository(user, project: Project) -> None:
     """Unlink the project's repository (the Hub's own record; GitHub isn't asked)."""
-    _ensure_owner(user, project)
+    _ensure_allowed(user, project, Action.MANAGE_REPOSITORY)
     RepositoryLink.objects.filter(project=project).delete()

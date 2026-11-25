@@ -6,6 +6,62 @@ NAME_REQUIRED = "Give the project a name."
 NAME_UNUSABLE = "Use at least one letter or digit, and not just “new” or “hooks”."
 LIMIT_REACHED = "You already own 5 projects, the most one member can. Delete one to create another."
 
+# Teams: invitations, roles and the last Owner.
+ROLES = {"owner": "Owner", "maintainer": "Maintainer", "viewer": "Viewer"}
+ROLE_NOTES = {
+    "owner": "Everything: the team, the repository, renaming and deleting.",
+    "maintainer": "Edits the description and refreshes the repository's details.",
+    "viewer": "Reads the project, its repository's details and its team.",
+}
+NO_SUCH_MEMBER = "No Hub member has that username."
+INVITE_YOURSELF = "You're already in this project."
+ALREADY_MEMBER = "{username} is already in this project."
+ALREADY_INVITED = "{username} already has an invitation to this project."
+ROLE_INVALID = "Choose Owner, Maintainer or Viewer."
+MEMBER_AT_LIMIT = "{username} already owns 5 projects, the most one member can."
+LAST_OWNER = (
+    "A project needs at least one Owner. Make someone else an Owner first, or delete the project."
+)
+LAST_OWNER_ACCOUNT = (
+    "This account is the only Owner of a project. Make someone else an Owner of it, or delete "
+    "the project, before deleting the account."
+)
+INVITATION_GONE = "That invitation was cancelled or already answered."
+TEAM = "Team"
+TEAM_LEDE = "Who works on this project, and what each role may do."
+YOU = "You"
+ROLES_TITLE = "Roles"
+CHANGE_ROLE = "Change role"
+REMOVE = "Remove"
+LEAVE = "Leave project"
+LEAVE_NOTE = "You'll lose access to this project. An Owner can invite you back."
+LAST_OWNER_NOTE = (
+    "You're this project's only Owner. Make someone else an Owner before you leave or step down."
+)
+INVITE_TITLE = "Invite a member"
+INVITE_LEDE = (
+    "They'll see the invitation on their Projects page and can accept or decline it. "
+    "Making someone an Owner gives them everything you can do."
+)
+INVITE = "Send invitation"
+PENDING_TITLE = "Pending invitations"
+PENDING_ROW = "Invited as {role} by {inviter}"
+CANCEL_INVITATION = "Cancel invitation"
+INVITATIONS_TITLE = "Invitations"
+INVITATION_ROW = "{inviter} invited you to join as {role}."
+ACCEPT = "Accept"
+DECLINE = "Decline"
+SOMEONE = "An Owner"
+NO_REPOSITORY_MEMBER = "No repository is linked yet. An Owner links it."
+INVITE_INVALID = "Enter a username and choose a role."
+INVITED = "Invitation sent. They'll see it on their Projects page."
+ROLE_CHANGED = "Role changed."
+MEMBER_REMOVED = "Member removed."
+INVITATION_CANCELLED = "Invitation cancelled."
+LEFT = "You left the project."
+JOINED = "You joined the project."
+DECLINED = "Invitation declined."
+
 # Repository actions refused by the Hub's own rules.
 PROJECT_HAS_REPOSITORY = "This project already has a repository. Unlink it to link another."
 REPOSITORY_NAME_INVALID = (

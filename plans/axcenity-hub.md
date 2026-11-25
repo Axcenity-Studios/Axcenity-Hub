@@ -481,10 +481,10 @@ Built test-first with the `tdd` skill; the rest of the phase is built and tested
 
 ### Acceptance criteria
 
-- [ ] Tests: role matrix per action (view, edit, manage members, delete, rename)
-- [ ] Non-members and insufficient roles get 404 for private resources
-- [ ] A project always keeps at least one Owner; ownership transfer is explicit
-- [ ] Invites are accepted or declined by the invitee only
+- [x] Tests: role matrix per action (view, edit, manage members, delete, rename)
+- [x] Non-members and insufficient roles get 404 for private resources
+- [x] A project always keeps at least one Owner; ownership transfer is explicit
+- [x] Invites are accepted or declined by the invitee only
 
 ---
 

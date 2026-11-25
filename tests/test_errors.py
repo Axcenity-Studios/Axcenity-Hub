@@ -53,7 +53,7 @@ def test_another_members_project_is_the_same_404(client):
     from projects.models import Project
 
     User = get_user_model()
-    Project.objects.create(owner=User.objects.create_user("grace"), name="Space Game")
+    Project.objects.create_with_owner(User.objects.create_user("grace"), name="Space Game")
     client.force_login(User.objects.create_user("ada"))
     is_hub_page(client.get("/projects/space-game/"), "404")
 

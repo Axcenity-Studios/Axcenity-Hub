@@ -9,7 +9,7 @@ index:** the rules below apply everywhere; topic files under
 | [architecture/github-releases.md](architecture/github-releases.md) | the GitHub release list behind `/download/`: choosing and validating the release, the cache, ETag, fallbacks and backoff |
 | [architecture/accounts.md](architecture/accounts.md) | accounts and sign-in: the email-verification policy and gate, case-insensitive uniqueness, sessions, password reset, rate limits, enumeration, two-factor, Turnstile, production settings |
 | [architecture/github-linking.md](architecture/github-linking.md) | linking a GitHub account: linking only (never sign-in), the OAuth App and its secrets, OAuth state, encrypted tokens and key rotation, revoked and expiring tokens, unlinking |
-| [architecture/projects.md](architecture/projects.md) | projects and their repositories: names, the concurrency-safe limit (`accounts/limits.py`), the no-scope permission check and its 60 s window, rate limits and budget, duplicate links, the webhook (per-link secrets, replays) |
+| [architecture/projects.md](architecture/projects.md) | projects, their teams and their repositories: roles and the permission table, invitations, the last Owner, locks, names, the concurrency-safe limit (`accounts/limits.py`), the no-scope permission check and its 60 s window, rate limits and budget, duplicate links, the webhook (per-link secrets, replays) |
 
 ## Layout
 
@@ -20,7 +20,7 @@ index:** the rules below apply everywhere; topic files under
 | `documentation/` | The engine docs at `/docs/`: `sync.py` (`sync_engine_docs`), `navigation.py`, `links.py`, `rendering.py`, `highlight.py`, `library.py` (the snapshot as served, and its build check), `api.py` (API pages as structure), `search.py` (the index and ranking), `diagrams.py`, `strings.py`. See [frontend/documentation.md](frontend/documentation.md) |
 | `documentation/content/` | The committed snapshot of the engine's `documentation/` folder, with `SOURCE.json` (commit and tree). Only `sync_engine_docs` writes it |
 | `accounts/` | Profiles and the sign-in policy around django-allauth: the verification gate (`access.py`), the signup-only verification stage, case-insensitive unique indexes, the rate-limit backstop, Turnstile, session lifetimes ([architecture/accounts.md](architecture/accounts.md)); GitHub linking: `GitHubLink`, `crypto.py`, `github.py` ([architecture/github-linking.md](architecture/github-linking.md)); `limits.py`, the lock behind every count-based limit |
-| `projects/` | Projects and their GitHub repositories: `services.py` (the limit, linking, refreshing), `github.py` (the member's repository calls and permission), `webhooks.py` ([architecture/projects.md](architecture/projects.md)) |
+| `projects/` | Projects, their teams and their GitHub repositories: `models.py` (roles and `PERMISSIONS`), `services.py` (the limit, linking, refreshing), `teams.py` (invitations, roles, the last Owner), `github.py` (the member's repository calls and permission), `webhooks.py` ([architecture/projects.md](architecture/projects.md)) |
 | `marketing/legal/` | The engine's `LICENSE` and `NOTICE`, copied in unchanged (`content.LEGAL_COMMIT`), shown in full in the download agreement |
 | `marketing/media_sources/` | Captures as copied in (never served, never edited): the sources `make_media` reads, and `toolbox-capture.json`, the Toolbox screenshots' capture record |
 | `templates/` | `base.html` (shared by every shell), `marketing/` (the marketing shell and its pages), `documentation/` (the docs layout and pages), `app/` (the app shell and the entrance), `allauth/` (allauth's layouts and elements), `accounts/`, `projects/`, `partials/` |
@@ -77,11 +77,15 @@ Later phases add `forums`, `showcases`, `reports`,
 | `/accounts/github/login/` | `github_login` | `GitHubConnectView`: POST starts linking GitHub (never a sign-in); replaces allauth's view |
 | `/accounts/github/login/callback/` | `github_callback` | allauth: GitHub's return; links only for the signed-in member (`SocialAccountAdapter`) |
 | `/accounts/…` | `account_*`, `mfa_*`, `socialaccount_*` | allauth: sign in, sign up, sign out, confirm email, password change and reset, re-authenticate, two-factor (`/accounts/2fa/…`), a cancelled or failed link (`/accounts/3rdparty/login/…`) |
-| `/projects/` | `projects:list` | `ProjectListView`: the member's own projects and the count against the limit |
+| `/projects/` | `projects:list` | `ProjectListView`: the member's invitations, every project they're in with their role, and the count of owned ones against the limit |
 | `/projects/new/` | `projects:create` | `ProjectCreateView`: verified members, at most 5 projects each |
-| `/projects/<slug>/` | `projects:detail` | `ProjectDetailView`: the setup checklist and the repository (refetched when over an hour old); `?webhook=show` shows the webhook's URL and secret after an admin check, never cached; owner only, others 404 |
-| `/projects/<slug>/edit/`, `/delete/` | `projects:edit`, `projects:delete` | Rename (the slug follows) or describe; delete after confirming |
-| `/projects/<slug>/repository/link/`, `/unlink/`, `/refresh/` | `projects:link_repository`, `projects:unlink_repository`, `projects:refresh_repository` | POST: link (needs admin on GitHub), unlink (GitHub not asked), refresh (needs read) |
+| `/projects/<slug>/` | `projects:detail` | `ProjectDetailView`: any member; the setup checklist (Owners) and the repository (refetched when over an hour old, for Owners and Maintainers); `?webhook=show` shows the webhook's URL and secret to an Owner after an admin check, never cached; non-members 404 |
+| `/projects/<slug>/edit/`, `/delete/` | `projects:edit`, `projects:delete` | Describe (Owners and Maintainers) or rename (Owners; the slug follows); delete after confirming (Owners) |
+| `/projects/<slug>/repository/link/`, `/unlink/`, `/refresh/` | `projects:link_repository`, `projects:unlink_repository`, `projects:refresh_repository` | POST: link (Owners; needs admin on GitHub), unlink (Owners; GitHub not asked), refresh (Owners and Maintainers; needs read) |
+| `/projects/<slug>/members/` | `projects:members` | `MembersView`: the team for any member; Owners' controls, pending invitations and invite form |
+| `/projects/<slug>/members/invite/`, `/members/<pk>/role/`, `/members/<pk>/remove/`, `/invitations/<pk>/cancel/` | `projects:invite`, `projects:change_role`, `projects:remove_member`, `projects:cancel_invitation` | POST, Owners only (others 404): invite (verified), change a role, remove, cancel; the last Owner is kept |
+| `/projects/<slug>/leave/` | `projects:leave` | POST, any member (not the last Owner) |
+| `/projects/invitations/<pk>/accept/`, `/decline/` | `projects:accept_invitation`, `projects:decline_invitation` | POST, the invitee only (others 404) |
 | `/projects/hooks/github/<hook_id>/` | `projects:webhook` | `GitHubWebhookView`: POST only, CSRF-exempt, signed deliveries ([architecture/projects.md](architecture/projects.md#webhooks)) |
 | `/errors/<kind>/` | `errors:preview` | A development server's preview of an error page (`400`, `403`, `csrf`, `404`, `405`, `429`, `500`); a 404 when `DEBUG` is off |
 | `/media/<path>` | `media` | `config.media.development_media`: members' uploads from `MEDIA_ROOT` on a development server; a 404 when `DEBUG` is off (production's web server serves the folder) |

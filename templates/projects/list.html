@@ -1,7 +1,8 @@
 {% extends "app/shell.html" %}
 {% block head_title %}{{ text.LIST_TITLE }}{% endblock %}
 {% block content %}
-{# The member's projects as cards, each with its repository and setup progress. #}
+{# The member's invitations, then their projects as cards: each with its repository, the #}
+{# member's role, and (for its Owners) the setup progress.                               #}
 <div class="app-page">
   <div class="pj-head">
     <header class="app-page-head">
@@ -13,22 +14,42 @@
     </div>
   </div>
 
+  {% if invitations %}
+  <section class="panel pj-panel" aria-labelledby="invitations-title" data-invitations>
+    <div class="pj-bar"><h2 id="invitations-title" class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="user" size=14 %}{{ text.INVITATIONS_TITLE }}</h2><span class="pj-tag micro">{{ invitations|length }}</span></div>
+    <ul class="app-list gap-0">
+      {% for row in invitations %}
+      <li class="flex flex-wrap items-center justify-between gap-3 border-t border-line p-4 first:border-t-0 md:px-5" data-invitation="{{ row.invitation.pk }}">
+        <div class="grid min-w-0 gap-1">
+          <p class="font-semibold text-fg-strong">{{ row.invitation.project.name }}</p>
+          <p class="text-sm text-fg-secondary">{{ row.text }}</p>
+        </div>
+        <div class="app-actions">
+          <form method="post" action="{% url 'projects:accept_invitation' row.invitation.pk %}">{% csrf_token %}<button type="submit" class="btn btn-primary btn-sm">{{ text.ACCEPT }}</button></form>
+          <form method="post" action="{% url 'projects:decline_invitation' row.invitation.pk %}">{% csrf_token %}<button type="submit" class="btn btn-quiet btn-sm">{{ text.DECLINE }}</button></form>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
   {% if cards %}
   <p class="micro text-fg-weak" data-project-count="{{ cards|length }}">{{ count_text }}</p>
   {% if at_limit %}<p class="app-notice" role="status">{{ text.LIMIT_REACHED }}</p>{% endif %}
   <ul class="pj-cards">
     {% for card in cards %}
-    <li class="panel pj-panel pj-card" data-setup="{% if card.setup.complete %}complete{% else %}incomplete{% endif %}">
+    <li class="panel pj-panel pj-card" data-role="{{ card.role }}"{% if card.setup %} data-setup="{% if card.setup.complete %}complete{% else %}incomplete{% endif %}"{% endif %}>
       <div class="pj-bar">
         <span class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="folder" size=14 %}{{ card.project.slug }}</span>
-        <span class="pj-tag micro"{% if card.setup.complete %} data-complete{% endif %}>{{ card.setup.label }}</span>
+        {% if card.setup %}<span class="pj-tag micro"{% if card.setup.complete %} data-complete{% endif %}>{{ card.setup.label }}</span>{% else %}<span class="pj-tag micro" data-role-tag>{{ card.role_label }}</span>{% endif %}
       </div>
       <div class="pj-card-body">
         <h2 class="pj-card-title"><a href="{{ card.project.get_absolute_url }}">{{ card.project.name }}</a></h2>
         <p class="pj-card-text">{{ card.project.description|default:text.NO_DESCRIPTION }}</p>
         <div class="pj-card-foot">
           <span class="pj-repo">{% include "partials/icon.html" with name="repo" size=14 %}{% if card.link %}{{ card.link.full_name }}{% else %}{{ text.NO_REPOSITORY_YET }}{% endif %}</span>
-          <span class="pj-progress micro"><span class="pj-meter" aria-hidden="true">{% for state in card.setup.steps %}<i data-state="{{ state }}"></i>{% endfor %}</span>{{ text.SETUP_LABEL }}</span>
+          {% if card.setup %}<span class="pj-progress micro"><span class="pj-meter" aria-hidden="true">{% for state in card.setup.steps %}<i data-state="{{ state }}"></i>{% endfor %}</span>{{ text.SETUP_LABEL }}</span>{% else %}<span class="pj-progress micro">{{ card.role_label }}</span>{% endif %}
         </div>
       </div>
     </li>

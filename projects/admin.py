@@ -1,12 +1,19 @@
 """Admin: projects and their repository links, read-only where GitHub is the source.
 
 A link's webhook secret is derived, never stored, so the admin can't show it. Deliveries
-are an append-only record of what was accepted.
+are an append-only record of what was accepted. Teams are read-only here: memberships change
+only through projects.teams, which keeps every project's last Owner.
 """
 
 from django.contrib import admin
 
-from .models import Project, RepositoryLink, WebhookDelivery
+from .models import (
+    Project,
+    ProjectInvitation,
+    ProjectMembership,
+    RepositoryLink,
+    WebhookDelivery,
+)
 
 
 class RepositoryLinkInline(admin.StackedInline):
@@ -24,12 +31,39 @@ class RepositoryLinkInline(admin.StackedInline):
         return False  # linking needs the owner's GitHub permission (projects.services)
 
 
+class ReadOnlyInline(admin.TabularInline):
+    extra = 0
+    can_delete = False
+
+    def has_add_permission(self, request, obj=None) -> bool:
+        return False
+
+    def has_change_permission(self, request, obj=None) -> bool:
+        return False
+
+
+class MembershipInline(ReadOnlyInline):
+    model = ProjectMembership
+    fields = readonly_fields = ["user", "role", "created"]
+
+
+class InvitationInline(ReadOnlyInline):
+    model = ProjectInvitation
+    fields = readonly_fields = ["invitee", "role", "invited_by", "created"]
+
+
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ["name", "owner", "created"]
-    search_fields = ["name", "owner__username"]
+    list_display = ["name", "owners", "created"]
+    search_fields = ["name", "memberships__user__username"]
     readonly_fields = ["slug", "created", "updated"]
-    inlines = [RepositoryLinkInline]
+    inlines = [MembershipInline, InvitationInline, RepositoryLinkInline]
+
+    @admin.display(description="Owners")
+    def owners(self, project: Project) -> str:
+        return ", ".join(
+            project.memberships.filter(role="owner").values_list("user__username", flat=True)
+        )
 
 
 @admin.register(WebhookDelivery)

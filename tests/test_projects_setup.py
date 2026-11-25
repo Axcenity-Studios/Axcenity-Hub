@@ -64,7 +64,7 @@ def states(user, link) -> list[str]:
 @pytest.mark.django_db
 def test_the_steps_follow_the_real_records_one_current_step_at_a_time(settings):
     ada = make_member(github=False)
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     assert states(ada, None) == ["current", "waiting", "waiting", "waiting"]
 
     ada = User.objects.get(pk=ada.pk)
@@ -115,7 +115,7 @@ def step_state(page: str, key: str) -> str:
 def test_the_checklist_opens_the_current_step_and_folds_once_done(client):
     ada = make_member()
     client.force_login(ada)
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     page = unescape(client.get(project.get_absolute_url()).content.decode())
     assert (
         '<details id="setup" class="panel pj-panel pj-setup" data-setup="incomplete" open>' in page
@@ -147,7 +147,7 @@ def test_the_checklist_opens_the_current_step_and_folds_once_done(client):
 def test_the_setup_reaches_done_through_a_real_ping(client):
     ada = make_member()
     client.force_login(ada)
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     link = make_link(project, webhook_shown_at=NOW)
     body = json.dumps({"zen": "Design for failure.", "repository": {"id": link.github_id}}).encode()
     response = client.post(
@@ -169,7 +169,7 @@ def test_the_webhook_values_come_with_copy_buttons_and_a_local_warning(client, s
 
     ada = make_member()
     client.force_login(ada)
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     link = make_link(project)
     payload = {
         "id": link.github_id, "full_name": link.full_name, "html_url": link.html_url,
@@ -208,7 +208,7 @@ def test_with_webhooks_off_the_page_says_live_updates_are_unavailable_not_done(
     settings.DEBUG = debug
     ada = make_member()
     client.force_login(ada)
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     make_link(project)
     page = unescape(client.get(project.get_absolute_url()).content.decode())
     assert 'data-setup="incomplete"' in page and strings.SETUP_DONE_TITLE not in page
@@ -227,7 +227,7 @@ def test_the_payload_url_uses_the_public_address_when_one_is_set(client, setting
     settings.ALLOWED_HOSTS = ["127.0.0.1", "hub-dev.example.com"]
     ada = make_member()
     client.force_login(ada)
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     link = make_link(project)
     payload = {
         "id": link.github_id, "full_name": link.full_name, "html_url": link.html_url,
@@ -255,8 +255,10 @@ def test_the_list_shows_each_projects_setup_progress(client):
     assert strings.EMPTY_TITLE in empty and reverse("projects:create") in empty
     assert all(strings.STEPS[key]["title"].replace("'", "&#x27;") in empty for key in strings.STEPS)
 
-    first = Project.objects.create(owner=ada, name="Space Game", description="A game in space.")
-    second = Project.objects.create(owner=ada, name="Moon Base")
+    first = Project.objects.create_with_owner(
+        ada, name="Space Game", description="A game in space."
+    )
+    second = Project.objects.create_with_owner(ada, name="Moon Base")
     make_link(second, first_webhook_at=NOW, webhook_at=NOW, webhook_shown_at=NOW)
     page = unescape(client.get(reverse("projects:list")).content.decode())
     assert page.count('class="panel pj-panel pj-card"') == 2
@@ -282,7 +284,7 @@ def help_open(page: str) -> dict[str, bool]:
 def test_every_step_carries_its_help_and_the_troubleshooting_lives_in_the_last(client):
     ada = make_member()
     client.force_login(ada)
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     make_link(project, webhook_shown_at=NOW)
     page = unescape(client.get(project.get_absolute_url()).content.decode())
     assert set(help_open(page)) == {"before", "account", "repository", "webhook", "delivery"}
@@ -303,7 +305,7 @@ def test_every_step_carries_its_help_and_the_troubleshooting_lives_in_the_last(c
 def test_help_opens_by_itself_on_the_current_step_of_a_first_repository_only(client):
     ada = make_member(github=False)
     client.force_login(ada)
-    first = Project.objects.create(owner=ada, name="Space Game")
+    first = Project.objects.create_with_owner(ada, name="Space Game")
     page = unescape(client.get(first.get_absolute_url()).content.decode())
     # A first repository, nothing done: what to have ready, and step 1's help, are open.
     assert help_open(page) == {
@@ -311,7 +313,7 @@ def test_help_opens_by_itself_on_the_current_step_of_a_first_repository_only(cli
     }  # fmt: skip
 
     make_link(first)
-    second = Project.objects.create(owner=ada, name="Moon Base")
+    second = Project.objects.create_with_owner(ada, name="Moon Base")
     page = unescape(client.get(second.get_absolute_url()).content.decode())
     # The member has linked a repository before: no "before you start", every help folded.
     assert "before" not in help_open(page)

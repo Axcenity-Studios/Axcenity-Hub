@@ -2,20 +2,24 @@
 {% load shell_tags %}
 {% block head_title %}{{ project.name }}{% endblock %}
 {% block content %}
-{# A project: its repository setup checklist (projects.setup), then the linked repository. #}
-<div class="app-page" data-repository="{% if link %}linked{% else %}none{% endif %}">
+{# A project: its repository setup checklist (projects.setup; Owners only), then the linked #}
+{# repository. Each role sees only what it may do (projects.models.PERMISSIONS).            #}
+<div class="app-page" data-repository="{% if link %}linked{% else %}none{% endif %}" data-role="{{ role }}">
   <div class="pj-head">
     <header class="app-page-head">
       <p class="micro text-fg-weak"><a class="app-link" href="{% url 'projects:list' %}">{{ text.LIST_TITLE }}</a></p>
       <h1 class="headline app-title">{{ project.name }}</h1>
       <p class="app-lede">{% if project.description %}{{ project.description|linebreaksbr }}{% else %}{{ text.NO_DESCRIPTION }}{% endif %}</p>
+      <p class="micro text-fg-weak"><span class="pj-tag micro" data-role-tag>{{ role_label }}</span></p>
     </header>
     <div class="app-actions">
-      <a class="btn btn-quiet btn-sm" href="{% url 'projects:edit' project.slug %}">{{ text.EDIT }}</a>
-      <a class="btn btn-quiet btn-sm" href="{% url 'projects:delete' project.slug %}">{{ text.DELETE }}</a>
+      <a class="btn btn-quiet btn-sm" href="{% url 'projects:members' project.slug %}">{% include "partials/icon.html" with name="user" size=14 %}{{ text.TEAM }} · {{ team_count }}</a>
+      {% if can.edit %}<a class="btn btn-quiet btn-sm" href="{% url 'projects:edit' project.slug %}">{{ text.EDIT }}</a>{% endif %}
+      {% if can.delete %}<a class="btn btn-quiet btn-sm" href="{% url 'projects:delete' project.slug %}">{{ text.DELETE }}</a>{% endif %}
     </div>
   </div>
 
+  {% if can.manage_repository %}
   <details id="setup" class="panel pj-panel pj-setup" data-setup="{% if setup.complete %}complete{% else %}incomplete{% endif %}"{% if not setup.complete or hook or webhook_error %} open{% endif %}>
     <summary class="pj-bar">
       <h2 class="tb-chip tb-chip-current">{% if setup.complete %}{{ text.SETUP_DONE_TITLE }}{% else %}{{ text.SETUP_TITLE }}{% endif %}</h2>
@@ -130,6 +134,7 @@
     <p class="pj-foot micro">{% if setup.complete %}{{ text.SETUP_DONE_NOTE }}{% else %}{{ text.SETUP_OFF_NOTE }}{% endif %}</p>
     {% endif %}
   </details>
+  {% endif %}
 
   {% if link %}
   <section class="panel pj-panel" aria-labelledby="repository-title">
@@ -152,18 +157,27 @@
         <div><dt class="micro">{{ text.UPDATED }}</dt><dd>{% if updated_at %}{{ updated_at|date:"j M Y, H:i e" }}{% else %}{{ text.NEVER }}{% endif %}</dd></div>
       </dl>
       <div class="app-actions">
+        {% if can.refresh %}
         <form method="post" action="{% url 'projects:refresh_repository' project.slug %}">
           {% csrf_token %}
           <button type="submit" class="btn btn-quiet btn-sm">{{ text.REPOSITORY_REFRESH }}</button>
         </form>
+        {% endif %}
         <a class="btn btn-quiet btn-sm" href="{{ link.html_url }}" target="_blank" rel="noopener noreferrer">{{ text.REPOSITORY_ON_GITHUB }}{% include "partials/icon.html" with name="external" size=14 %}</a>
+        {% if can.manage_repository %}
         <form method="post" action="{% url 'projects:unlink_repository' project.slug %}">
           {% csrf_token %}
           <button type="submit" class="btn btn-quiet btn-sm">{{ text.REPOSITORY_UNLINK }}</button>
         </form>
+        {% endif %}
       </div>
-      <p class="app-help">{{ text.HELP_UNLINK }}</p>
+      {% if can.manage_repository %}<p class="app-help">{{ text.HELP_UNLINK }}</p>{% endif %}
     </div>
+  </section>
+  {% elif not can.manage_repository %}
+  <section class="panel pj-panel" aria-labelledby="repository-title" data-no-repository>
+    <div class="pj-bar"><h2 id="repository-title" class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="repo" size=14 %}{{ text.REPOSITORY }}</h2></div>
+    <div class="pj-repo-body"><p class="text-fg-secondary">{{ text.NO_REPOSITORY_MEMBER }}</p></div>
   </section>
   {% endif %}
 </div>

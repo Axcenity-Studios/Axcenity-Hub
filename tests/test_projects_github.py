@@ -83,7 +83,7 @@ def test_permission_is_resolved_before_each_action_and_a_downgrade_or_removal_bl
     settings,
 ):
     ada = make_member()
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     responses.get(REPO_URL, json=repo_reply("admin"), headers={"ETag": '"v1"'})
 
     # Linked while GitHub reports her an admin.
@@ -126,7 +126,7 @@ def test_permission_is_resolved_before_each_action_and_a_downgrade_or_removal_bl
 
 
 def linked_project(user, name="Space Game", *, now=NOW) -> Project:
-    project = Project.objects.create(owner=user, name=name)
+    project = Project.objects.create_with_owner(user, name=name)
     with responses.RequestsMock() as mock:
         mock.get(REPO_URL, json=repo_reply("admin"), headers={"ETag": '"v1"'})
         services.link_repository(user, project, FULL_NAME, now=now)
@@ -138,7 +138,7 @@ def linked_project(user, name="Space Game", *, now=NOW) -> Project:
 @responses.activate
 def test_linking_stores_githubs_details_and_needs_admin_now():
     ada = make_member()
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     responses.get(REPO_URL, json=repo_reply("maintain"))
     assert (
         refused(services.link_repository, ada, project, FULL_NAME, now=NOW) is Reason.INSUFFICIENT
@@ -184,13 +184,13 @@ def test_only_an_owner_slash_name_is_accepted(text, expected):
 def test_a_repository_links_to_one_hub_project_only():
     ada, grace = make_member(), make_member("grace", github_uid="9001")
     linked_project(ada)
-    theirs = Project.objects.create(owner=grace, name="Moon Base")
+    theirs = Project.objects.create_with_owner(grace, name="Moon Base")
     responses.get(REPO_URL, json=repo_reply("admin"))
     with pytest.raises(services.RepositoryError) as error:
         services.link_repository(grace, theirs, FULL_NAME, now=NOW)
     assert str(error.value) == strings.REPOSITORY_TAKEN
     # Nor a second project of the same owner; nor a second repository on one project.
-    mine = Project.objects.create(owner=ada, name="Second")
+    mine = Project.objects.create_with_owner(ada, name="Second")
     with pytest.raises(services.RepositoryError) as again:
         services.link_repository(ada, mine, FULL_NAME, now=NOW)
     assert str(again.value) == strings.REPOSITORY_TAKEN
@@ -208,11 +208,11 @@ def test_a_repository_links_to_one_hub_project_only():
 @pytest.mark.django_db
 def test_without_a_github_account_or_with_one_needing_reconnection_nothing_asks_github():
     ada = make_member(github_uid=None)
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     assert refused(services.link_repository, ada, project, FULL_NAME, now=NOW) is Reason.NO_GITHUB
     grace = make_member("grace", github_uid="9001")
     GitHubLink.objects.filter(account__user=grace).update(needs_reconnect=True)
-    theirs = Project.objects.create(owner=grace, name="Moon Base")
+    theirs = Project.objects.create_with_owner(grace, name="Moon Base")
     assert refused(services.link_repository, grace, theirs, FULL_NAME, now=NOW) is Reason.RECONNECT
 
 
@@ -240,7 +240,7 @@ def test_without_a_github_account_or_with_one_needing_reconnection_nothing_asks_
 )
 def test_every_github_failure_refuses_the_action_without_raising(reply, reason):
     ada = make_member()
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     responses.get(REPO_URL, **reply)
     assert refused(services.link_repository, ada, project, FULL_NAME, now=NOW) is reason
     assert not RepositoryLink.objects.exists()
@@ -258,7 +258,7 @@ def test_an_expired_github_app_token_is_refreshed_before_asking():
     link = GitHubLink.objects.get(account__user=ada)
     link.set_tokens(ACCESS, "ghr_refresh", NOW - timedelta(hours=1))
     link.save()
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     responses.post(
         account_github.TOKEN_URL,
         json={"access_token": "gho_new", "refresh_token": "ghr_new", "expires_in": 28800},
@@ -275,7 +275,7 @@ def test_an_expired_github_app_token_is_refreshed_before_asking():
 @responses.activate
 def test_githubs_rate_limit_backs_off_for_that_member_until_the_reset():
     ada, grace = make_member(), make_member("grace", github_uid="9001")
-    mine = Project.objects.create(owner=ada, name="Space Game")
+    mine = Project.objects.create_with_owner(ada, name="Space Game")
     reset = int((NOW + timedelta(minutes=20)).timestamp())
     responses.get(
         REPO_URL,
@@ -293,7 +293,7 @@ def test_githubs_rate_limit_backs_off_for_that_member_until_the_reset():
     assert len(responses.calls) == 1
     # ...while another member's requests go ahead (GitHub's limit is per token).
     responses.replace(responses.GET, REPO_URL, json=repo_reply("admin"))
-    theirs = Project.objects.create(owner=grace, name="Moon Base")
+    theirs = Project.objects.create_with_owner(grace, name="Moon Base")
     assert refused(services.link_repository, grace, theirs, FULL_NAME, now=later) is None
     # After the reset she's asked about again.
     RepositoryLink.objects.all().delete()
@@ -313,7 +313,7 @@ def test_githubs_rate_limit_backs_off_for_that_member_until_the_reset():
 )
 def test_retry_after_and_secondary_limits_back_off_too(reply):
     ada = make_member()
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     responses.get(REPO_URL, **reply)
     with pytest.raises(services.RepositoryError) as error:
         services.link_repository(ada, project, FULL_NAME, now=NOW)
@@ -328,7 +328,7 @@ def test_retry_after_and_secondary_limits_back_off_too(reply):
 @responses.activate
 def test_a_reply_spending_the_last_request_backs_off_after_using_it():
     ada = make_member()
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     reset = int((NOW + timedelta(minutes=5)).timestamp())
     responses.get(
         REPO_URL,
@@ -360,7 +360,7 @@ def test_the_hub_spends_at_most_the_hourly_budget_per_member(settings):
 @responses.activate
 def test_repeat_checks_send_the_etag_and_a_304_reuses_what_github_said():
     ada = make_member()
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     responses.get(REPO_URL, json=repo_reply("admin"), headers={"ETag": '"v1"'})
     services.link_repository(ada, project, FULL_NAME, now=NOW)
     responses.replace(responses.GET, REPO_URL, status=304, headers={"ETag": '"v1"'})
@@ -429,7 +429,7 @@ def test_unlinking_never_asks_github():
 def test_the_project_page_links_a_repository_and_shows_its_details(client):
     ada = make_member()
     client.force_login(ada)
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     page = client.get(project.get_absolute_url()).content.decode()
     assert 'data-repository="none"' in page and 'name="repository"' in page
     responses.get(REPO_URL, json=repo_reply("admin"))
@@ -441,7 +441,7 @@ def test_the_project_page_links_a_repository_and_shows_its_details(client):
     assert 'data-repository="linked"' in page and strings.REPOSITORY_LINKED in page
     assert FULL_NAME in page and REPOSITORY["html_url"] in page and "master" in page
     # Refused: the message says why, on the same page.
-    other = Project.objects.create(owner=ada, name="Other")
+    other = Project.objects.create_with_owner(ada, name="Other")
     client.post(reverse("projects:link_repository", args=[other.slug]), {"repository": "nope"})
     assert strings.REPOSITORY_NAME_INVALID in unescape(
         client.get(other.get_absolute_url()).content.decode()
@@ -452,7 +452,7 @@ def test_the_project_page_links_a_repository_and_shows_its_details(client):
 def test_a_member_without_github_starts_at_step_one(client):
     ada = make_member(github_uid=None)
     client.force_login(ada)
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     page = unescape(client.get(project.get_absolute_url()).content.decode())
     assert re.search(r'id="setup-account" class="pj-step" data-state="current"', page)
     assert strings.STEPS["account"]["action"] in page
@@ -541,7 +541,7 @@ def test_the_webhook_step_shows_the_links_url_and_secret_to_an_admin_only(client
 def test_no_token_reaches_the_logs(caplog):
     caplog.set_level(logging.DEBUG)
     ada = make_member()
-    project = Project.objects.create(owner=ada, name="Space Game")
+    project = Project.objects.create_with_owner(ada, name="Space Game")
     for reply in [{"status": 500}, {"body": requests.Timeout()}, {"status": 401}]:
         responses.upsert(responses.GET, REPO_URL, **reply)
         assert refused(services.link_repository, ada, project, FULL_NAME, now=NOW) is not None
