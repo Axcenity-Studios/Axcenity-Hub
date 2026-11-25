@@ -28,6 +28,90 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-25 — Axcenity Hub: Phase 12B/17, Comments, ratings, limits and moderation hooks
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub phase  12B`.
+2. "Looks good I would just reccomed the 4 following changes" with a pasted list: 1. rating
+   averages from individual 1–5 integer ratings, from visible ratings only, shown to one
+   decimal place, never exposing a hidden or removed post's rating to non-staff;
+   2. `lock_member` must serialize simultaneous submissions from one member, so a sixth can't
+   slip through (database locking, not an in-memory counter); 3. one report per member per
+   target as a database uniqueness constraint, with simultaneous duplicates handled
+   gracefully; 4. visibility filtering centralized in reusable querysets or shared functions,
+   with staff access controlled only through `can_see_moderated`. "Other than that continue
+   to TDD only stopping on red".
+3. "go ahead, make it pass and move to next red phase" (after TDD behavior 1 was red).
+4. "go ahead, make it pass and finish the phase" (after TDD behavior 2 was red).
+
+### Summary
+
+- **Outcome:** Comments on forum posts (add, and delete your own), 1–5 star ratings (one
+  per member per post, changeable and clearable, not on your own post), the posting limits
+  (5 posts in 24 hours, 5 comments a minute, rolling windows under the member's lock), and
+  the moderation hooks: a `state` on posts and comments (visible, hidden, removed) that only
+  staff see past, and a new `reports` app where members report someone else's post or comment
+  once each. Rating and commenting work in place through HTMX with focus following each swap,
+  and everything also works without JavaScript. 1352 fast tests and 108 browser tests pass;
+  Ruff is clean. The one failing test is still
+  `test_download.py::test_the_copied_license_and_notice_match_the_engines`: the engine's
+  NOTICE changed again today (commit 3a43b6f5), and `refresh_credits` is outside this phase.
+- **Changes:**
+  - `reports/` (new) — `moderation.py` (`Visibility`, `can_see_moderated`,
+    `ModeratedQuerySet.visible_to` / `published` with a `parent` so a hidden post hides its
+    comments, `is_published`), `models.py` (`Report`, generic target, a conditional unique
+    constraint for abuse reports), migration `0001_initial`, `targets.py` (post and comment),
+    `services.py` (`report_content` turning the constraint's `IntegrityError` into
+    `AlreadyReported`, `has_reported`, `reported_ids`), `forms.py`, `views.py`, `urls.py`,
+    `strings.py`, a read-only `admin.py`.
+  - `forums/models.py` — `Comment`, `Rating` (unique per member and post, score 1–5 as a
+    check constraint), `state` on posts and comments, `with_stats`, author-and-time indexes,
+    `MaxLengthValidator` on bodies; migration `0002_comments_ratings_and_states`.
+  - `forums/services.py` — the post limit, `add_comment` with its limit, `delete_comment`,
+    `rate_post`, `clear_rating`. `accounts/limits.py` — `next_allowed` and `wait_words`.
+  - `forums/views.py`, `urls.py`, `forms.py`, `strings.py`, `admin.py` — comment, rate and
+    comment-delete views; every read through `visible_to`, every interaction through
+    `published()`; the limit as a form error that keeps the draft.
+  - Templates — `rating.html`, `comments.html`, `comment.html`,
+    `comment_confirm_delete.html` (partial and page), `reports/form.html`; `post.html` (rating,
+    Report or Reported, staff's state tag), `deleted.html` (removes `#comments` out of band),
+    `detail.html`, `list.html` (comment count and average); `star` and `flag` icons.
+  - `styles/source.css` — the rating, comment and report `.fm-*` classes.
+  - `config/settings.py`, `config/urls.py` — `reports`, `/reports/`.
+  - Tests: `test_forums_comments.py` (31) and `test_reports.py` (19), both new;
+    `test_forums_browser.py` (6 more); `test_accounts_security.py` (the new URLs and the
+    `csrf_exempt` scan of `reports/`).
+  - Docs: `docs/architecture/reports.md` (new); `architecture/forums.md`,
+    `frontend/forums.md`, `ARCHITECTURE.md`, `FRONTEND.md`, `TESTING.md`.
+  - `plans/axcenity-hub.md` — all four 12B criteria ticked.
+- **TDD:** 1. The sixth comment within a minute is refused with the wait in words, and the
+  next is allowed once the oldest is a minute old (red: `DID NOT RAISE`). 2. Hidden and
+  removed posts and comments are missing from every list, count and page for a visitor,
+  another member and both authors, every way to read or act on them is a 404, and staff see
+  them marked but can't interact with them (red: the list showed "Hidden post"). The
+  querysets' filters were held back until behavior 2, so it started red.
+- **Decisions:** 1–5 stars; comments can't be edited; rolling windows that count hidden and
+  removed content too (deleted content frees its place); "admin" is `is_staff`, decided only
+  in `can_see_moderated`; hidden content is a 404 even for its author; interacting needs
+  visible content under a visible post, for staff too; the report constraint covers abuse
+  reports only, so Phase 14's feedback isn't limited; reports are deleted with their target
+  and kept (reporter emptied) when the reporter leaves; the report page is a full page, never
+  HTMX; no status on reports yet (Phase 14); nothing sets the state yet (Phase 15).
+- **Deviations:** The user's four additions were adopted as written: averages from rating
+  rows to one decimal place, shown only with a visible post; threaded tests that hold
+  simultaneous posts and comments to the limit; the database constraint plus a threaded
+  duplicate-report test; and the single visibility layer in `reports.moderation`. The user
+  asked to stop only at each red test.
+- **Sideways:** A `TextField`'s `max_length` binds only forms, so `full_clean` let an
+  over-long comment, report or post body through the services. This was caught by a service
+  test and fixed with validators, including on 12A's post body. `"٣".isdigit()` is true, so
+  the score parsing now accepts only `"1"` to `"5"`. `timeuntil` joins with non-breaking
+  spaces, which the limit messages now replace. A report's target lookup crashed for a
+  signed-out visitor (excluding an `AnonymousUser` author) before sign-in could redirect.
+  Test-side fixes: Django's textarea starts with a newline, `.micro` uppercases text, and a
+  reported comment redirects to its `#comment-` anchor.
+
 ## 2026-11-25 — Axcenity Hub: Phase 12A/17, Forum posts and ownership
 
 ### Prompts

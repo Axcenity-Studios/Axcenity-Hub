@@ -6,6 +6,7 @@
   <div class="pj-bar">
     <span class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="chat" size=14 %}{{ text.TITLE }}</span>
     {% if is_author %}<span class="pj-tag micro" data-yours>{{ text.YOURS }}</span>{% endif %}
+    {% if post.state != "visible" %}<span class="pj-tag micro fm-state" data-state="{{ post.state }}">{{ post.get_state_display }}</span>{% endif %}
   </div>
   <div class="fm-post-body">
     <header class="fm-post-head">
@@ -19,12 +20,17 @@
       </p>
     </header>
     <div class="fm-text">{{ post.body|linebreaks }}</div>
+    {% include "forums/partials/rating.html" %}
     {% if is_author %}
     <div class="app-actions" role="group" aria-label="{{ text.POST_ACTIONS }}">
       {% url 'forums:edit' post.pk as edit_url %}{% url 'forums:delete' post.pk as delete_url %}
       <a class="btn btn-quiet btn-sm" href="{{ edit_url }}" hx-get="{{ edit_url }}" hx-target="#post" hx-swap="outerHTML" data-edit>{{ text.EDIT }}</a>
       <a class="btn btn-quiet btn-sm" href="{{ delete_url }}" hx-get="{{ delete_url }}" hx-target="#post" hx-swap="outerHTML" data-delete>{{ text.DELETE }}</a>
     </div>
+    {% elif reported %}
+    <p class="fm-reported micro" data-reported>{% include "partials/icon.html" with name="flag" size=14 %}{{ text.REPORTED }}</p>
+    {% elif can_report %}
+    <div class="app-actions"><a class="btn btn-quiet btn-sm" href="{% url 'reports:create' 'post' post.pk %}" data-report>{% include "partials/icon.html" with name="flag" size=14 %}{{ text.REPORT }}</a></div>
     {% endif %}
   </div>
 </article>

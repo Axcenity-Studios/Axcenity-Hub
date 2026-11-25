@@ -528,10 +528,10 @@ Built test-first with the `tdd` skill; the rest of the phase is built and tested
 
 ### Acceptance criteria
 
-- [ ] Tests: the 6th post in a day and the 6th comment in a minute are rejected with a clear message
-- [ ] Unverified accounts can't comment, rate or report (the Phase 8 email-verification gate)
-- [ ] One rating per user per post (changeable, not stackable); authors can't rate their own posts
-- [ ] Users can report a post or comment; hidden or removed content is invisible to non-admins
+- [x] Tests: the 6th post in a day and the 6th comment in a minute are rejected with a clear message
+- [x] Unverified accounts can't comment, rate or report (the Phase 8 email-verification gate)
+- [x] One rating per user per post (changeable, not stackable); authors can't rate their own posts
+- [x] Users can report a post or comment; hidden or removed content is invisible to non-admins
 
 ---
 

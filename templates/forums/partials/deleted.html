@@ -1,4 +1,6 @@
-{# Where the post was, once deleted (an HTMX answer): the notice takes focus. #}
+{# Where the post was, once deleted (an HTMX answer): the notice takes focus, and the post's #}
+{# comments go with it (out of band).                                                      #}
+<div id="comments" hx-swap-oob="delete"></div>
 <section id="post" class="panel pj-panel fm-post" aria-labelledby="deleted-title" data-deleted>
   <div class="fm-post-body">
     <h2 id="deleted-title" class="app-heading" tabindex="-1" autofocus>{{ text.DELETED_TITLE }}</h2>

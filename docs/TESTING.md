@@ -49,7 +49,9 @@ is on, so an unregistered marker fails.
 | `test_projects_webhooks.py` | Webhooks: only the link's valid signature, replays refused per link (TDD), GitHub's published test vector, per-link secrets never stored, 404s, 405, events (ping, rename, push, deleted, other repositories and kinds), malformed and oversized deliveries, escaping |
 | `test_accounts_browser.py` | `browser`: a member signs in through the form; the app shell's rail, account menu and every Account settings tab at 360 and 1280 px, dark and light, centred, with no sideways scroll; a photo uploaded through the form and shown; sign-out returns Home; Connected accounts with a link needing reconnection fits the same widths |
 | `test_forums.py` | Forums: reading (public, newest first, escaping), publishing and validation (blank, whitespace, lengths), the verification gate (create and edit; deleting your own never), only the author edits or deletes (another member, an admin and a visitor each get a 404, as for a missing post; with and without HTMX), the services' own checks, editing and deleting as full pages and in place (partials, `autofocus`, `aria-invalid`, the live region out of band, `Vary`, `HX-Redirect`), CSRF on every forum POST with and without `HX-Request`, the app shell and htmx, the nav, the admin |
-| `test_forums_browser.py` | `browser`: the author edits (an error, Save, Cancel) and deletes (Keep it, confirm) by keyboard, in place, no reload, focus following each swap; every action without JavaScript; the list and new-post pages at 360 and 1280 px, dark and light; screenshots in `screenshots/forums/` |
+| `test_forums_comments.py` | Comments, ratings and limits: the comment limit's window (TDD), hidden and removed content invisible to all but staff in every list, count and page, every way to act on it a 404 (TDD), the post limit, simultaneous posts and comments held to the limit (threads), `wait_words`, commenting (full page and in place: focus, the live region, errors, the limit in the form), deleting a comment (only its author; others 404; confirm, Keep it), a deleted post's comments, one rating per member (changeable, clearable, database constraints), scores out of range (`"٣"` too), authors can't rate, the average to one decimal, the verification gate on commenting, rating and reporting, CSRF, the admin |
+| `test_reports.py` | Reports: reporting a post or comment, once each (the page, the service, the database's conditional constraint, simultaneous duplicates), validation, your own content and unknown kinds a 404, sign-in, the Report and Reported links, reports going with their target and staying without their reporter, `reported_ids`, escaping, the admin |
+| `test_forums_browser.py` | `browser`: the author edits (an error, Save, Cancel) and deletes (Keep it, confirm) by keyboard, in place, no reload, focus following each swap; another member rates, clears, comments (an error), deletes their comment (Keep it, confirm) and reports a comment; a deleted post takes its comments with it; every action without JavaScript; the post, report, list and new-post pages at 360 and 1280 px, dark and light; screenshots in `screenshots/forums/` |
 
 Add a row when you create a file.
 
@@ -71,7 +73,7 @@ a waiting writer at once ("database table is locked") instead of queueing it, so
 show `accounts.limits.lock_member` working. A concurrency test uses
 `django_db(transaction=True)`, one thread per attempt released together by a
 `threading.Barrier`, and closes each thread's connection (`create_at_once` in
-`test_projects.py`).
+`test_projects.py`, `at_once` in `test_forums_comments.py`).
 
 ## Browser tests: the one opening
 
@@ -161,6 +163,10 @@ call a live API: the guard fails the test, and its error is a
   posts to every URL without arguments without a token, signed out and in; URLs with a slug
   get their own walk (`test_every_project_post_without_a_csrf_token_is_refused`). The only
   exempt view is the webhook (`test_only_the_repository_webhook_is_csrf_exempt`).
+- Moderation states: set a row's `state` with `.update(state=…)` (nothing in the app sets
+  it yet), and check each viewer: a visitor, another member, the author and staff.
+- Windowed limits: pass `now=` to the services and backdate rows with `.update(created=…)`
+  instead of sleeping.
 - Contribution views: test the gate with an unverified member (see
   `tests/gate_urls.py` and `make_member(verified=False)` in `test_accounts.py`).
 

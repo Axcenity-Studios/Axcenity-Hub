@@ -18,7 +18,7 @@ its code).
 | [frontend/toolbox.md](frontend/toolbox.md) | the Toolbox page (`/toolbox/`): its sections, the `.tb-*` panel classes, the commands and demo credentials, its screenshots and their capture record |
 | [frontend/documentation.md](frontend/documentation.md) | the docs at `/docs/`: re-syncing the snapshot, rendering and its link rules, heading ids, Luau highlighting, the three-column layout, the sidebar, `docs.js`, the API reference's layouts and type links, search |
 | [frontend/projects.md](frontend/projects.md) | the project pages: the setup checklist and its states, showing the webhook's values, copy buttons (`projects.js`), the cards, each step's help, the `.pj-*` classes |
-| [frontend/forums.md](frontend/forums.md) | the forum pages, **HTMX** (loading, partials, fallbacks, CSRF, errors), focus after a swap and the live region, `forums.js`, the `.fm-*` classes |
+| [frontend/forums.md](frontend/forums.md) | the forum pages (posts, ratings, comments) and the report page, **HTMX** (loading, partials, targets, fallbacks, CSRF, errors), focus after a swap and the live region, `forums.js`, the `.fm-*` classes |
 | [frontend/app-shell.md](frontend/app-shell.md) | the app shell for signed-in pages, Account settings and its tabs, profile photos, the sign-in entrance, allauth's layouts and elements, `form_fields.html`, the honeypot and Turnstile markup, the `.app-*` classes |
 | [frontend/canvas.md](frontend/canvas.md) | the loops' canvas kit (`static/reel/`): the loop contract, its context, the determinism and seamless-wrap rules, the drawing modules, fidelity to the editor |
 

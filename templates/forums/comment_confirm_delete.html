@@ -1,0 +1,22 @@
+{% extends "app/shell.html" %}
+{% block head_title %}{{ text.DELETE_COMMENT_TITLE }}{% endblock %}
+{% block content %}
+{# Deleting a comment without JavaScript (its post's page asks in place otherwise). #}
+<div class="app-page">
+  <header class="app-page-head">
+    <h1 class="headline app-title">{{ text.DELETE_COMMENT_TITLE }}</h1>
+    <p class="app-lede">{{ text.DELETE_COMMENT_LEDE }}</p>
+  </header>
+  <section class="app-panel panel" aria-labelledby="delete-title">
+    <h2 id="delete-title" class="app-heading">{{ comment.post.title }}</h2>
+    <div class="fm-comment-text">{{ comment.body|linebreaks }}</div>
+    <form method="post" class="app-form">
+      {% csrf_token %}
+      <div class="app-actions">
+        <button type="submit" class="btn btn-primary">{{ text.DELETE_COMMENT_CONFIRM }}</button>
+        <a class="btn btn-quiet" href="{{ comment.get_absolute_url }}">{{ text.KEEP }}</a>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{# A comment swapped for the question (an HTMX answer, its heading focused): Delete comment swaps #}
+{# the comments for the list without it; Keep it swaps back the comment.                       #}
+<article id="comment-{{ comment.pk }}" class="fm-comment" aria-labelledby="delete-comment-{{ comment.pk }}" data-confirming>
+  <h3 id="delete-comment-{{ comment.pk }}" class="app-heading fm-confirm-title" tabindex="-1"{% if swapped %} autofocus{% endif %}>{{ text.DELETE_COMMENT_TITLE }}</h3>
+  <p class="app-lede">{{ text.DELETE_COMMENT_LEDE }}</p>
+  {% url 'forums:comment_delete' comment.pk as delete_url %}{% url 'forums:comment' comment.pk as comment_url %}
+  <form method="post" action="{{ delete_url }}" hx-post="{{ delete_url }}" hx-target="#comments" hx-swap="outerHTML">
+    {% csrf_token %}
+    <div class="app-actions">
+      <button type="submit" class="btn btn-primary btn-sm" data-confirm-delete>{{ text.DELETE_COMMENT_CONFIRM }}</button>
+      <a class="btn btn-quiet btn-sm" href="{{ comment.get_absolute_url }}" hx-get="{{ comment_url }}" hx-target="#comment-{{ comment.pk }}" hx-swap="outerHTML" data-keep>{{ text.KEEP }}</a>
+    </div>
+  </form>
+</article>

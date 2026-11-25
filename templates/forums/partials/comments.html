@@ -1,0 +1,32 @@
+{# The post's comments (#comments), oldest first, and the form. An HTMX answer swaps it whole: #}
+{# after commenting the new comment is focused, after deleting the heading, after an error the #}
+{# field; `status` fills the page's live region out of band.                                  #}
+{% if status %}<div hx-swap-oob="innerHTML:#post-status"><p class="app-message">{{ status }}</p></div>{% endif %}
+<section id="comments" class="panel pj-panel fm-comments" aria-labelledby="comments-title" data-comments>
+  <div class="pj-bar">
+    <h2 id="comments-title" class="tb-chip tb-chip-current" tabindex="-1"{% if focus_heading %} autofocus{% endif %}>{% include "partials/icon.html" with name="chat" size=14 %}{{ text.COMMENTS_TITLE }}</h2>
+    <span class="pj-tag micro" data-comment-count>{{ comment_count }}</span>
+  </div>
+  {% if comments %}
+  <ol class="app-list fm-comment-list">
+    {% for row in comments %}<li>{% include "forums/partials/comment.html" with comment=row.comment author=row.author is_author=row.is_author can_report=row.can_report reported=row.reported focus=row.focus %}</li>{% endfor %}
+  </ol>
+  {% else %}
+  <p class="fm-comments-empty" data-no-comments>{{ text.NO_COMMENTS }}</p>
+  {% endif %}
+  {% if comments_open %}
+  <div class="fm-comment-form">
+    {% if user.is_authenticated %}
+    {% url 'forums:comment_create' post.pk as comment_url %}
+    <form method="post" action="{{ comment_url }}" class="app-form" novalidate
+          hx-post="{{ comment_url }}" hx-target="#comments" hx-swap="outerHTML" data-comment-form>
+      {% csrf_token %}
+      {% include "partials/form_fields.html" with form=comment_form %}
+      <div class="app-actions"><button type="submit" class="btn btn-primary btn-sm">{{ text.COMMENT_SUBMIT }}</button></div>
+    </form>
+    {% else %}
+    <a class="btn btn-quiet btn-sm" href="{% url 'account_login' %}?next={{ post.get_absolute_url }}%23comments" data-sign-in-to-comment>{{ text.SIGN_IN_TO_COMMENT }}</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>

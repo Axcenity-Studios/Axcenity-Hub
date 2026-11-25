@@ -1,0 +1,32 @@
+{# The post's rating (#rating, inside #post): the average to one decimal and the count; for a #}
+{# member who may rate, five star buttons (the pressed one is their rating) and Clear. An HTMX  #}
+{# answer swaps it in place with the star just chosen focused and its status in the live region. #}
+{% load app_shell %}
+{% if rating_status %}<div hx-swap-oob="innerHTML:#post-status"><p class="app-message">{{ rating_status }}</p></div>{% endif %}
+<section id="rating" class="fm-rating" aria-labelledby="rating-title" data-rating>
+  <h2 id="rating-title" class="micro fm-rating-title">{{ text.RATING_TITLE }}</h2>
+  <p class="fm-rating-summary" data-rating-summary>
+    {% if rating.count %}{% include "partials/icon.html" with name="star" size=16 class="fm-star-icon" %}<strong>{{ rating.average }}</strong><span aria-hidden="true">·</span><span>{{ rating.count_words }}</span>{% else %}{{ text.NO_RATINGS }}{% endif %}
+  </p>
+  {% if rating.can_rate %}
+  {% url 'forums:rate' post.pk as rate_url %}
+  <form method="post" action="{{ rate_url }}" class="fm-rate"
+        hx-post="{{ rate_url }}" hx-target="#rating" hx-swap="outerHTML">
+    {% csrf_token %}
+    <div class="fm-stars" role="group" aria-label="{{ text.RATE_LABEL }}">
+      {% for star in rating.stars %}
+      <button type="submit" name="score" value="{{ star.score }}" class="fm-star{% if star.on %} fm-star-on{% endif %}" aria-label="{{ star.label }}" aria-pressed="{% if star.pressed %}true{% else %}false{% endif %}"{% if focus_star == star.score %} autofocus{% endif %} data-star="{{ star.score }}">{% include "partials/icon.html" with name="star" size=22 %}</button>
+      {% endfor %}
+    </div>
+    {% if rating.mine %}
+    <p class="fm-rating-mine" data-my-rating>{% fill text.YOUR_RATING score=rating.mine %}</p>
+    <button type="submit" name="score" value="clear" class="btn btn-quiet btn-sm" data-clear-rating>{{ text.CLEAR_RATING }}</button>
+    {% endif %}
+  </form>
+  {% elif not user.is_authenticated %}
+  <a class="app-link fm-rating-note" href="{% url 'account_login' %}?next={{ post.get_absolute_url }}" data-sign-in-to-rate>{{ text.SIGN_IN_TO_RATE }}</a>
+  {% elif is_author %}
+  <p class="fm-rating-note" data-own-post>{{ text.RATE_OWN_POST }}</p>
+  {% endif %}
+  {% if rating_error %}<p class="app-form-errors fm-rating-note" role="alert">{{ rating_error }}</p>{% endif %}
+</section>

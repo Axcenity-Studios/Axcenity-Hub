@@ -3,12 +3,13 @@
 {% block head_title %}{{ post.title }}{% endblock %}
 {% block app_head %}<script src="{% versioned_static 'js/forums.js' %}" defer></script>{% endblock %}
 {% block content %}
-{# A post. Its author's Edit and Delete swap #post in place through HTMX (docs/frontend/forums.md); #}
-{# without JavaScript they're links to full pages.                                                 #}
+{# A post, its rating and its comments. Edit, Delete, rating and commenting swap their part in  #}
+{# place through HTMX (docs/frontend/forums.md); without JavaScript they're links and forms.    #}
 <div class="app-page">
   <a class="app-link fm-back" href="{% url 'forums:list' %}">{{ text.BACK }}</a>
   {# Announces what an in-place change did (filled out of band by the swap's answer). #}
   <div id="post-status" class="fm-status" role="status" aria-live="polite"></div>
   {% include "forums/partials/post.html" %}
+  {% include "forums/partials/comments.html" %}
 </div>
 {% endblock %}

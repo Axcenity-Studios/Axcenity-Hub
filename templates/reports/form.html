@@ -1,0 +1,29 @@
+{% extends "app/shell.html" %}
+{% block head_title %}{{ heading }}{% endblock %}
+{% block content %}
+{# Reporting a post or comment: what's wrong, and details. Once reported, the page says so. #}
+<div class="app-page">
+  <a class="app-link fm-back" href="{{ back_url }}">{{ back }}</a>
+  <header class="app-page-head">
+    <h1 class="headline app-title">{{ heading }}</h1>
+    <p class="app-lede">{{ lede }}</p>
+  </header>
+  <section class="app-panel panel" aria-labelledby="report-target">
+    <p class="micro">{{ text.REPORTING }}</p>
+    <h2 id="report-target" class="app-heading fm-report-target">{{ content_title|truncatechars:160 }}</h2>
+    {% if already %}
+    <p class="app-message" data-already-reported>{{ already }}</p>
+    <div class="app-actions"><a class="btn btn-quiet" href="{{ back_url }}">{{ back }}</a></div>
+    {% else %}
+    <form method="post" class="app-form" novalidate data-report-form>
+      {% csrf_token %}
+      {% include "partials/form_fields.html" with form=form %}
+      <div class="app-actions">
+        <button type="submit" class="btn btn-primary">{{ text.SUBMIT }}</button>
+        <a class="btn btn-quiet" href="{{ back_url }}">{{ text.CANCEL }}</a>
+      </div>
+    </form>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

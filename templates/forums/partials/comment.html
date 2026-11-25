@@ -1,0 +1,23 @@
+{# One comment (#comment-<pk>): author, time, text; Delete for its author, Report for other members. #}
+{# `focus`: an HTMX answer focuses it (just posted, or kept after Delete).                       #}
+<article id="comment-{{ comment.pk }}" class="fm-comment" aria-label="{{ author.name }}" tabindex="-1"{% if focus %} autofocus{% endif %} data-comment="{{ comment.pk }}">
+  <p class="fm-meta">
+    {% include "partials/avatar.html" with person=author size=20 %}
+    <span class="fm-author">{{ author.name }}</span>
+    <span aria-hidden="true">·</span>
+    <time datetime="{{ comment.created|date:'c' }}">{{ comment.created|date:"j M Y, H:i" }}</time>
+    {% if is_author %}<span class="pj-tag micro" data-yours>{{ text.YOUR_COMMENT }}</span>{% endif %}
+    {% if comment.state != "visible" %}<span class="pj-tag micro fm-state" data-state="{{ comment.state }}">{{ comment.get_state_display }}</span>{% endif %}
+  </p>
+  <div class="fm-comment-text">{{ comment.body|linebreaks }}</div>
+  {% if is_author %}
+  {% url 'forums:comment_delete' comment.pk as delete_url %}
+  <div class="app-actions" role="group" aria-label="{{ text.COMMENT_ACTIONS }}">
+    <a class="btn btn-quiet btn-sm" href="{{ delete_url }}" hx-get="{{ delete_url }}" hx-target="#comment-{{ comment.pk }}" hx-swap="outerHTML" data-delete-comment>{{ text.DELETE }}</a>
+  </div>
+  {% elif reported %}
+  <p class="fm-reported micro" data-reported>{% include "partials/icon.html" with name="flag" size=14 %}{{ text.REPORTED }}</p>
+  {% elif can_report %}
+  <div class="app-actions"><a class="btn btn-quiet btn-sm" href="{% url 'reports:create' 'comment' comment.pk %}" data-report>{% include "partials/icon.html" with name="flag" size=14 %}{{ text.REPORT }}</a></div>
+  {% endif %}
+</article>

@@ -48,3 +48,56 @@ DELETED_TEXT = "“{title}” is gone."
 CREATED = "Your post is published."
 SAVED = "Your changes are saved."
 DELETED = "Your post was deleted."
+
+# Limits.
+COMMENT_LIMIT_REACHED = (
+    "You've posted {limit} comments in the last minute. You can comment again in {wait}."
+)
+POST_LIMIT_REACHED = (
+    "You've published {limit} posts in the last 24 hours. You can post again in {wait}."
+)
+
+# Comments.
+COMMENTS_TITLE = "Comments"
+NO_COMMENTS = "No comments yet."
+COMMENT_LABEL = "Add a comment"
+COMMENT_HELP = "Plain text. Line breaks are kept."
+COMMENT_SUBMIT = "Comment"
+COMMENT_REQUIRED = "Write something in the comment."
+COMMENT_TOO_LONG = "Keep the comment to %(limit_value)d characters (it has %(show_value)d)."
+SIGN_IN_TO_COMMENT = "Sign in to comment"
+YOUR_COMMENT = "Your comment"
+COMMENT_ACTIONS = "Comment actions"
+COMMENTED = "Your comment is posted."
+DELETE_COMMENT_TITLE = "Delete this comment?"
+DELETE_COMMENT_LEDE = "It's removed for everyone, and it can't be undone."
+DELETE_COMMENT_CONFIRM = "Delete comment"
+COMMENT_DELETED = "Your comment was deleted."
+COMMENT_BY = "Comment by {author}"
+COMMENTS_COUNT = "{count} comment"
+COMMENTS_COUNT_PLURAL = "{count} comments"
+
+# Ratings.
+RATING_TITLE = "Rating"
+RATING_AVERAGE = "{average} out of 5"
+RATING_COUNT = "{count} rating"
+RATING_COUNT_PLURAL = "{count} ratings"
+NO_RATINGS = "No ratings yet"
+RATE_LABEL = "Rate this post"
+RATE_STAR = "Rate {score} out of 5"
+YOUR_RATING = "You rated it {score} out of 5."
+CLEAR_RATING = "Clear my rating"
+SIGN_IN_TO_RATE = "Sign in to rate"
+RATE_OWN_POST = "You can't rate your own post."
+RATING_OUT_OF_RANGE = "Choose from 1 to 5 stars."
+RATED = "Your rating is saved."
+RATING_CLEARED = "Your rating is cleared."
+
+# Moderation, as staff see it.
+STATE_HIDDEN = "Hidden"
+STATE_REMOVED = "Removed"
+STAFF_ONLY = "Only staff can see this."
+
+# Reporting.
+REPORT = "Report"
+REPORTED = "Reported"
