@@ -552,8 +552,8 @@ Built test-first with the `tdd` skill; the rest of the phase is built and tested
 
 ### Acceptance criteria
 
-- [ ] Tests: search terms, each filter, each sort order, page boundaries, invalid parameters handled safely
-- [ ] HTMX updates the list without a full reload; URLs are shareable (state in the query string)
+- [x] Tests: search terms, each filter, each sort order, page boundaries, invalid parameters handled safely
+- [x] HTMX updates the list without a full reload; URLs are shareable (state in the query string)
 
 *(12A–12C may be merged back into one phase if the forum turns out small.)*
 

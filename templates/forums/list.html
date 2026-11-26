@@ -1,7 +1,11 @@
 {% extends "app/shell.html" %}
+{% load static shell_tags %}
 {% block head_title %}{{ text.TITLE }}{% endblock %}
+{% block app_head %}<script src="{% versioned_static 'js/forums.js' %}" defer></script>{% endblock %}
 {% block content %}
-{# Every post, newest first: its title (the link), author, date and the start of its text. #}
+{# The posts, 20 a page: its controls (search, filters, sort) and the list's part, which htmx #}
+{# swaps in place (docs/frontend/lists.md). Without JavaScript the same form and links load   #}
+{# the page.                                                                                 #}
 <div class="app-page">
   <div class="pj-head">
     <header class="app-page-head">
@@ -17,38 +21,10 @@
     </div>
   </div>
 
-  {% if rows %}
-  <section class="panel pj-panel" aria-labelledby="posts-title">
-    <div class="pj-bar"><h2 id="posts-title" class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="chat" size=14 %}{{ text.POSTS_LABEL }}</h2><span class="pj-tag micro">{{ rows|length }}</span></div>
-    <ul class="app-list fm-rows" data-posts>
-      {% for row in rows %}
-      <li class="fm-row" data-post="{{ row.post.pk }}">
-        <h3 class="fm-row-title"><a href="{{ row.post.get_absolute_url }}">{{ row.post.title }}</a></h3>
-        <p class="fm-meta">
-          {% include "partials/avatar.html" with person=row.author size=20 %}
-          <span class="fm-author">{{ row.author.name }}</span>
-          <span aria-hidden="true">·</span>
-          <time datetime="{{ row.post.created|date:'c' }}">{{ row.post.created|date:"j M Y" }}</time>
-          {% if row.post.edited_at %}<span aria-hidden="true">·</span><span>{{ text.EDITED }}</span>{% endif %}
-          {% if row.post.state != "visible" %}<span class="pj-tag micro fm-state" data-state="{{ row.post.state }}">{{ row.post.get_state_display }}</span>{% endif %}
-        </p>
-        <p class="fm-meta fm-row-stats">
-          <span data-comments>{% include "partials/icon.html" with name="chat" size=14 %}{{ row.comments }}</span>
-          {% if row.rating %}<span data-rating><span aria-hidden="true">{% include "partials/icon.html" with name="star" size=14 class="fm-star-icon" %}{{ row.rating }}</span><span class="sr-only">{{ row.rating_words }}</span></span>{% endif %}
-        </p>
-        <p class="fm-row-text">{{ row.post.body|truncatechars:180 }}</p>
-      </li>
-      {% endfor %}
-    </ul>
-  </section>
-  {% else %}
-  <section class="panel pj-panel" aria-labelledby="empty-title" data-empty>
-    <div class="pj-bar"><span class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="chat" size=14 %}{{ text.POSTS_LABEL }}</span></div>
-    <div class="pj-empty">
-      <h2 id="empty-title" class="app-heading">{{ text.EMPTY_TITLE }}</h2>
-      <p class="app-lede">{{ text.EMPTY_TEXT }}</p>
-    </div>
-  </section>
-  {% endif %}
+  {# Nothing to search in a forum without posts. #}
+  {% if not empty %}{% include "partials/list_controls.html" %}{% endif %}
+  {# Announces the count after each in-place change (filled out of band by the list's part). #}
+  <div id="post-list-status" class="sr-only" role="status" aria-live="polite"></div>
+  {% include "forums/partials/post_list.html" %}
 </div>
 {% endblock %}

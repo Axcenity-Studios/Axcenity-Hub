@@ -1,0 +1,10 @@
+{# A list's pages (config.listing.pager): Previous, "Page 2 of 5", Next. Each is a real link to #}
+{# that page's URL; with htmx it swaps the list's part and the heading takes focus (the view    #}
+{# knows the pager by these ids). Shown only when there's more than one page.                   #}
+{% if pager.total > 1 %}
+<nav class="ls-pager" aria-label="{{ pager.words.pages }}" data-pager>
+  {% if pager.previous %}<a id="{{ list_id }}-previous" class="ls-page-link" href="{{ pager.previous }}" rel="prev" hx-get="{{ pager.previous }}" hx-target="#{{ list_id }}" hx-swap="outerHTML show:top">{{ pager.words.previous }}</a>{% endif %}
+  <span class="ls-page-label" data-page="{{ pager.number }}" data-pages="{{ pager.total }}">{{ pager.label }}</span>
+  {% if pager.next %}<a id="{{ list_id }}-next" class="ls-page-link" href="{{ pager.next }}" rel="next" hx-get="{{ pager.next }}" hx-target="#{{ list_id }}" hx-swap="outerHTML show:top">{{ pager.words.next }}</a>{% endif %}
+</nav>
+{% endif %}

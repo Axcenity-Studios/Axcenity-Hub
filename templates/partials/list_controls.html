@@ -1,0 +1,23 @@
+{# A list's search, filters and sort (config.listing): one GET form whose fields are the query #}
+{# string, so it works as a plain form. With htmx, typing (after a pause), choosing and         #}
+{# submitting ask for the list's part only (#{{ list_id }}); a newer request replaces an older. #}
+{# `hx-history="false"`: going back asks the server for that URL's page rather than htmx's     #}
+{# saved copy, whose fields would still hold what was typed later.                              #}
+{# Needs `controls`, `list_url` and `list_id`.                                                  #}
+<form id="{{ list_id }}-controls" class="ls-controls" method="get" action="{{ list_url }}" role="search" aria-label="{{ controls.words.controls }}"
+      hx-get="{{ list_url }}" hx-target="#{{ list_id }}" hx-swap="outerHTML" hx-sync="this:replace" hx-history="false" data-list-controls>
+  <div class="ls-field ls-search">
+    <label for="{{ list_id }}-q">{{ controls.words.search }}</label>
+    <input type="search" id="{{ list_id }}-q" name="q" value="{{ controls.q }}" maxlength="{{ controls.max_query }}" placeholder="{{ controls.words.placeholder }}" autocomplete="off"
+           hx-get="{{ list_url }}" hx-include="closest form" hx-trigger="input changed delay:300ms">
+  </div>
+  {% for select in controls.selects %}
+  <div class="ls-field">
+    <label for="{{ list_id }}-{{ select.name }}">{{ select.label }}</label>
+    <select id="{{ list_id }}-{{ select.name }}" name="{{ select.name }}" hx-get="{{ list_url }}" hx-include="closest form">
+      {% for option in select.options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endfor %}
+  <button type="submit" class="btn btn-quiet btn-sm ls-apply">{{ controls.words.apply }}</button>
+</form>

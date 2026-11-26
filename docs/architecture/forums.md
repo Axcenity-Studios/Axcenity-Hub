@@ -9,8 +9,10 @@ the posting limits, and the services every write goes through. The pages and the
 |---|---|
 | `models.py` | `ForumPost` (author, title ≤ 120, plain-text body ≤ 10,000, `created`, `edited_at`, `state`), newest first; `Comment` (post, author, body ≤ 2,000, `created`, `state`), oldest first; `Rating` (post, user, score 1–5; one per member per post and the score's range are database constraints). Querysets: `authored_by(user)`, `visible_to(user)` and `published()` (from `reports.moderation`), and `ForumPost…with_stats(user)` (`comment_count`, `rating_count`, `rating_average`) |
 | `services.py` | `create_post`, `edit_post`, `delete_post`, `add_comment`, `delete_comment`, `rate_post`, `clear_rating`: the rules below, whichever way a write arrives |
+| `listing.py` | `POSTS`: the list's search fields, sorts and filters ([lists.md](lists.md#the-forums-list-forumslistingpy)) |
 | `forms.py` | `PostForm`, `CommentForm`: trimmed, blank refused, lengths in plain words (`strings.py`) |
-| `views.py` | Thin views; `AuthorPostMixin` and `AuthorCommentMixin` (the 404s), `PostedPostMixin` (only a published post takes comments and ratings), `HtmxAwareMixin` (redirects and `Vary`) |
+| `views.py` | Thin views; `PostListView` (`config.listing.ListingMixin`), `AuthorPostMixin` and `AuthorCommentMixin` (the 404s), `PostedPostMixin` (only a published post takes comments and ratings), `HtmxAwareMixin` (redirects and `Vary`) |
+| `management/commands/seed_forum_demo.py` | 45 backdated demo posts with comments and ratings, for trying the list (development only, idempotent) |
 | `admin.py` | Read-only: looking up posts and comments, with their state. Changing others' content, or its state, is moderation's (Phase 15) |
 | `strings.py` | Every word on the pages, as data |
 
@@ -48,7 +50,8 @@ the posting limits, and the services every write goes through. The pages and the
 ## Hidden and removed content
 
 Posts and comments have a moderation `state` ([reports.md](reports.md#moderation-states)).
-Every read goes through `visible_to(request.user)`: the list, its counts, a post's page, its
+Every read goes through `visible_to(request.user)`: the list (its search, filters and
+counts only narrow that), a post's page, its
 comments, the comment URL, and the author-only lookups (so an author's own hidden post is a
 404 to them as well). Every interaction goes through `published()`: commenting, rating and
 reporting need visible content under a visible post, for staff too. A post's ratings are
@@ -79,11 +82,11 @@ page and the comment form show it as a form error and keep the draft. The servic
 
 ## Later phases
 
-12C adds search, filters, sorting and pagination to the list; 15 lets admins act on others'
-content and set its state through moderation.
+15 lets admins act on others' content and set its state through moderation.
 
 ## Tests
 
-`tests/test_forums.py`, `tests/test_forums_comments.py`, `tests/test_reports.py`;
-`tests/test_forums_browser.py` (`browser`). See
+`tests/test_forums.py`, `tests/test_forums_comments.py`, `tests/test_forums_list.py`,
+`tests/test_reports.py`; `tests/test_forums_browser.py` and
+`tests/test_forums_list_browser.py` (`browser`). See
 [../TESTING.md](../TESTING.md).

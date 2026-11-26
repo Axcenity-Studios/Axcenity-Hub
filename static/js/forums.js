@@ -1,4 +1,4 @@
-// A forum post's page (templates/forums/detail.html). htmx swaps the post in place; focus
+// The forum's pages (templates/forums/list.html, detail.html). htmx swaps a part in place; focus
 // moves by the `autofocus` attribute the swapped part carries (htmx focuses it). htmx 2
 // doesn't swap an error answer, which would leave a dead click: a post deleted in another tab
 // (404), or a form whose CSRF token went stale with the session (403). Load the page in full

@@ -22,16 +22,18 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils.cache import patch_vary_headers
 from django.views import View
-from django.views.generic import DetailView, FormView, ListView
+from django.views.generic import DetailView, FormView, TemplateView
 from django_htmx.http import HttpResponseClientRedirect
 
 from accounts.access import EmailNotVerified, VerifiedEmailRequiredMixin, verify_email_url
 from accounts.limits import LimitReached
+from config.listing import ListingMixin
 from reports.moderation import Visibility, is_published
 from reports.services import has_reported, reported_ids
 
 from . import services, strings
 from .forms import CommentForm, PostForm
+from .listing import POSTS
 from .models import Comment, ForumPost, Rating
 
 
@@ -179,20 +181,30 @@ class AuthorPostMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
-class PostListView(ListView):
-    """Every post, newest first, for anyone."""
+class PostListView(ListingMixin, TemplateView):
+    """The posts the visitor may see, 20 a page: searched, filtered and ordered by the query
+    string (forums.listing), newest first without one. An HTMX request gets the list's part."""
 
     template_name = "forums/list.html"
-    context_object_name = "posts"
+    partial_template_name = "forums/partials/post_list.html"
+    listing = POSTS
+    list_id = "post-list"
 
-    def get_queryset(self):
+    def get_listing_queryset(self):
         user = self.request.user
         return ForumPost.objects.visible_to(user).with_stats(user).select_related("author__profile")
 
+    def get_list_url(self) -> str:
+        return reverse("forums:list")
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        count = context["count"]
         context.update(
             text=strings,
+            count_words=count_words(count, strings.POSTS_COUNT, strings.POSTS_COUNT_PLURAL),
+            # No posts at all (nothing to search yet), or none that match.
+            empty=not count and not context["selection"].narrowed,
             rows=[
                 {
                     "post": post,
@@ -207,7 +219,7 @@ class PostListView(ListView):
                     if post.rating_count
                     else "",
                 }
-                for post in context["posts"]
+                for post in context["page"]
             ],
         )
         return context

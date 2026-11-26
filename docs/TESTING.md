@@ -52,6 +52,8 @@ is on, so an unregistered marker fails.
 | `test_forums_comments.py` | Comments, ratings and limits: the comment limit's window (TDD), hidden and removed content invisible to all but staff in every list, count and page, every way to act on it a 404 (TDD), the post limit, simultaneous posts and comments held to the limit (threads), `wait_words`, commenting (full page and in place: focus, the live region, errors, the limit in the form), deleting a comment (only its author; others 404; confirm, Keep it), a deleted post's comments, one rating per member (changeable, clearable, database constraints), scores out of range (`"٣"` too), authors can't rate, the average to one decimal, the verification gate on commenting, rating and reporting, CSRF, the admin |
 | `test_reports.py` | Reports: reporting a post or comment, once each (the page, the service, the database's conditional constraint, simultaneous duplicates), validation, your own content and unknown kinds a 404, sign-in, the Report and Reported links, reports going with their target and staying without their reporter, `reported_ids`, escaping, the admin |
 | `test_forums_browser.py` | `browser`: the author edits (an error, Save, Cancel) and deletes (Keep it, confirm) by keyboard, in place, no reload, focus following each swap; another member rates, clears, comments (an error), deletes their comment (Keep it, confirm) and reports a comment; a deleted post takes its comments with it; every action without JavaScript; the post, report, list and new-post pages at 360 and 1280 px, dark and light; screenshots in `screenshots/forums/` |
+| `test_forums_list.py` | The forum list: invalid and hostile query parameters falling back safely (TDD: bad pages, unknown sorts and filter values, repeated and unknown parameters, over-long, NUL and markup searches, nothing copied into links), search (every word, title or post, any case), each filter and sort, ties ordered by pk across pages, page boundaries, the pager's links, one URL per state, hidden posts never found or counted, two queries however many posts, the HTMX part (`HX-Push-Url`, `Vary`, the live region, focus after the pager only, history restores), the form without JavaScript, `Listing`'s refusals, `clean_page` and `clean_search`, the `seed_forum_demo` command |
+| `test_forums_list_browser.py` | `browser`: typing searches in place with focus kept, sort and filters, "No posts match", Back restoring the list and its controls, the pager by keyboard (focus on the heading, in view), Clear, a copied address, and the form and pager with JavaScript off; at 360 and 1280 px, dark and light; screenshots in `screenshots/forums/list-*.png` |
 
 Add a row when you create a file.
 
@@ -167,6 +169,10 @@ call a live API: the guard fails the test, and its error is a
   it yet), and check each viewer: a visitor, another member, the author and staff.
 - Windowed limits: pass `now=` to the services and backdate rows with `.update(created=…)`
   instead of sleeping.
+- Lists (`config.listing`): send the raw query string (`client.get(url + "?" + query)`), so
+  repeated and malformed parameters arrive as written; use `Client(raise_request_exception=False)`
+  when a crash should be a failed assertion; count queries with `CaptureQueriesContext` at two
+  sizes; give `Selection.apply` a `now=` for the windowed filters.
 - Contribution views: test the gate with an unverified member (see
   `tests/gate_urls.py` and `make_member(verified=False)` in `test_accounts.py`).
 

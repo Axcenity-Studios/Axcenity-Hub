@@ -1,0 +1,51 @@
+{# The list's part of /forums/ (#post-list): the posts on this page of the search, filters and #}
+{# order the query string asks for, and the pager. An HTMX answer swaps it whole: `swapped`     #}
+{# fills the page's live region with the count out of band, and after the pager (`focus_list`)  #}
+{# the heading takes focus.                                                                    #}
+{% if swapped %}<div hx-swap-oob="innerHTML:#post-list-status"><p>{% if count %}{{ count_words }}{% else %}{{ text.NO_MATCH_TITLE }}{% endif %}</p></div>{% endif %}
+<div id="post-list" class="ls-list">
+  {% if rows %}
+  <section class="panel pj-panel" aria-labelledby="posts-title">
+    <div class="pj-bar"><h2 id="posts-title" class="tb-chip tb-chip-current" tabindex="-1"{% if focus_list %} autofocus{% endif %}>{% include "partials/icon.html" with name="chat" size=14 %}{{ text.POSTS_LABEL }}</h2><span class="pj-tag micro" data-post-count>{{ count }}</span></div>
+    <ul class="app-list fm-rows" data-posts>
+      {% for row in rows %}
+      <li class="fm-row" data-post="{{ row.post.pk }}">
+        <h3 class="fm-row-title"><a href="{{ row.post.get_absolute_url }}">{{ row.post.title }}</a></h3>
+        <p class="fm-meta">
+          {% include "partials/avatar.html" with person=row.author size=20 %}
+          <span class="fm-author">{{ row.author.name }}</span>
+          <span aria-hidden="true">·</span>
+          <time datetime="{{ row.post.created|date:'c' }}">{{ row.post.created|date:"j M Y" }}</time>
+          {% if row.post.edited_at %}<span aria-hidden="true">·</span><span>{{ text.EDITED }}</span>{% endif %}
+          {% if row.post.state != "visible" %}<span class="pj-tag micro fm-state" data-state="{{ row.post.state }}">{{ row.post.get_state_display }}</span>{% endif %}
+        </p>
+        <p class="fm-meta fm-row-stats">
+          <span data-comments>{% include "partials/icon.html" with name="chat" size=14 %}{{ row.comments }}</span>
+          {% if row.rating %}<span data-rating><span aria-hidden="true">{% include "partials/icon.html" with name="star" size=14 class="fm-star-icon" %}{{ row.rating }}</span><span class="sr-only">{{ row.rating_words }}</span></span>{% endif %}
+        </p>
+        <p class="fm-row-text">{{ row.post.body|truncatechars:180 }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% include "partials/list_pager.html" %}
+  {% elif empty %}
+  <section class="panel pj-panel" aria-labelledby="empty-title" data-empty>
+    <div class="pj-bar"><span class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="chat" size=14 %}{{ text.POSTS_LABEL }}</span></div>
+    <div class="pj-empty">
+      <h2 id="empty-title" class="app-heading">{{ text.EMPTY_TITLE }}</h2>
+      <p class="app-lede">{{ text.EMPTY_TEXT }}</p>
+    </div>
+  </section>
+  {% else %}
+  <section class="panel pj-panel" aria-labelledby="no-match-title" data-no-match>
+    <div class="pj-bar"><span class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="chat" size=14 %}{{ text.POSTS_LABEL }}</span><span class="pj-tag micro" data-post-count>0</span></div>
+    <div class="pj-empty">
+      <h2 id="no-match-title" class="app-heading">{{ text.NO_MATCH_TITLE }}</h2>
+      <p class="app-lede">{{ text.NO_MATCH_TEXT }}</p>
+      {# A plain link: the whole page loads, so the form above is reset with it. #}
+      <div class="app-actions"><a class="btn btn-quiet btn-sm" href="{{ list_url }}" data-clear>{{ controls.words.clear }}</a></div>
+    </div>
+  </section>
+  {% endif %}
+</div>

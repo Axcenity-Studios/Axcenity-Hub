@@ -11,19 +11,20 @@ index:** the rules below apply everywhere; topic files under
 | [architecture/github-linking.md](architecture/github-linking.md) | linking a GitHub account: linking only (never sign-in), the OAuth App and its secrets, OAuth state, encrypted tokens and key rotation, revoked and expiring tokens, unlinking |
 | [architecture/projects.md](architecture/projects.md) | projects, their teams and their repositories: roles and the permission table, invitations, the last Owner, locks, names, the concurrency-safe limit (`accounts/limits.py`), the no-scope permission check and its 60 s window, rate limits and budget, duplicate links, the webhook (per-link secrets, replays) |
 | [architecture/forums.md](architecture/forums.md) | forum posts, comments and ratings: who may do what; the author-only 404 lookups; hidden content in every query; the posting limits; the services and the verification gate |
+| [architecture/lists.md](architecture/lists.md) | search, filters, sorting and pages on any list: the query string, `config/listing.py`, how each bad parameter falls back, stable ordering, query counts, adding a list |
 | [architecture/reports.md](architecture/reports.md) | the moderation states (`visible_to`, `published`, `can_see_moderated`) for any members' content, and reporting a post or comment: the targets, the 404s, one report each in the database |
 
 ## Layout
 
 | Path | Holds |
 |---|---|
-| `config/` | Settings, root URLs, WSGI/ASGI, site-wide context processors, `theme.py` (the colour-scheme cookie), `errors.py` (every error page) |
+| `config/` | Settings, root URLs, WSGI/ASGI, site-wide context processors, `theme.py` (the colour-scheme cookie), `errors.py` (every error page), `listing.py` (the shared list pattern: search, filters, sorting and pages from the query string, [architecture/lists.md](architecture/lists.md)) |
 | `marketing/` | Public signed-out pages: Home, Toolbox, Download and Credits. `content.py` holds their copy, links and media manifest as data; `drawings.py` computes the drawn media; `media.py` cuts captures into derivatives (`manage.py make_media`); `github.py` is the one GitHub request (the engine's release list) and `releases.py` chooses the release, groups its builds and caches it; `legal.py` reflows the engine's LICENSE and NOTICE into prose for the download agreement ([frontend/download.md](frontend/download.md)); `credits.py` generates the crate and package lists for `/credits/` (`manage.py refresh_credits`, [frontend/credits.md](frontend/credits.md)) |
 | `documentation/` | The engine docs at `/docs/`: `sync.py` (`sync_engine_docs`), `navigation.py`, `links.py`, `rendering.py`, `highlight.py`, `library.py` (the snapshot as served, and its build check), `api.py` (API pages as structure), `search.py` (the index and ranking), `diagrams.py`, `strings.py`. See [frontend/documentation.md](frontend/documentation.md) |
 | `documentation/content/` | The committed snapshot of the engine's `documentation/` folder, with `SOURCE.json` (commit and tree). Only `sync_engine_docs` writes it |
 | `accounts/` | Profiles and the sign-in policy around django-allauth: the verification gate (`access.py`), the signup-only verification stage, case-insensitive unique indexes, the rate-limit backstop, Turnstile, session lifetimes ([architecture/accounts.md](architecture/accounts.md)); GitHub linking: `GitHubLink`, `crypto.py`, `github.py` ([architecture/github-linking.md](architecture/github-linking.md)); `limits.py`, the lock behind every count-based limit and `next_allowed` for windowed ones |
 | `projects/` | Projects, their teams and their GitHub repositories: `models.py` (roles and `PERMISSIONS`), `services.py` (the limit, linking, refreshing), `teams.py` (invitations, roles, the last Owner), `seed_team_demo` (demo members, development only), `github.py` (the member's repository calls and permission), `webhooks.py` ([architecture/projects.md](architecture/projects.md)) |
-| `forums/` | Forum posts, comments and ratings: `models.py` (`ForumPost`, `Comment`, `Rating`), `services.py` (writes and the posting limits), views answering HTMX with partials ([architecture/forums.md](architecture/forums.md)) |
+| `forums/` | Forum posts, comments and ratings: `models.py` (`ForumPost`, `Comment`, `Rating`), `services.py` (writes and the posting limits), `listing.py` (the list's search, filters and sorts), `seed_forum_demo` (demo posts, development only), views answering HTMX with partials ([architecture/forums.md](architecture/forums.md)) |
 | `reports/` | `moderation.py` (content states and who sees them), `Report` and its services, `targets.py` (what can be reported), the report page ([architecture/reports.md](architecture/reports.md)) |
 | `marketing/legal/` | The engine's `LICENSE` and `NOTICE`, copied in unchanged from `content.LEGAL_COMMIT`, and the generated `engine.json` (its crates) and `hub.json` (the Hub's packages). Only `refresh_credits` writes it |
 | `marketing/media_sources/` | Captures as copied in (never served, never edited): the sources `make_media` reads, and `toolbox-capture.json`, the Toolbox screenshots' capture record |
@@ -58,6 +59,10 @@ plan's architectural decisions).
   window's: `next_allowed`), raise `LimitReached`, insert
   ([architecture/projects.md](architecture/projects.md#the-five-project-limit-concurrency-safe),
   [architecture/forums.md](architecture/forums.md#the-posting-limits)).
+- **Lists** with search, filters, sorting or pages keep their state in the query string and
+  read it through `config.listing` only: a visitor's value selects among declared sorts and
+  choices, and never reaches the ORM as a field name or an ordering
+  ([architecture/lists.md](architecture/lists.md)).
 - **Members' content that moderation can hide** is read through `visible_to(user)` and
   interacted with through `published()` (`reports.moderation`), never filtered by hand
   ([architecture/reports.md](architecture/reports.md#moderation-states)).
@@ -102,7 +107,7 @@ plan's architectural decisions).
 | `/projects/<slug>/leave/` | `projects:leave` | POST, any member (not the last Owner) |
 | `/projects/invitations/<pk>/accept/`, `/decline/` | `projects:accept_invitation`, `projects:decline_invitation` | POST, the invitee only (others 404) |
 | `/projects/hooks/github/<hook_id>/` | `projects:webhook` | `GitHubWebhookView`: POST only, CSRF-exempt, signed deliveries ([architecture/projects.md](architecture/projects.md#webhooks)) |
-| `/forums/` | `forums:list` | `PostListView`: every post the visitor may see, newest first, with its comment count and average rating; public |
+| `/forums/` | `forums:list` | `PostListView`: the posts the visitor may see, 20 a page, with each one's comment count and average rating; `?q=`, `&sort=`, `&posted=`, `&comments=`, `&rating=`, `&page=` ([architecture/lists.md](architecture/lists.md)); an HTMX request gets the list's part; public |
 | `/forums/new/` | `forums:create` | `PostCreateView`: verified members |
 | `/forums/<pk>/` | `forums:detail` | `PostDetailView`: a post, its rating and comments; public (hidden ones staff only). An HTMX request gets the post's part (Cancel) |
 | `/forums/<pk>/edit/`, `/delete/` | `forums:edit`, `forums:delete` | The author only (anyone else, signed out included, 404): edit (verified) and delete, as full pages or in place through HTMX ([architecture/forums.md](architecture/forums.md)) |

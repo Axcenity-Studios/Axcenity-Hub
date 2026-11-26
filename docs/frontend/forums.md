@@ -8,7 +8,8 @@ the marketing nav's Community and the footer's Forums link here.
 
 | Template | Page or part |
 |---|---|
-| `forums/list.html` | `/forums/`: every post as a row (title link stretched over the row, author, date, "Edited", the body's start), New post (signed in) or Sign in to post, or the empty state |
+| `forums/list.html` | `/forums/`: New post (signed in) or Sign in to post, the list's controls and its part ([lists.md](lists.md)) |
+| `forums/partials/post_list.html` | `#post-list`: each post as a row (title link stretched over the row, author, date, "Edited", its comment count and average, the body's start), the pager, or an empty state |
 | `forums/detail.html` | `/forums/<pk>/`: All posts, the live region `#post-status`, the post and its comments |
 | `forums/partials/post.html` | `#post`: title (`h1#post-title`, `tabindex=-1`), author, dates, body, its rating, and for its author "Your post", Edit and Delete; for other members Report (or "Reported"); for staff its state tag |
 | `forums/partials/rating.html` | `#rating` (inside `#post`): the average to one decimal and the count; five star buttons (`name=score`, `aria-pressed` on the member's own), Clear my rating; Sign in to rate, or "You can't rate your own post" |

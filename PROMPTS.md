@@ -28,6 +28,83 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-25 — Axcenity Hub: Phase 12C/17, Search, filtering, sorting and pagination
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub phase 12c`.
+2. "Looks good just implement these 3 additions as well" with a pasted list: 1. stable
+   pagination: every sort has a deterministic ordering, including unrated posts and posts
+   with equal comment counts or ratings, with the primary key as the tie-breaker; 2.
+   query-string safety: repeated parameters resolve predictably, preferably by rejecting
+   duplicates and falling back to defaults rather than silently choosing an arbitrary value,
+   and user-supplied values are never used directly as ORM field names or ordering
+   expressions; 3. performance: no N+1 queries for comment counts and rating averages, using
+   database annotations and query optimizations for the 20 posts on a page. "Other than that
+   move onto TDD only stopping at RED".
+3. "Approved, make it pass and move to next red phase" (after the TDD behavior was red).
+
+### Summary
+
+- **Outcome:** The forum list searches titles and posts, filters by when a post was
+  published, whether it has comments and its average rating, sorts four ways, and shows 20
+  posts a page, all from the query string, so every state has a URL to share. HTMX swaps
+  only the list; the address bar follows; Back restores the list and its controls; the same
+  form and links work without JavaScript. The parsing lives in one shared module for later
+  lists. 1385 fast tests and 114 browser tests pass; Ruff is clean. One fast test fails,
+  `test_download.py::test_the_notice_reflows_its_underlined_headings`: it comes from the
+  uncommitted change to `marketing/legal/NOTICE` that was in the working tree before this
+  phase (it passes with that change set aside), and is outside this phase.
+- **Changes:**
+  - `config/listing.py` (new) — the shared list pattern: `Sort`, `Choice`, `Filter`,
+    `Listing`, `Selection` (`apply`, `paginate`, `query`, `controls`), `pager`,
+    `clean_search`, `clean_page`, and `ListingMixin` (the page, or the list's part with
+    `HX-Push-Url` for HTMX; the whole page for a history restore).
+  - `forums/listing.py` (new) — the forum's search fields, four sorts and three filters.
+  - `forums/views.py` — `PostListView` on `ListingMixin`; `forums/strings.py` — the list's
+    words.
+  - `templates/partials/list_controls.html`, `list_pager.html` (new, shared);
+    `templates/forums/partials/post_list.html` (new, the swapped part);
+    `templates/forums/list.html` — the controls, a live region and the part;
+    `static/js/forums.js` now loads on the list too (its comment only changed).
+  - `styles/source.css` — the shared `.ls-*` classes.
+  - `forums/management/commands/seed_forum_demo.py` (new) — 45 backdated demo posts with
+    comments and ratings, development only, idempotent.
+  - `tests/test_forums_list.py`, `tests/test_forums_list_browser.py` (new).
+  - `docs/architecture/lists.md`, `docs/frontend/lists.md` (new); rows and rules in
+    `docs/ARCHITECTURE.md`, `docs/FRONTEND.md`, `docs/TESTING.md`; the forum topic files.
+  - `plans/axcenity-hub.md` — both 12C criteria ticked.
+- **TDD:** One behavior, test-first: invalid or hostile query parameters fall back safely.
+  One test walks 58 query strings (bad pages, unknown sorts, filter values that aren't
+  choices, repeated and unknown parameters, over-long, NUL and markup searches) and checks
+  the answer is 200, the state each falls back to, that no markup is echoed, and that no
+  link the page writes carries anything but a valid state. Red: 45 of 58 failed (500s, `٢`
+  read as page 2, the last of two values winning, an uncapped search). Everything else got
+  ordinary tests alongside the code.
+- **Decisions:** The model has no categories, so the filters are posted (day, week, month),
+  comments (none, some) and rating (2, 3 or 4 stars and up), each a fixed set of choices.
+  Search matches every word in the title or the post, and is cut to 100 characters and 8
+  words (the box shows what was searched). A bad page is page 1; a page past the end is the
+  last page. A repeated parameter is ignored by itself (even twice the same); the others
+  still apply. A sort must end in the pk or it's refused when declared. The shared module
+  went in `config/`. Clear is a plain link. Open-ended filters (a tag, a project) are left to
+  the phases that need them. No migration: no index was added for the orderings.
+  `seed_forum_demo` was added, outside the plan's wording, because the 5-posts-a-day limit
+  makes a second page unreachable by hand.
+- **Deviations:** The user added three requirements to the brief (stable ordering, rejecting
+  duplicate parameters, no N+1), all built and tested. After green they asked to "move to
+  next red phase"; the plan has one TDD behavior for this phase, so the rest was built
+  without further stops, and the `tdd` skill's stop after green was skipped on that
+  instruction.
+- **Sideways:** The first browser run failed on three expectations in my own test (the
+  newest post's title twice, and a search from page 2 expected to stay on page 2), not on
+  the app. A fourth failure was a real race in the test: it pressed Enter on the pager's link
+  before htmx had set up the swapped part, so the link was followed as a plain link and the
+  heading never took focus; the test now waits for `htmx:load`, as the forum's other browser
+  tests do. One helper raised a `KeyError` when given no titles. While checking the NOTICE
+  failure I stashed and restored the working tree, which touched the user's two uncommitted
+  files for a moment; they came back unchanged.
+
 ## 2026-11-25 — Axcenity Hub: Phase 12B/17, Comments, ratings, limits and moderation hooks
 
 ### Prompts
