@@ -288,6 +288,45 @@ def test_refresh_refuses_an_engine_with_uncommitted_credits_and_writes_nothing(e
         credits.refresh(engine / "crates", legal_dir=out)
 
 
+def test_refresh_if_stale_ignores_a_new_engine_commit_that_changes_no_credit(engine, tmp_path):
+    out = tmp_path / "legal"
+    out.mkdir()
+    first = credits.refresh(engine, legal_dir=out).commit
+    (engine / "README.md").write_text("A change that credits nothing.\n")
+    commit_all(engine, "Docs")
+    written = fingerprint(out)
+    quiet = credits.refresh(engine, legal_dir=out, if_stale=True)
+    assert not quiet.changed and quiet.commit == first
+    assert fingerprint(out) == written  # engine.json still names the first commit
+    (engine / "NOTICE").write_text(NOTICE + "\n---\nA new credit.\n")
+    commit_all(engine, "Credit")
+    moved = credits.refresh(engine, legal_dir=out, if_stale=True)
+    assert moved.changed and moved.commit == git(engine, "rev-parse", "HEAD") != first
+    assert (out / "NOTICE").read_text().endswith("A new credit.\n")
+    assert json.loads((out / "engine.json").read_text())["commit"] == moved.commit
+
+
+def test_a_test_run_brings_the_credits_up_to_date_and_says_so(engine, tmp_path, monkeypatch):
+    """What tests/conftest.py runs before collection: refresh when stale, report, never raise."""
+    out = tmp_path / "legal"
+    out.mkdir()
+    monkeypatch.setattr(credits, "LEGAL_DIR", out)
+    assert credits.bring_up_to_date(tmp_path / "no-engine") is None
+    assert list(out.iterdir()) == []
+    line = credits.bring_up_to_date(engine)
+    head = git(engine, "rev-parse", "HEAD")
+    assert (
+        line == f"credits: refreshed to engine {head[:12]} (2 new crates); commit marketing/legal/"
+    )
+    assert json.loads((out / "engine.json").read_text())["commit"] == head
+    assert credits.bring_up_to_date(engine) is None  # already current: nothing to say
+    (engine / "NOTICE").write_text(NOTICE + "\nStill being written.\n")
+    written = fingerprint(out)
+    refused = credits.bring_up_to_date(engine)
+    assert refused.startswith("credits: not refreshed (commit these in the engine first")
+    assert fingerprint(out) == written
+
+
 def test_the_command_reports_the_refresh_and_refuses_with_nothing_changed(
     engine, tmp_path, monkeypatch, capsys
 ):

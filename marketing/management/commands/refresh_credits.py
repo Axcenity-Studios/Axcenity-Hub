@@ -3,9 +3,9 @@
     uv run python manage.py refresh_credits                  # from AXCENITY_ENGINE_DIR
     uv run python manage.py refresh_credits --engine PATH    # from another checkout
 
-Run it after the engine's NOTICE or dependencies change, or after `uv add`/`uv lock`
-here: the tests fail until it has. Needs git and cargo, never the network. See
-marketing/credits.py and docs/frontend/credits.md.
+A test run already does this when the lists are stale (tests/conftest.py); run it by hand
+to record the engine's latest commit regardless. Needs git and cargo, never the network.
+See marketing/credits.py and docs/frontend/credits.md.
 """
 
 from pathlib import Path

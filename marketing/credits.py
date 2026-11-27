@@ -15,7 +15,8 @@ The lists are generated, never typed. `manage.py refresh_credits` (`refresh`):
    new changes nothing.
 
 Tests compare the files with the engine's Cargo.lock (when it's checked out) and the
-Hub's uv.lock, so a dependency added on either side fails the suite until this is re-run.
+Hub's uv.lock. The test run brings them up to date first (`refresh(if_stale=True)`, from
+tests/conftest.py), so a dependency added on either side is credited, not a red suite.
 Nothing is written inside the engine repository.
 """
 
@@ -71,6 +72,7 @@ class Refreshed:
     packages: int
     added: list[str]
     removed: list[str]
+    changed: bool = True
 
 
 # ---------- Licences and authors ----------
@@ -313,9 +315,19 @@ def _write(path: Path, data) -> bool:
     return True
 
 
-def refresh(engine: Path, legal_dir: Path | None = None, hub_lock: Path | None = None) -> Refreshed:
+def refresh(
+    engine: Path,
+    legal_dir: Path | None = None,
+    hub_lock: Path | None = None,
+    *,
+    if_stale: bool = False,
+) -> Refreshed:
     """Copy the engine's LICENSE and NOTICE and regenerate both lists (see the module).
-    Every check runs before the first file is written."""
+    Every check runs before the first file is written.
+
+    With `if_stale`, nothing is written when only the engine's commit has moved (the
+    texts, crates and packages are what's already there), so a new engine commit that
+    changes none of them doesn't change the Hub; `changed` says whether anything was."""
     legal_dir = legal_dir or LEGAL_DIR
     hub_lock = hub_lock or HUB_LOCK
     commit = engine_head(engine)
@@ -326,17 +338,58 @@ def refresh(engine: Path, legal_dir: Path | None = None, hub_lock: Path | None =
     old = load(legal_dir / "engine.json").get("crates", [])
     before = {f"{c['name']} {c['version']}" for c in old}
     after = {f"{c['name']} {c['version']}" for c in crates}
-    for name, text in texts.items():
-        _write(legal_dir / name, text)
-    _write(legal_dir / "engine.json", {"commit": commit, "crates": crates, "unbuilt": unbuilt})
     hub = {"packages": packages}
     tools = tailwind_versions() or load(legal_dir / "hub.json").get("tools", {})
     if tools:
         hub["tools"] = tools
-    _write(legal_dir / "hub.json", hub)
+    engine_json = {"commit": commit, "crates": crates, "unbuilt": unbuilt}
+    if if_stale and _current(legal_dir, texts, engine_json, hub):
+        commit = load(legal_dir / "engine.json")["commit"]
+        return Refreshed(commit, len(crates), len(packages), [], [], changed=False)
+    changed = [_write(legal_dir / name, text) for name, text in texts.items()]
+    changed.append(_write(legal_dir / "engine.json", engine_json))
+    changed.append(_write(legal_dir / "hub.json", hub))
     return Refreshed(
-        commit, len(crates), len(packages), sorted(after - before), sorted(before - after)
+        commit,
+        len(crates),
+        len(packages),
+        sorted(after - before),
+        sorted(before - after),
+        changed=any(changed),
     )
+
+
+def _current(legal_dir: Path, texts: dict[str, str], engine_json: dict, hub: dict) -> bool:
+    """Whether the files already hold these texts and lists, whatever commit they name."""
+    if any(_read(legal_dir / name) != text for name, text in texts.items()):
+        return False
+    old = load(legal_dir / "engine.json")
+    if "commit" not in old or {**old, "commit": engine_json["commit"]} != engine_json:
+        return False
+    return load(legal_dir / "hub.json") == hub
+
+
+def _read(path: Path) -> str | None:
+    return path.read_text(encoding="utf-8") if path.is_file() else None
+
+
+def bring_up_to_date(engine: Path) -> str | None:
+    """Refresh the lists if they're stale, for the start of a test run (tests/conftest.py):
+    a line for the run's header saying what happened, or None when there's nothing to say
+    (no engine checkout, or already current). A refusal is reported, never raised: the
+    credits tests then fail and say why."""
+    if not engine.is_dir():
+        return None
+    try:
+        result = refresh(engine, if_stale=True)
+    except CreditsError as error:
+        return f"credits: not refreshed ({error}); the credits tests may fail"
+    if not result.changed:
+        return None
+    news = [f"{len(result.added)} new crates"] if result.added else []
+    news += [f"{len(result.removed)} gone"] if result.removed else []
+    detail = f" ({', '.join(news)})" if news else ""
+    return f"credits: refreshed to engine {result.commit[:12]}{detail}; commit marketing/legal/"
 
 
 def load(path: Path) -> dict:

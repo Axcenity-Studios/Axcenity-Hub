@@ -43,9 +43,9 @@ uv run python manage.py refresh_credits                # from AXCENITY_ENGINE_DI
 uv run python manage.py refresh_credits --engine PATH  # another checkout
 ```
 
-Run it after the engine's NOTICE or dependencies change, and after
-`uv add` or `uv lock` here. It needs git and cargo, never the network,
-and writes nothing in the engine. It refuses, changing nothing, when:
+A test run does this for you when it's needed (below); run it by hand to
+record the engine's latest commit anyway. It needs git and cargo, never
+the network, and writes nothing in the engine. It refuses, changing nothing, when:
 - LICENSE, NOTICE, Cargo.toml or Cargo.lock has uncommitted changes in
   the engine (an edit in progress isn't the engine's NOTICE yet). To pick
   up the engine's last commit anyway, refresh from a clean copy of it:
@@ -62,12 +62,29 @@ and "MIT OR Apache-2.0" are both "Apache-2.0 OR MIT"); a package whose
 License field is a whole licence text falls back to its classifiers.
 Authors are names only: email addresses are dropped.
 
-**Automatic checks.** `test_every_package_in_the_hubs_lock_file_is_credited`
+## Automatic refresh
+
+Every pytest run starts with `credits.bring_up_to_date`
+(`pytest_sessionstart` in `tests/conftest.py`), before any test module
+imports `content`. With the engine checked out, it runs
+`refresh(if_stale=True)`: everything is regenerated, and the files are
+written only if a text, crate, package or tool version differs. A new
+engine commit that changes none of them leaves `engine.json`'s `commit`
+alone, so the Hub doesn't churn on every engine commit. When it writes, the
+run's header says `credits: refreshed to engine <commit> (N new crates,
+M gone); commit marketing/legal/`. Commit those files with the change.
+A refusal (an uncommitted NOTICE in the engine, say) is reported in the
+header, never raised, and the checks below then fail and say why.
+
+**The checks.** `test_every_package_in_the_hubs_lock_file_is_credited`
 always runs; `test_every_crate_in_the_engines_lock_file_is_credited` and
 `test_the_copied_license_and_notice_match_the_engines` run when the
-engine is checked out, against its last commit. Each fails with "run
-manage.py refresh_credits" until the lists catch up, so a new dependency
-can't go uncredited.
+engine is checked out, against its last commit. With the refresh above
+they fail only when it couldn't run (no engine checkout for uv.lock, or a
+refusal), so a new dependency still can't go uncredited.
+`test_the_notice_reflows_its_underlined_headings` reads its expected
+headings and dividers from the NOTICE's own lines, so a section added to
+or dropped from the engine's NOTICE needs no test change.
 
 ## NOTICE dividers
 

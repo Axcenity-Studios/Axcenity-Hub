@@ -94,31 +94,28 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-Public-domain character base data (CC0 1.0 Universal)
------------------------------------------------------
-assets/characters/realistic/source/ and assets/characters/humanoid/source/
-derive base body geometry from Blender Studio Human Base Meshes v1.4.1 and
-body shape targets from MakeHuman (hm08), both released under CC0 1.0
-Universal (see assets/characters/transfer/shapes/LICENCE-RECORD.md).
-
 MakeHuman
 ---------
 assets/characters/human/ (the human base body, its eyes, teeth, tongue,
-brows and lashes, the skin textures in its skins/ folder, the hairstyles in
-its hair/ folder and the garments in its wardrobe/ folder) is made from MakeHuman's base mesh, targets and system assets
+brows and lashes, the default humanoid's model Humanoid.glb made from
+them, the skin textures in its skins/ folder, the hairstyles in its hair/
+folder and the garments in its wardrobe/ folder) is made from MakeHuman's
+base mesh, targets and system assets
 (http://www.makehumancommunity.org), released under CC0 1.0 Universal by
 their copyright holders: Data Collection AB, Joel Palmius and Jonas
 Hauquier. CC0 asks for no attribution; the MakeHuman project and its
 community are credited here with thanks.
 
-Garments converted from the MakeHuman community's asset packs
-(https://static.makehumancommunity.org/assets/assetpacks.html) keep their
-authors' licences, CC0 1.0 or Creative Commons Attribution 4.0
-(https://creativecommons.org/licenses/by/4.0/), recorded per item in its
+The garments and hairstyles shipped here were converted from MakeHuman's
+system assets and the MakeHuman community's asset packs
+(https://static.makehumancommunity.org/assets/assetpacks.html). Every one
+shipped in this repository is released under CC0 1.0 Universal by its
+author (only items whose own file and whose pack both say CC0 are taken:
+assets/characters/human/take_library.py); each keeps its author in its
 manifest's "source" and in the CREDITS.md beside the items
-(assets/characters/human/wardrobe/CREDITS.md for those shipped here).
-They were re-posed, re-skinned to the Axcenity Humanoid skeleton and
-given the body's shapes; their textures are unchanged.
+(assets/characters/human/wardrobe/CREDITS.md and hair/CREDITS.md). They
+were re-posed, re-skinned to the Axcenity Humanoid skeleton and given the
+body's shapes; their textures are unchanged.
 
 These assets were made with MPFB (https://static.makehumancommunity.org/mpfb.html),
 the MakeHuman Plugin For Blender by Joel Palmius and the MakeHuman
@@ -128,10 +125,10 @@ from it (assets/characters/human/README.md, "Sources and credit").
 
 Quaternius
 ----------
-assets/characters/humanoid/HumanoidAnimations.glb holds 84 animations from
+assets/characters/human/HumanoidAnimations.glb holds 84 animations from
 the Universal Animation Library and the Universal Animation Library 2 by
 Quaternius (https://quaternius.com), released under CC0 1.0 Universal.
-They were brought onto the Axcenity Humanoid skeleton
-(assets/characters/humanoid/mocap.py) and renamed; the table of names is
+They were brought onto the human base's skeleton
+(assets/characters/human/mocap.py) and renamed; the table of names is
 in that file. CC0 asks for no attribution; Quaternius is credited here
 with thanks.

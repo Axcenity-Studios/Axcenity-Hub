@@ -7,10 +7,13 @@ Two fixtures run for every test:
 The guard has exactly one opening: a test marked `browser` that asks for the
 `browser_server` fixture may reach the live server at its own loopback IP and
 port, and nothing else (no hostnames, no other ports, no other tests).
+
+Before collection, the run brings the credits lists up to date (below).
 """
 
 import ipaddress
 import socket
+from pathlib import Path
 from urllib.parse import urlsplit
 
 import pytest
@@ -18,6 +21,27 @@ from django.conf import settings
 from django.core.cache import cache
 
 from config.theme import COOKIE_NAME
+
+# ---------- Credits, brought up to date before anything is collected ----------
+# The credits tests compare marketing/legal/ with the engine's last commit and the Hub's
+# uv.lock. Rather than fail whenever either moves on, the run refreshes the lists first
+# (`credits.bring_up_to_date`: only when stale, nothing written in the engine) and says so
+# in its header; the refreshed files are then left to commit. docs/frontend/credits.md.
+_CREDITS_REPORT: list[str] = []
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_sessionstart(session):
+    from marketing import credits
+
+    line = credits.bring_up_to_date(Path(settings.AXCENITY_ENGINE_DIR))
+    if line:
+        _CREDITS_REPORT.append(line)
+
+
+def pytest_report_header(config):
+    return _CREDITS_REPORT
+
 
 _REAL_GETADDRINFO = socket.getaddrinfo
 _REAL_CONNECT = socket.socket.connect

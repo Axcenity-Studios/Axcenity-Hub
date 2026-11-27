@@ -1,5 +1,5 @@
 {
- "commit": "171d40bbd6fc032243c0b28cb3b58b3121afbc7c",
+ "commit": "ff769d9077652644de218a0c9584069f989b49b2",
  "crates": [
   {
    "name": "ab_glyph",
@@ -1296,7 +1296,8 @@
     "embotech",
     "Emil Ernerfeldt"
    ],
-   "url": "https://github.com/emilk/egui/tree/main/crates/egui-wgpu"
+   "url": "https://github.com/emilk/egui/tree/main/crates/egui-wgpu",
+   "vendored": true
   },
   {
    "name": "egui-winit",

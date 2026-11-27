@@ -259,8 +259,8 @@ The full rules (per-repository secrets, replays, permissions and rate limits) ar
 | Every test | `uv run pytest` |
 | Lint and format | `uv run ruff check . && uv run ruff format .` |
 | Rebuild media derivatives after adding a capture | `uv run python manage.py make_media` |
-| Refresh `/credits/` and the engine's LICENSE and NOTICE (after a dependency or NOTICE change) | `uv run python manage.py refresh_credits` |
-| Add a dependency | `uv add <package>` (or `uv add --dev <package>`), then `refresh_credits` |
+| Refresh `/credits/` and the engine's LICENSE and NOTICE (after a dependency or NOTICE change) | `uv run python manage.py refresh_credits` (a test run also does it when they're stale; commit `marketing/legal/`) |
+| Add a dependency | `uv add <package>` (or `uv add --dev <package>`), then run the tests (they refresh the credits) or `refresh_credits` |
 
 ## Testing
 

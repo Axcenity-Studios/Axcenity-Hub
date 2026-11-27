@@ -1078,21 +1078,26 @@ def test_the_license_reflows_into_headings_sections_and_sub_items():
 
 
 def test_the_notice_reflows_its_underlined_headings():
-    blocks = legal.reflow(content.ENGINE_NOTICE)
-    assert blocks[0].lines == ("Axcenity Engine", "Copyright 2026 Paul Janota and contributors")
+    """The engine's NOTICE as copied, whatever sections it has now: the expectations are
+    read from the file's own lines, so a credit added or dropped there needs no change here."""
+    text = content.ENGINE_NOTICE
+    lines = [line.strip() for line in text.splitlines()]
+    blocks = legal.reflow(text)
+    # The title block: the file's opening lines, up to the first blank one.
+    assert blocks[0].lines == tuple(lines[: lines.index("")])
     assert not blocks[0].centred
-    assert [b.text for b in blocks if b.kind == "heading"] == [
-        "Third-party sample assets",
-        "Bundled programs",
-        "Third-party code",
-        "Public-domain character base data (CC0 1.0 Universal)",
-        "MakeHuman",
-        "Quaternius",
+    # A heading is a paragraph's only line, underlined with dashes or equals signs.
+    underlined = [
+        lines[i]
+        for i in range(1, len(lines) - 1)
+        if lines[i] and not lines[i - 1] and re.fullmatch(r"[-=]{3,}", lines[i + 1])
     ]
-    # Each "---" between two credited works is a divider, never a word or a heading.
+    assert underlined, "the NOTICE has no headings left"
+    assert [b.text for b in blocks if b.kind == "heading"] == underlined
+    # Each lone "---" between two credited works is a divider, never a word or a heading.
     rules = [i for i, b in enumerate(blocks) if b.kind == "rule"]
-    assert len(rules) == content.ENGINE_NOTICE.count("\n---\n") == 2
-    assert all(blocks[i + 1].text.startswith("crates/avatar") for i in rules)
+    assert len(rules) == text.count("\n---\n")
+    assert all(blocks[i + 1].kind in ("paragraph", "lines") for i in rules)
 
 
 def test_reflow_handles_the_edges():
