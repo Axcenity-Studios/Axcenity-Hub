@@ -17,6 +17,7 @@ Hub's policy around it:
 | `integrity.py` | Case-insensitive unique indexes and the duplicate check migration 0002 runs first |
 | `forms.py` | allauth's forms plus the backstop, Turnstile and the reset honeypot; `ProfileForm` |
 | `throttle.py`, `turnstile.py` | The database rate-limit backstop; the Cloudflare Turnstile client |
+| `mail.py` | The development mailer: each email printed decoded where runserver runs, its links whole (quoted-printable would split them) and clickable |
 | `middleware.py` | `SessionAgeMiddleware`: idle and absolute session limits |
 | `views.py`, `urls.py`, `strings.py` | Profile, email status and verify pages; copy as data |
 

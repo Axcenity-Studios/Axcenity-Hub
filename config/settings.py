@@ -343,9 +343,10 @@ TURNSTILE_SITE_KEY = os.environ.get("TURNSTILE_SITE_KEY", "")
 TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY", "")
 
 # ---------- Email ----------
-# The console in development (emails print where runserver runs); Django's test runner
-# swaps every mailer for locmem. Production sends through SMTP, configured from the
-# environment, until a provider (django-anymail) arrives with the domain.
+# The console in development: accounts.mail prints each email decoded where runserver
+# runs, its links whole and clickable. Django's test runner swaps every mailer for
+# locmem. Production sends through SMTP, configured from the environment, until a
+# provider (django-anymail) arrives with the domain.
 if PRODUCTION:
     MAILERS = {
         "default": {
@@ -364,11 +365,7 @@ if PRODUCTION:
     }
 else:
     MAILERS = {
-        "default": {
-            "BACKEND": os.environ.get(
-                "DJANGO_EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
-            )
-        }
+        "default": {"BACKEND": os.environ.get("DJANGO_EMAIL_BACKEND", "accounts.mail.EmailBackend")}
     }
 DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_DEFAULT_FROM_EMAIL", "Axcenity Hub <noreply@localhost>")
 
