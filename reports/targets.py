@@ -1,7 +1,7 @@
 """What members can report, and how a report finds its target.
 
 Each kind of reportable content is a `Target`, addressed in report URLs by its `kind`
-(`/reports/post/<pk>/`). The set is fixed: an unknown kind is a 404. A target is found only
+(`/reports/post/<pk>/`, `/reports/showcase/<pk>/`). The set is fixed: an unknown kind is a 404. A target is found only
 among content anyone may interact with (`published()`): hidden or removed content, or a
 comment on a hidden post, is a 404, as is the reporter's own content.
 """
@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from django.db.models import Model, QuerySet
 
 from forums.models import Comment, ForumPost
+from showcases.models import Showcase
 
 
 @dataclass(frozen=True)
@@ -44,6 +45,12 @@ TARGETS: dict[str, Target] = {
             "comment",
             lambda: Comment.objects.published().select_related("post"),
             lambda comment: comment.body,
+        ),
+        Target(
+            "showcase",
+            "showcase",
+            lambda: Showcase.objects.published(),
+            lambda showcase: showcase.title,
         ),
     ]
 }

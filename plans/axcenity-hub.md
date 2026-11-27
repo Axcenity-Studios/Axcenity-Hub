@@ -576,9 +576,9 @@ Built test-first with the `tdd` skill; the rest of the phase is built and tested
 
 ### Acceptance criteria
 
-- [ ] Tests: the daily limit, ownership (others get 404 on edit and delete), tag filtering, pagination
-- [ ] Unverified accounts can't publish showcases (the Phase 8 email-verification gate)
-- [ ] Uploaded images are validated (type, size, dimensions) and processed with Pillow
+- [x] Tests: the daily limit, ownership (others get 404 on edit and delete), tag filtering, pagination
+- [x] Unverified accounts can't publish showcases (the Phase 8 email-verification gate)
+- [x] Uploaded images are validated (type, size, dimensions) and processed with Pillow
 
 ---
 

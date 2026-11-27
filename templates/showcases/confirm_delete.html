@@ -1,0 +1,22 @@
+{% extends "app/shell.html" %}
+{% block head_title %}{{ text.DELETE_TITLE }}{% endblock %}
+{% block content %}
+{# Deleting a showcase, after this question. #}
+<div class="app-page">
+  <header class="app-page-head">
+    <h1 class="headline app-title">{{ text.DELETE_TITLE }}</h1>
+    <p class="app-lede">{{ text.DELETE_LEDE }}</p>
+  </header>
+  <section class="app-panel panel" aria-labelledby="delete-title">
+    <h2 id="delete-title" class="app-heading fm-title">{{ showcase.title }}</h2>
+    <img class="sc-form-image" src="{{ showcase.card.url }}" width="{{ showcase.card_width }}" height="{{ showcase.card_height }}" alt="{{ showcase.alt_text }}">
+    <form method="post" class="app-form">
+      {% csrf_token %}
+      <div class="app-actions">
+        <button type="submit" class="btn btn-primary">{{ text.DELETE_CONFIRM }}</button>
+        <a class="btn btn-quiet" href="{{ showcase.get_absolute_url }}">{{ text.KEEP }}</a>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

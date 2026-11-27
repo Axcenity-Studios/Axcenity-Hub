@@ -1,0 +1,26 @@
+{# The showcase's likes (#like): the count; for a member who may like it, one button that likes #}
+{# it or takes the like back (`aria-pressed`). An HTMX answer swaps it in place with the button #}
+{# focused and its status in the page's live region.                                            #}
+{% if like_status %}<div hx-swap-oob="innerHTML:#showcase-status"><p class="app-message">{{ like_status }}</p></div>{% endif %}
+<section id="like" class="fm-rating sc-like" aria-labelledby="like-title" data-like>
+  <h2 id="like-title" class="micro fm-rating-title">{{ text.LIKES_LABEL }}</h2>
+  <div class="fm-rate">
+    <p class="fm-rating-summary" data-like-count="{{ like_count }}">{% include "partials/icon.html" with name="heart" size=16 class="fm-star-icon" %}<span>{{ like_words }}</span></p>
+    {% if can_like %}
+    {% url 'showcases:like' showcase.slug as like_url %}
+    <form method="post" action="{{ like_url }}" hx-post="{{ like_url }}" hx-target="#like" hx-swap="outerHTML">
+      {% csrf_token %}
+      {% if liked %}
+      <button type="submit" name="action" value="unlike" class="btn btn-quiet btn-sm sc-like-button sc-liked" aria-pressed="true" title="{{ text.UNLIKE_HINT }}"{% if swapped %} autofocus{% endif %} data-unlike>{% include "partials/icon.html" with name="heart" size=16 %}{{ text.UNLIKE }}</button>
+      {% else %}
+      <button type="submit" name="action" value="like" class="btn btn-quiet btn-sm sc-like-button" aria-pressed="false" title="{{ text.LIKE_HINT }}"{% if swapped %} autofocus{% endif %} data-like-button>{% include "partials/icon.html" with name="heart" size=16 %}{{ text.LIKE }}</button>
+      {% endif %}
+    </form>
+    {% elif not user.is_authenticated %}
+    <a class="app-link fm-rating-note" href="{% url 'account_login' %}?next={{ showcase.get_absolute_url }}" data-sign-in-to-like>{{ text.SIGN_IN_TO_LIKE }}</a>
+    {% elif is_author %}
+    <p class="fm-rating-note" data-own-showcase>{{ text.LIKE_OWN }}</p>
+    {% endif %}
+  </div>
+  {% if like_error %}<div class="app-form-errors" role="alert"><p>{{ like_error }}</p></div>{% endif %}
+</section>

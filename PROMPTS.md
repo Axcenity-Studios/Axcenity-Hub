@@ -28,6 +28,100 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-26 — Axcenity Hub: Phase 13/17, Showcases and tags
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub phase 13`.
+2. "approved, go ahead to implementation stopping at red phases" (after the brief and the
+   TDD behavior).
+3. "Looks good move to next test" (after the TDD behavior was red).
+4. "yes, build the rest of the phase only stop on red phases" (after it was green).
+
+### Summary
+
+- **Outcome:** Members publish showcases at `/showcases/`, each with a title, an image, an
+  optional image description, a plain-text description and up to 5 tags. Each member can
+  publish one a day, and only after verifying their email. Only the author can edit or
+  delete a showcase; everyone else gets a 404. Other members can like a showcase (once,
+  and take it back) and report it. Anyone can browse the card grid, which searches, filters
+  by tag and by when a showcase was published, sorts three ways and shows 24 a page through
+  the shared list pattern. A tag on any card or showcase opens that tag's list. Uploads are
+  checked (type from the bytes, size, dimensions, proportions) and remade by Pillow into
+  two WebPs, stored through Django's storage setting. A demo seed adds 30 showcases with
+  illustrative placeholder images. 1503 fast tests and 123 browser tests pass; Ruff is
+  clean. Two fast tests fail, both outside this phase: `test_download.py::test_the_notice_reflows_its_underlined_headings`
+  passes with the uncommitted `marketing/legal/NOTICE` change set aside, and
+  `test_credits.py::test_every_crate_in_the_engines_lock_file_is_credited` fails even with
+  the committed files, because it compares against the engine checkout's current Cargo.lock.
+- **Changes:**
+  - `showcases/` (new app) — `models.py` (`Tag`, its lower-case check constraint;
+    `Showcase` with its slug, two `ImageField`s, `state`, reports; `Like` and its unique
+    constraint; `authored_by`, `with_likes`), `images.py` (`check`, `process`),
+    `services.py` (create, edit, delete, like, unlike, the one-a-day limit under
+    `lock_member`, slugs, file clean-up), `listing.py`, `forms.py`, `views.py`, `urls.py`,
+    `admin.py` (read-only), `signals.py` (files leave with their showcase), `strings.py`,
+    `seed_showcase_demo`, migration `0001_initial`.
+  - `config/listing.py` — `OpenFilter`: a filter whose choices come from the database once
+    per request; `Selection.offered` and `choices()`; `Filter.offer()`.
+  - `reports/targets.py` — the `showcase` target.
+  - `config/settings.py`, `config/urls.py` — the app and `/showcases/`.
+  - `accounts/strings.py` — the rail's Showcases item; `marketing/content.py` — the
+    footer's Showcases link (it was "Soon").
+  - `templates/showcases/` (new) — list, the list's part, detail, the like's part, form,
+    confirm delete; `templates/partials/icon.html` — `image`, `heart`, `tag`.
+  - `styles/source.css` — the `.sc-*` classes.
+  - `tests/test_showcases_images.py`, `test_showcases.py`, `test_showcases_list.py`,
+    `test_showcases_browser.py` (new); `tests/test_accounts.py` (the rail),
+    `tests/test_accounts_security.py` (public URLs, the `csrf_exempt` scan).
+  - `docs/architecture/showcases.md`, `docs/frontend/showcases.md` (new); rows and URLs in
+    `docs/ARCHITECTURE.md`, `docs/FRONTEND.md`, `docs/TESTING.md`; `docs/architecture/lists.md`
+    (`OpenFilter`, the showcase list), `docs/architecture/reports.md`,
+    `docs/frontend/lists.md`, `docs/frontend/app-shell.md`; `README.md`'s phase table.
+  - `plans/axcenity-hub.md` — all three Phase 13 criteria ticked.
+- **TDD:** One behavior, as the plan names: image uploads are refused for the wrong type,
+  oversized files and out-of-range dimensions. One parametrised test checks 13 refusals, each
+  with its own error code and message, with the upload rewound. The refusals: GIF, BMP, a
+  TIFF named `.png`, text, SVG, an empty file, one byte over 8 MB, too narrow, too short,
+  over 8000 px on either side, and past 4:1 either way. A companion test checks 6
+  boundaries that must pass. Red: all 13 refusals failed with "DID NOT RAISE" against a
+  stub. Green: the check reads only the header, in the order size, readable, format,
+  dimensions, proportions. Everything else got ordinary tests alongside the code.
+- **Decisions:** "Interact" became a Like (one per member, not your own, can be taken
+  back) plus reporting; there are no showcase comments, which would copy the forum's.
+  - **Slugs:** made from the title and kept when the title changes. A taken slug is
+    numbered, then given a random suffix. `new` is reserved.
+  - **Tags:** typed separated by commas or spaces, normalised to lower case, 2–24 letters,
+    digits and hyphens, at most 5, created on first use.
+  - **Images:** PNG, JPEG or WebP; 8 MB; at least 640 × 360; at most 8000 px on a side; no
+    more than 4:1. Stored as a 1920 px display copy and an 800 px card, never upscaled. The
+    image description falls back to the title for `alt`.
+  - **The list:** searches title and description; sorts newest, oldest and most liked;
+    filters by tag and by when published; 24 a page.
+  - **The tag filter:** offers only the tags of published showcases, so a hidden
+    showcase's tag is never named.
+  - **HTMX:** the list and the like work in place; publish, edit and delete are full
+    pages, because they carry a file.
+  - **The publish page** shows the limit's message before the member chooses a file.
+  - **The demo seed** writes rows directly, because backdated rows can't pass the live
+    limit. Only alice ends up at the limit, so the limit can be seen by hand.
+- **Deviations:** None. The brief and the TDD behavior were approved as proposed.
+- **Sideways:**
+  - The first form was a `ModelForm`. Its `image` field would have made the model's own
+    validation demand an image before the service writes one, so it became a plain form,
+    and the services run `full_clean`.
+  - The seed first called `create_showcase` with a backdated `now`. The limit's window
+    counts newer rows too, so alice's two-hour-old showcase would have blocked her older
+    ones. The seed now writes rows directly, as the forum's seed does.
+  - Expected messages with apostrophes failed against the escaped page (`isn&#x27;t`), so
+    the tests compare `escape(message)`.
+  - A test title "New" became `new-2`, because the slug is reserved, so the test was renamed.
+  - The browser test read the uppercase tab chip with `inner_text`, so it reads
+    `text_content` instead.
+  - The screenshots showed the grid's 1px gap painting a grey block in an empty last cell,
+    and cards hiding their neighbour's line. The grid now uses inset lines inside each card,
+    with the grid reaching 1px under the panel's clipped edge.
+
 ## 2026-11-25 — Axcenity Hub: Phase 12C/17, Search, filtering, sorting and pagination
 
 ### Prompts

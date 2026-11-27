@@ -11,6 +11,7 @@ index:** the rules below apply everywhere; topic files under
 | [architecture/github-linking.md](architecture/github-linking.md) | linking a GitHub account: linking only (never sign-in), the OAuth App and its secrets, OAuth state, encrypted tokens and key rotation, revoked and expiring tokens, unlinking |
 | [architecture/projects.md](architecture/projects.md) | projects, their teams and their repositories: roles and the permission table, invitations, the last Owner, locks, names, the concurrency-safe limit (`accounts/limits.py`), the no-scope permission check and its 60 s window, rate limits and budget, duplicate links, the webhook (per-link secrets, replays) |
 | [architecture/forums.md](architecture/forums.md) | forum posts, comments and ratings: who may do what; the author-only 404 lookups; hidden content in every query; the posting limits; the services and the verification gate |
+| [architecture/showcases.md](architecture/showcases.md) | showcases, tags and likes: who may do what, the one-a-day limit, image uploads (the checks, processing, storage and files), slugs, tags |
 | [architecture/lists.md](architecture/lists.md) | search, filters, sorting and pages on any list: the query string, `config/listing.py`, how each bad parameter falls back, stable ordering, query counts, adding a list |
 | [architecture/reports.md](architecture/reports.md) | the moderation states (`visible_to`, `published`, `can_see_moderated`) for any members' content, and reporting a post or comment: the targets, the 404s, one report each in the database |
 
@@ -25,16 +26,17 @@ index:** the rules below apply everywhere; topic files under
 | `accounts/` | Profiles and the sign-in policy around django-allauth: the verification gate (`access.py`), the signup-only verification stage, case-insensitive unique indexes, the rate-limit backstop, Turnstile, session lifetimes ([architecture/accounts.md](architecture/accounts.md)); GitHub linking: `GitHubLink`, `crypto.py`, `github.py` ([architecture/github-linking.md](architecture/github-linking.md)); `limits.py`, the lock behind every count-based limit and `next_allowed` for windowed ones |
 | `projects/` | Projects, their teams and their GitHub repositories: `models.py` (roles and `PERMISSIONS`), `services.py` (the limit, linking, refreshing), `teams.py` (invitations, roles, the last Owner), `seed_team_demo` (demo members, development only), `github.py` (the member's repository calls and permission), `webhooks.py` ([architecture/projects.md](architecture/projects.md)) |
 | `forums/` | Forum posts, comments and ratings: `models.py` (`ForumPost`, `Comment`, `Rating`), `services.py` (writes and the posting limits), `listing.py` (the list's search, filters and sorts), `seed_forum_demo` (demo posts, development only), views answering HTMX with partials ([architecture/forums.md](architecture/forums.md)) |
+| `showcases/` | Showcases, tags and likes: `models.py` (`Tag`, `Showcase`, `Like`), `images.py` (checking and remaking uploads), `services.py` (writes and the one-a-day limit), `listing.py` (search, tag and published filters, sorts), `seed_showcase_demo` (demo showcases, development only) ([architecture/showcases.md](architecture/showcases.md)) |
 | `reports/` | `moderation.py` (content states and who sees them), `Report` and its services, `targets.py` (what can be reported), the report page ([architecture/reports.md](architecture/reports.md)) |
 | `marketing/legal/` | The engine's `LICENSE` and `NOTICE`, copied in unchanged from `content.LEGAL_COMMIT`, and the generated `engine.json` (its crates) and `hub.json` (the Hub's packages). Only `refresh_credits` writes it |
 | `marketing/media_sources/` | Captures as copied in (never served, never edited): the sources `make_media` reads, and `toolbox-capture.json`, the Toolbox screenshots' capture record |
-| `templates/` | `base.html` (shared by every shell), `marketing/` (the marketing shell and its pages), `documentation/` (the docs layout and pages), `app/` (the app shell and the entrance), `allauth/` (allauth's layouts and elements), `accounts/`, `projects/`, `forums/` (pages and `partials/`, the HTMX answers), `reports/`, `partials/` |
+| `templates/` | `base.html` (shared by every shell), `marketing/` (the marketing shell and its pages), `documentation/` (the docs layout and pages), `app/` (the app shell and the entrance), `allauth/` (allauth's layouts and elements), `accounts/`, `projects/`, `forums/` (pages and `partials/`, the HTMX answers), `showcases/`, `reports/`, `partials/` |
 | `styles/source.css` | The Tailwind source; built into `static/css/tailwind.css` (git-ignored) |
 | `static/` | `js/`, `reel/` (the canvas kit and `reel/loops/`, the Home's animated recreations), `fonts/`, `brand/`, `marketing/media/` (the captures' derivatives, written by `make_media`, and the hero's film in `homestead/`) |
 | `tests/` | Every test (see [TESTING.md](TESTING.md)) |
 
-Later phases add `showcases`, `moderation` and `api`, and BugReport in `reports` (see the
-plan's architectural decisions).
+Later phases add `moderation` and `api`, and BugReport in `reports` (see the plan's
+architectural decisions).
 
 ## Rules
 
@@ -54,8 +56,8 @@ plan's architectural decisions).
   anything else with the page or a redirect, so every action works without JavaScript; it
   sends `Vary: HX-Request` and turns redirects into `HX-Redirect`. Writes are forms with
   their CSRF token ([frontend/forums.md](frontend/forums.md#htmx)).
-- **Count-based limits** (5 projects; 5 posts a day and 5 comments a minute; later
-  showcases, reports) run in one transaction: `accounts.limits.lock_member(user)`, count (a
+- **Count-based limits** (5 projects; 5 posts a day and 5 comments a minute; 1 showcase a
+  day; later reports) run in one transaction: `accounts.limits.lock_member(user)`, count (a
   window's: `next_allowed`), raise `LimitReached`, insert
   ([architecture/projects.md](architecture/projects.md#the-five-project-limit-concurrency-safe),
   [architecture/forums.md](architecture/forums.md#the-posting-limits)).
@@ -114,9 +116,14 @@ plan's architectural decisions).
 | `/forums/<pk>/comments/`, `/rate/` | `forums:comment_create`, `forums:rate` | POST, verified members, a published post (404 otherwise): comment (5 a minute); rate 1–5 or `score=clear` (not your own post) |
 | `/forums/comments/<pk>/` | `forums:comment` | A comment: through HTMX its part (Keep it); otherwise a redirect to it on its post; public |
 | `/forums/comments/<pk>/delete/` | `forums:comment_delete` | The comment's author only (others 404): a confirmation page, or in place |
-| `/reports/<kind>/<pk>/` | `reports:create` | `ReportCreateView`: report someone else's published `post` or `comment` (verified members; anything else 404) ([architecture/reports.md](architecture/reports.md)) |
+| `/showcases/` | `showcases:list` | `ShowcaseListView`: the showcases the visitor may see, 24 a page, as cards with their likes and tags; `?q=`, `&tag=`, `&posted=`, `&sort=`, `&page=` ([architecture/lists.md](architecture/lists.md)); an HTMX request gets the list's part; public |
+| `/showcases/new/` | `showcases:create` | `ShowcaseCreateView`: verified members, one a day; an image upload ([architecture/showcases.md](architecture/showcases.md)) |
+| `/showcases/<slug>/` | `showcases:detail` | `ShowcaseDetailView`: a showcase, its tags and likes; public (hidden ones staff only) |
+| `/showcases/<slug>/edit/`, `/delete/` | `showcases:edit`, `showcases:delete` | The author only (anyone else, signed out included, 404): edit (verified; a new image optional) and delete, as full pages |
+| `/showcases/<slug>/like/` | `showcases:like` | POST, verified members, a published showcase (404 otherwise), not your own: `action=like` or `unlike`; in place through HTMX |
+| `/reports/<kind>/<pk>/` | `reports:create` | `ReportCreateView`: report someone else's published `post`, `comment` or `showcase` (verified members; anything else 404) ([architecture/reports.md](architecture/reports.md)) |
 | `/errors/<kind>/` | `errors:preview` | A development server's preview of an error page (`400`, `403`, `csrf`, `404`, `405`, `429`, `500`); a 404 when `DEBUG` is off |
-| `/media/<path>` | `media` | `config.media.development_media`: members' uploads from `MEDIA_ROOT` on a development server; a 404 when `DEBUG` is off (production's web server serves the folder) |
+| `/media/<path>` | `media` | `config.media.development_media`: members' uploads (profile photos, showcase images) from `MEDIA_ROOT` on a development server; a 404 when `DEBUG` is off (production's web server serves the folder) |
 | `/theme/` | `marketing:theme` | `ThemeView`: POST only, the no-JavaScript fallback for the theme switch |
 | `/admin/` | `admin:*` | Django admin |
 
@@ -205,7 +212,7 @@ locally, copy it to `.env` (git-ignored) and run `uv run --env-file .env …`.
 | `HUB_PUBLIC_URL` | none | The Hub's address on the internet (scheme and host only): webhook payload URLs are built on it, its host is allowed, and it's a trusted CSRF origin (behind a tunnel or TLS proxy Django sees http while the browser posts from https); in development, a tunnel's address |
 | `GITHUB_TOKEN_KEYS` | none | Comma-separated Fernet keys for GitHub tokens at rest (first encrypts); required in production when the app is set |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | none | Cloudflare Turnstile on signup and reset; off unless both are set |
-| `DJANGO_MEDIA_ROOT` | `media/` in the repo (git-ignored) | Where members' uploads (profile photos) are stored; production's web server serves it at `/media/` |
+| `DJANGO_MEDIA_ROOT` | `media/` in the repo (git-ignored) | Where members' uploads (profile photos, showcase images) are stored; production's web server serves it at `/media/` |
 | `AXCENITY_ENGINE_DIR` | `~/Documents/VSCode Projects/Axcenity-Engine` | The engine checkout `sync_engine_docs` and `refresh_credits` read (never at request time) |
 
 `DOCS_SNAPSHOT_DIR` is `documentation/content/`; its `images/` are served

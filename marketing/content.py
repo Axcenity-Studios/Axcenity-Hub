@@ -854,7 +854,7 @@ FOOTER_COLUMNS = [
         "Community",
         [
             Link("Forums", url_name="forums:list"),
-            Link("Showcases", soon=True),
+            Link("Showcases", url_name="showcases:list"),
             Link("Projects", soon=True),
         ],
     ),

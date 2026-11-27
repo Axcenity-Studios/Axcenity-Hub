@@ -1,0 +1,30 @@
+{% extends "app/shell.html" %}
+{% load static shell_tags %}
+{% block head_title %}{{ text.TITLE }}{% endblock %}
+{% block app_head %}<script src="{% versioned_static 'js/forums.js' %}" defer></script>{% endblock %}
+{% block content %}
+{# The showcases, 24 a page, as cards: its controls (search, tag, when, sort) and the list's #}
+{# part, which htmx swaps in place (docs/frontend/lists.md). Without JavaScript the same form #}
+{# and links load the page.                                                                  #}
+<div class="app-page">
+  <div class="pj-head">
+    <header class="app-page-head">
+      <h1 class="headline app-title">{{ text.TITLE }}</h1>
+      <p class="app-lede">{{ text.LEDE }}</p>
+    </header>
+    <div class="app-actions">
+      {% if user.is_authenticated %}
+      <a class="btn btn-primary btn-sm" href="{% url 'showcases:create' %}" data-new-showcase>{% include "partials/icon.html" with name="plus" size=14 %}{{ text.NEW_SHOWCASE }}</a>
+      {% else %}
+      <a class="btn btn-quiet btn-sm" href="{% url 'account_login' %}?next={% url 'showcases:create' %}" data-sign-in-to-publish>{{ text.SIGN_IN_TO_PUBLISH }}</a>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Nothing to search without showcases. #}
+  {% if not empty %}{% include "partials/list_controls.html" %}{% endif %}
+  {# Announces the count after each in-place change (filled out of band by the list's part). #}
+  <div id="showcase-list-status" class="sr-only" role="status" aria-live="polite"></div>
+  {% include "showcases/partials/showcase_list.html" %}
+</div>
+{% endblock %}

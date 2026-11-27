@@ -17,9 +17,10 @@ one (docs/architecture/lists.md, docs/frontend/lists.md).
 
 import re
 import unicodedata
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import datetime
+from functools import partial
 from urllib.parse import urlencode
 
 from django.core.paginator import Page, Paginator
@@ -104,6 +105,37 @@ class Filter:
         """The choice with exactly this value, or None."""
         return next((choice for choice in self.choices if choice.value == value), None)
 
+    def offer(self) -> tuple[Choice, ...]:
+        """The choices this request may pick from: always the same ones."""
+        return self.choices
+
+
+def _narrow_open(narrow, value, queryset, now):
+    return narrow(queryset, value)
+
+
+@dataclass(frozen=True)
+class OpenFilter:
+    """A filter over an open set of values the database holds (a showcase's tags), where a
+    `Filter`'s choices are written in code. `options()` gives the (value, label) pairs it
+    offers now, read once per request (`Listing.read`); `narrow(queryset, value)` returns
+    the rows an offered value keeps. A value that isn't offered doesn't narrow the list, as
+    for a `Filter`, so a visitor's value is still only ever compared with what's offered."""
+
+    name: str
+    label: str
+    any_label: str
+    options: Callable[[], Iterable[tuple[str, str]]]
+    narrow: Callable[[QuerySet, str], QuerySet]
+
+    def offer(self) -> tuple[Choice, ...]:
+        """The choices this request may pick from, as the database holds them now."""
+        return tuple(
+            Choice(value, label, partial(_narrow_open, self.narrow, value))
+            for value, label in self.options()
+            if value
+        )
+
 
 @dataclass(frozen=True)
 class Words:
@@ -129,7 +161,7 @@ class Listing:
 
     search_fields: tuple[str, ...]
     sorts: tuple[Sort, ...]
-    filters: tuple[Filter, ...] = ()
+    filters: tuple[Filter | OpenFilter, ...] = ()
     per_page: int = PER_PAGE
     words: Words = field(default_factory=Words)
 
@@ -141,7 +173,7 @@ class Listing:
             raise ValueError("Filter names must differ from each other and from q, sort and page.")
         for values in (
             [s.value for s in self.sorts],
-            *([c.value for c in f.choices] for f in self.filters),
+            *([c.value for c in f.choices] for f in self.filters if isinstance(f, Filter)),
         ):
             if "" in values or len(set(values)) != len(values):
                 raise ValueError("Sort and choice values must be distinct and not empty.")
@@ -160,17 +192,24 @@ class Listing:
         from several), an unknown sort is the default one, a value that isn't one of a
         filter's choices doesn't narrow the list, and anything else in the query string
         isn't read at all. Never raises."""
-        chosen = {}
+        chosen, offered = {}, {}
         for each in self.filters:
+            offered[each.name] = each.offer()
             value = _once(params, each.name)
-            chosen[each.name] = value if each.choice(value) else ""
+            chosen[each.name] = value if _pick(offered[each.name], value) else ""
         return Selection(
             listing=self,
             q=clean_search(_once(params, SEARCH)),
             sort=self.sort(_once(params, SORT)) or self.default_sort,
             chosen=chosen,
             page=clean_page(_once(params, PAGE)),
+            offered=offered,
         )
+
+
+def _pick(choices: tuple[Choice, ...], value: str) -> Choice | None:
+    """The choice with exactly this value, or None."""
+    return next((choice for choice in choices if choice.value == value), None)
 
 
 @dataclass(frozen=True)
@@ -183,6 +222,15 @@ class Selection:
     sort: Sort
     chosen: dict[str, str]
     page: int = 1
+    # Each filter's choices for this request (`Listing.read`): an open filter's come from
+    # the database once, then every use reads them here.
+    offered: dict[str, tuple[Choice, ...]] = field(default_factory=dict)
+
+    def choices(self, each: "Filter | OpenFilter") -> tuple[Choice, ...]:
+        """The choices `each` offers in this selection."""
+        if each.name in self.offered:
+            return self.offered[each.name]
+        return each.offer()
 
     @property
     def words(self) -> list[str]:
@@ -205,7 +253,7 @@ class Selection:
                 match |= Q(**{f"{name}__icontains": word})
             queryset = queryset.filter(match)
         for each in self.listing.filters:
-            choice = each.choice(self.chosen.get(each.name, ""))
+            choice = _pick(self.choices(each), self.chosen.get(each.name, ""))
             if choice:
                 queryset = choice.narrow(queryset, now)
         return queryset.order_by(*self.sort.ordering)
@@ -249,7 +297,7 @@ class Selection:
                             "label": c.label,
                             "selected": self.chosen.get(each.name) == c.value,
                         }
-                        for c in each.choices
+                        for c in self.choices(each)
                     ),
                 ],
             }

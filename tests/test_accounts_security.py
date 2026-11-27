@@ -181,7 +181,8 @@ def test_only_the_repository_webhook_is_csrf_exempt(settings):
     assert exempt == ["projects:webhook"]
     allowed = settings.BASE_DIR / "projects" / "views.py"
     for folder in [
-        "accounts", "config", "marketing", "documentation", "projects", "forums", "reports",
+        "accounts", "config", "marketing", "documentation", "projects", "forums", "showcases",
+        "reports",
     ]:  # fmt: skip
         for path in (settings.BASE_DIR / folder).rglob("*.py"):
             if path != allowed:
@@ -502,6 +503,8 @@ PUBLIC = {
     "projects:webhook",
     # The forums are read by anyone (writing them is members-only).
     "forums:list", "forums:detail", "forums:comment",
+    # So are showcases (publishing them is members-only).
+    "showcases:list", "showcases:detail",
 }  # fmt: skip
 SAMPLE_KWARGS = {"key": "not-a-key", "uidb36": "1", "path": "not-a-page"}
 

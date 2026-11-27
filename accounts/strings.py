@@ -21,6 +21,7 @@ RAIL_HUB_HEADING = "Workspace"
 RAIL_HUB = [
     ("projects", "Projects", "projects:list", "folder"),
     ("forums", "Forums", "forums:list", "chat"),
+    ("showcases", "Showcases", "showcases:list", "image"),
 ]
 RAIL_ACCOUNT = [
     ("account", "Account settings", "accounts:profile", "user"),
@@ -44,7 +45,7 @@ PAGES = {
     "socialaccount_connections": "connections",
 }
 # Every page of these URL namespaces belongs to a rail item.
-RAIL_NAMESPACES = {"projects": "projects", "forums": "forums"}
+RAIL_NAMESPACES = {"projects": "projects", "forums": "forums", "showcases": "showcases"}
 RAIL_LABEL = "Menu"
 SIGN_OUT = "Sign out"
 SIGN_IN = "Sign in"

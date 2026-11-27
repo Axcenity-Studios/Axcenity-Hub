@@ -1,8 +1,8 @@
 # Lists: search, filters, sorting and pages
 
 Read this before adding search, a filter, a sort or pages to any list, or touching
-`config/listing.py`. The forum's list is the first to use it (`forums/listing.py`); projects,
-showcases and reports reuse it. The templates and HTMX: [../frontend/lists.md](../frontend/lists.md).
+`config/listing.py`. The forum's list is the first to use it (`forums/listing.py`), the
+showcases' the second (`showcases/listing.py`); projects and reports reuse it. The templates and HTMX: [../frontend/lists.md](../frontend/lists.md).
 
 A list's state lives in its query string, so every state has a URL to share or reload:
 
@@ -21,8 +21,9 @@ A list's state lives in its query string, so every state has a URL to share or r
 |---|---|
 | `Sort(value, label, ordering)` | An order. `ordering` is what `order_by` gets, written in code |
 | `Choice(value, label, narrow)`, `Filter(name, label, any_label, choices)` | A filter and its fixed choices; `narrow(queryset, now)` returns the rows a choice keeps |
+| `OpenFilter(name, label, any_label, options, narrow)` | A filter over values the database holds (a showcase's tags): `options()` gives the (value, label) pairs offered now, read once per request; `narrow(queryset, value)` the rows an offered value keeps |
 | `Listing(search_fields, sorts, filters, per_page, words)` | What one list offers. `Words` holds the controls' and pager's words (the same on every list unless overridden) |
-| `Listing.read(request.GET)` | The query string as a `Selection`. Never raises |
+| `Listing.read(request.GET)` | The query string as a `Selection` (each filter's choices for this request in its `offered`). Never raises |
 | `Selection.apply(queryset, now=)` | The queryset searched, filtered and ordered |
 | `Selection.paginate(queryset, now=)` | Its page (Django's `Page`) |
 | `Selection.query(page=)` | The state as a query string, defaults left out: one state, one URL |
@@ -73,9 +74,10 @@ placed explicitly (`F("rating_average").desc(nulls_last=True)`).
 2. The view: `class …(ListingMixin, TemplateView)` with `listing`, `template_name`,
    `partial_template_name`, `list_id`, `get_listing_queryset()` and `get_list_url()`.
 3. The templates: see [../frontend/lists.md](../frontend/lists.md).
-4. A filter over an open set (a showcase's tag, a report's project) needs a `Filter` that
-   validates against the database instead of fixed choices; none exists yet. Add it here,
-   with the same rule: an unknown value doesn't narrow the list.
+4. A filter over an open set (a showcase's tag, a report's project) is an `OpenFilter`. Its
+   `options()` must offer only what the visitor may see (the showcases' offers only the tags
+   of published showcases, so a hidden showcase's tag is never named), and a value it doesn't
+   offer doesn't narrow the list, as for a `Filter`.
 
 ## The forum's list (`forums/listing.py`)
 
@@ -91,8 +93,23 @@ placed explicitly (`F("rating_average").desc(nulls_last=True)`).
 `seed_team_demo`'s members, with comments and ratings on some, so pages and every filter
 have something to show: a member can publish only 5 posts a day by hand.
 
+## The showcase list (`showcases/listing.py`)
+
+| | Values |
+|---|---|
+| Search | `title`, `description` |
+| `sort` | `newest` (default), `oldest`, `liked` (most likes; ties newest first) |
+| `tag` | Any tag of a published showcase (`OpenFilter`; a subquery, so a showcase with several tags is listed once); anything else, a different case included, is any tag |
+| `posted` | `day`, `week`, `month` |
+| `page` | 24 a page (a grid of 2, 3 or 4 across fills its rows) |
+
+A visitor's page is four queries however many showcases: the tags offered, the count, the
+page's rows, and their tags (`prefetch_related`). `manage.py seed_showcase_demo` adds 30 demo
+showcases (two pages) by the team demo's members; only alice's newest is within a day.
+
 ## Tests
 
 `tests/test_forums_list.py` (the fallbacks, test-first; search, each filter and sort, ties,
 page boundaries, hidden content, query counts, the HTMX answers, the seed) and
-`tests/test_forums_list_browser.py` (`browser`). See [../TESTING.md](../TESTING.md).
+`tests/test_forums_list_browser.py` (`browser`); `tests/test_showcases_list.py` (the tag
+filter, `OpenFilter`, the showcase list). See [../TESTING.md](../TESTING.md).

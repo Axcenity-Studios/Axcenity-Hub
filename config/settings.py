@@ -87,6 +87,7 @@ INSTALLED_APPS = [
     "accounts",
     "projects",
     "forums",
+    "showcases",
     "reports",
 ]
 

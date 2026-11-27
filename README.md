@@ -47,8 +47,9 @@ Ticked boxes in [plans/axcenity-hub.md](plans/axcenity-hub.md) are the source of
 | **10** | Projects, repository linking, webhooks and the setup checklist's help | Done |
 | **11** | Project teams (Owner, Maintainer, Viewer) | Done |
 | **12A** | `/forums/`: forum posts, editable and deletable in place by their author only | Done |
-| **12B–12C** | Comments, ratings, posting limits and reports; forum search, filters and pagination | Next |
-| **13–15** | Showcases, bug reports, moderation | Planned |
+| **12B–12C** | Comments, ratings, posting limits and reports; forum search, filters and pagination | Done |
+| **13** | `/showcases/`: showcases with images, tags and likes, one a day | Done |
+| **14–15** | Bug reports, moderation | Planned |
 | **16–17** | REST API, and porting the Toolbox into the Hub | Planned |
 
 <p align="center">

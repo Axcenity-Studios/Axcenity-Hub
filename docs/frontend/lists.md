@@ -11,6 +11,7 @@ HTMX in general: [forums.md](forums.md#htmx).
 | `partials/list_pager.html` | Previous (`#<list_id>-previous`), "Page 2 of 5", Next (`#<list_id>-next`); nothing when there's one page. Needs `pager`, `list_id` |
 | `forums/list.html` | `/forums/`: the head, the controls, the live region `#post-list-status`, and the list's part |
 | `forums/partials/post_list.html` | `#post-list`: the rows and their count, the pager; or "No posts yet" (`data-empty`); or "No posts match" with Clear (`data-no-match`) |
+| `showcases/list.html`, `showcases/partials/showcase_list.html` | `/showcases/` and `#showcase-list`, the same shape as the forum's ([showcases.md](showcases.md)) |
 
 `ListingMixin` gives every template `selection`, `page`, `count`, `controls`, `pager`,
 `list_url`, `list_id`, `swapped` and `focus_list`.

@@ -1,0 +1,56 @@
+{# The list's part of /showcases/ (#showcase-list): the showcases on this page of the search,  #}
+{# filters and order the query string asks for, as cards, and the pager. An HTMX answer swaps  #}
+{# it whole: `swapped` fills the page's live region with the count out of band, and after the  #}
+{# pager (`focus_list`) the heading takes focus.                                               #}
+{% if swapped %}<div hx-swap-oob="innerHTML:#showcase-list-status"><p>{% if count %}{{ count_words }}{% else %}{{ text.NO_MATCH_TITLE }}{% endif %}</p></div>{% endif %}
+<div id="showcase-list" class="ls-list">
+  {% if rows %}
+  <section class="panel pj-panel" aria-labelledby="showcases-title">
+    <div class="pj-bar"><h2 id="showcases-title" class="tb-chip tb-chip-current" tabindex="-1"{% if focus_list %} autofocus{% endif %}>{% include "partials/icon.html" with name="image" size=14 %}{% if tagged %}{{ tagged }}{% else %}{{ text.SHOWCASES_LABEL }}{% endif %}</h2><span class="pj-tag micro" data-showcase-count>{{ count }}</span></div>
+    <ul class="sc-grid" data-showcases>
+      {% for row in rows %}
+      <li class="sc-card" data-showcase="{{ row.showcase.slug }}">
+        {# Decorative here: the title beside it names the showcase. #}
+        <img class="sc-card-image" src="{{ row.showcase.card.url }}" width="{{ row.showcase.card_width }}" height="{{ row.showcase.card_height }}" alt="" loading="lazy" decoding="async">
+        <div class="sc-card-body">
+          <h3 class="sc-card-title"><a href="{{ row.showcase.get_absolute_url }}">{{ row.showcase.title }}</a></h3>
+          <p class="fm-meta">
+            {% include "partials/avatar.html" with person=row.author size=20 %}
+            <span class="fm-author">{{ row.author.name }}</span>
+            <span aria-hidden="true">·</span>
+            <time datetime="{{ row.showcase.created|date:'c' }}">{{ row.showcase.created|date:"j M Y" }}</time>
+            {% if row.showcase.state != "visible" %}<span class="pj-tag micro fm-state" data-state="{{ row.showcase.state }}">{{ row.showcase.get_state_display }}</span>{% endif %}
+          </p>
+          <p class="fm-meta sc-card-stats"><span data-likes>{% include "partials/icon.html" with name="heart" size=14 %}{{ row.likes }}</span></p>
+          {% if row.tags %}
+          {# Above the title's stretched link, so each tag is its own link. #}
+          <ul class="sc-tags sc-card-tags" aria-label="{{ text.TAGS_LABEL }}">
+            {% for tag in row.tags %}<li><a class="sc-tag" href="{{ tag.get_absolute_url }}" data-tag="{{ tag.name }}">{{ tag.name }}</a></li>{% endfor %}
+          </ul>
+          {% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% include "partials/list_pager.html" %}
+  {% elif empty %}
+  <section class="panel pj-panel" aria-labelledby="empty-title" data-empty>
+    <div class="pj-bar"><span class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="image" size=14 %}{{ text.SHOWCASES_LABEL }}</span></div>
+    <div class="pj-empty">
+      <h2 id="empty-title" class="app-heading">{{ text.EMPTY_TITLE }}</h2>
+      <p class="app-lede">{{ text.EMPTY_TEXT }}</p>
+    </div>
+  </section>
+  {% else %}
+  <section class="panel pj-panel" aria-labelledby="no-match-title" data-no-match>
+    <div class="pj-bar"><span class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="image" size=14 %}{{ text.SHOWCASES_LABEL }}</span><span class="pj-tag micro" data-showcase-count>0</span></div>
+    <div class="pj-empty">
+      <h2 id="no-match-title" class="app-heading">{{ text.NO_MATCH_TITLE }}</h2>
+      <p class="app-lede">{{ text.NO_MATCH_TEXT }}</p>
+      {# A plain link: the whole page loads, so the form above is reset with it. #}
+      <div class="app-actions"><a class="btn btn-quiet btn-sm" href="{{ list_url }}" data-clear>{{ controls.words.clear }}</a></div>
+    </div>
+  </section>
+  {% endif %}
+</div>

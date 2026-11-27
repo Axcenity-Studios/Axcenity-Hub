@@ -1,0 +1,50 @@
+{% extends "app/shell.html" %}
+{% load static shell_tags app_shell %}
+{% block head_title %}{{ showcase.title }}{% endblock %}
+{% block app_head %}<script src="{% versioned_static 'js/forums.js' %}" defer></script>{% endblock %}
+{% block content %}
+{# A showcase: its image, words, tags and likes. Like works in place through HTMX; Edit and #}
+{# Delete are their own pages (docs/frontend/showcases.md).                                 #}
+<div class="app-page">
+  <a class="app-link fm-back" href="{% url 'showcases:list' %}">{{ text.BACK }}</a>
+  {# Announces what an in-place change did (filled out of band by the like's answer). #}
+  <div id="showcase-status" class="fm-status" role="status" aria-live="polite"></div>
+  <article id="showcase" class="panel pj-panel fm-post" aria-labelledby="showcase-title" data-showcase="{{ showcase.slug }}">
+    <div class="pj-bar">
+      <span class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="image" size=14 %}{{ text.TITLE }}</span>
+      {% if is_author %}<span class="pj-tag micro" data-yours>{{ text.YOURS }}</span>{% endif %}
+      {% if showcase.state != "visible" %}<span class="pj-tag micro fm-state" data-state="{{ showcase.state }}">{{ showcase.get_state_display }}</span>{% endif %}
+    </div>
+    <img class="sc-image" src="{{ showcase.image.url }}" width="{{ showcase.image_width }}" height="{{ showcase.image_height }}" alt="{{ showcase.alt_text }}" decoding="async">
+    <div class="fm-post-body">
+      <header class="fm-post-head">
+        <h1 id="showcase-title" class="headline app-title fm-title">{{ showcase.title }}</h1>
+        <p class="fm-meta">
+          {% include "partials/avatar.html" with person=author size=24 %}
+          <span class="fm-author">{{ author.name }}</span>
+          <span aria-hidden="true">·</span>
+          <time datetime="{{ showcase.created|date:'c' }}">{% fill text.PUBLISHED when=showcase.created|date:"j M Y, H:i" %}</time>
+          {% if showcase.edited_at %}<span aria-hidden="true">·</span><time datetime="{{ showcase.edited_at|date:'c' }}" data-edited>{% fill text.EDITED_AT when=showcase.edited_at|date:"j M Y, H:i" %}</time>{% endif %}
+        </p>
+      </header>
+      <div class="fm-text">{{ showcase.description|linebreaks }}</div>
+      {% if tags %}
+      <ul class="sc-tags" aria-label="{{ text.TAGS_LABEL }}" data-tags>
+        {% for tag in tags %}<li><a class="sc-tag" href="{{ tag.get_absolute_url }}" data-tag="{{ tag.name }}">{% include "partials/icon.html" with name="tag" size=12 %}{{ tag.name }}</a></li>{% endfor %}
+      </ul>
+      {% endif %}
+      {% include "showcases/partials/like.html" %}
+      {% if is_author %}
+      <div class="app-actions" role="group" aria-label="{{ text.SHOWCASE_ACTIONS }}">
+        <a class="btn btn-quiet btn-sm" href="{% url 'showcases:edit' showcase.slug %}" data-edit>{{ text.EDIT }}</a>
+        <a class="btn btn-quiet btn-sm" href="{% url 'showcases:delete' showcase.slug %}" data-delete>{{ text.DELETE }}</a>
+      </div>
+      {% elif reported %}
+      <p class="fm-reported micro" data-reported>{% include "partials/icon.html" with name="flag" size=14 %}{{ text.REPORTED }}</p>
+      {% elif can_report %}
+      <div class="app-actions"><a class="btn btn-quiet btn-sm" href="{% url 'reports:create' 'showcase' showcase.pk %}" data-report>{% include "partials/icon.html" with name="flag" size=14 %}{{ text.REPORT }}</a></div>
+      {% endif %}
+    </div>
+  </article>
+</div>
+{% endblock %}
