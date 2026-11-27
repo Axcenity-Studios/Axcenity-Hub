@@ -35,6 +35,7 @@ from django.db.models.functions import Lower
 
 from accounts.access import ensure_can_contribute
 from accounts.limits import LimitReached, lock_member
+from reports.bugs import release_assignments
 
 from . import strings
 from .models import Action, Project, ProjectInvitation, ProjectMembership, Role, allows
@@ -255,6 +256,12 @@ def cancel(owner, project: Project, invitation_pk: int) -> None:
         ProjectInvitation.objects.get(pk=invitation_pk, project=project).delete()
 
 
+def _release_reports(user, project: Project) -> None:
+    """Unassign `user` from `project`'s bug reports once they no longer handle them, in the
+    same transaction: a report's assignee always handles it (reports.bugs)."""
+    release_assignments(user, project)
+
+
 def _member(project: Project, membership_pk: int) -> ProjectMembership:
     return ProjectMembership.objects.select_related("user").get(pk=membership_pk, project=project)
 
@@ -289,6 +296,8 @@ def change_role(owner, project: Project, membership_pk: int, role: str) -> Proje
             _keep_an_owner(member)
         member.role = role
         member.save(update_fields=["role"])
+        if not allows(role, Action.MANAGE_REPORTS):
+            _release_reports(member.user, project)
     return member
 
 
@@ -300,6 +309,7 @@ def remove(owner, project: Project, membership_pk: int) -> None:
         member = _member(project, membership_pk)
         _keep_an_owner(member)
         member.delete()
+        _release_reports(member.user, project)
 
 
 def leave(user, project: Project) -> None:
@@ -309,3 +319,4 @@ def leave(user, project: Project) -> None:
         member = _acting(user, project, Action.VIEW)
         _keep_an_owner(member)
         member.delete()
+        _release_reports(user, project)

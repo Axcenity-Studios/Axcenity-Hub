@@ -443,7 +443,7 @@ def test_the_app_shell_frames_account_pages_as_tabs_of_account_settings(client):
         # The rail has one Account item; every account page is its current page.
         assert re.findall(
             r'class="app-rail-link"[^>]*>\s*<svg.*?</svg>\s*([^<]+?)\s*<', rail, re.S
-        ) == ["Projects", "Forums", "Showcases", "Account settings"]
+        ) == ["Projects", "Forums", "Showcases", "Reports", "Account settings"]
         assert re.findall(r'aria-current="page">\s*<svg.*?</svg>\s*([^<]+?)\s*<', rail, re.S) == [
             "Account settings"
         ], name

@@ -1,5 +1,5 @@
 {% extends "app/shell.html" %}
-{% load shell_tags %}
+{% load shell_tags app_shell %}
 {% block head_title %}{{ project.name }}{% endblock %}
 {% block content %}
 {# A project: its repository setup checklist (projects.setup; Owners only), then the linked #}
@@ -14,6 +14,8 @@
     </header>
     <div class="app-actions">
       <a class="btn btn-quiet btn-sm" href="{% url 'projects:members' project.slug %}">{% include "partials/icon.html" with name="user" size=14 %}{{ text.TEAM }} · {{ team_count }}</a>
+      {% if can.manage_reports %}<a class="btn btn-quiet btn-sm" href="{% url 'reports:bug_list' %}?about={{ project.slug|urlencode }}" data-project-reports>{% include "partials/icon.html" with name="flag" size=14 %}{{ text.BUG_REPORTS }} · {% fill text.BUG_REPORTS_OPEN count=open_reports %}</a>{% endif %}
+      <a class="btn btn-quiet btn-sm" href="{% url 'reports:bug_create' %}?about={{ project.slug|urlencode }}" data-report-bug>{{ text.REPORT_BUG }}</a>
       {% if can.edit %}<a class="btn btn-quiet btn-sm" href="{% url 'projects:edit' project.slug %}">{{ text.EDIT }}</a>{% endif %}
       {% if can.delete %}<a class="btn btn-quiet btn-sm" href="{% url 'projects:delete' project.slug %}">{{ text.DELETE }}</a>{% endif %}
     </div>

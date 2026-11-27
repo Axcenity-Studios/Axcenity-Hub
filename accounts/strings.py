@@ -22,6 +22,7 @@ RAIL_HUB = [
     ("projects", "Projects", "projects:list", "folder"),
     ("forums", "Forums", "forums:list", "chat"),
     ("showcases", "Showcases", "showcases:list", "image"),
+    ("reports", "Reports", "reports:bug_list", "flag"),
 ]
 RAIL_ACCOUNT = [
     ("account", "Account settings", "accounts:profile", "user"),
@@ -43,9 +44,16 @@ PAGES = {
     "account_change_password": "password",
     "account_set_password": "password",
     "socialaccount_connections": "connections",
+    # Reporting someone's post, comment or showcase belongs to no rail item.
+    "reports:create": "",
 }
 # Every page of these URL namespaces belongs to a rail item.
-RAIL_NAMESPACES = {"projects": "projects", "forums": "forums", "showcases": "showcases"}
+RAIL_NAMESPACES = {
+    "projects": "projects",
+    "forums": "forums",
+    "showcases": "showcases",
+    "reports": "reports",
+}
 RAIL_LABEL = "Menu"
 SIGN_OUT = "Sign out"
 SIGN_IN = "Sign in"

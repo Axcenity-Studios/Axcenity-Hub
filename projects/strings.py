@@ -28,6 +28,9 @@ LAST_OWNER_ACCOUNT = (
 )
 INVITATION_GONE = "That invitation was cancelled or already answered."
 TEAM = "Team"
+REPORT_BUG = "Report a bug"
+BUG_REPORTS = "Bug reports"
+BUG_REPORTS_OPEN = "{count} open"
 TEAM_LEDE = "Who works on this project, and what each role may do."
 YOU = "You"
 ROLES_TITLE = "Roles"

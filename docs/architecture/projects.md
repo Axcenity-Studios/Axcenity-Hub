@@ -31,6 +31,7 @@ GitHub call made with a member's token. Linking the GitHub account itself:
   | View the project, its repository's details and its team | ✓ | ✓ | ✓ |
   | Edit the description; refresh the repository from GitHub | ✓ | ✓ | |
   | Rename; delete; manage the team; link, unlink, the setup and the webhook | ✓ | | |
+  | See and handle the project's bug reports (`MANAGE_REPORTS`; [reports.md](reports.md#bug-reports)) | ✓ | ✓ | |
   | Leave | ✓ (another Owner stays) | ✓ | ✓ |
 
   Renaming goes through the edit page: a Maintainer's form (`DescriptionForm`) has no name, so
@@ -64,6 +65,9 @@ GitHub call made with a member's token. Linking the GitHub account itself:
   `models.protect_last_owner`, which raises `ProtectedError` (the admin lists it as the
   reason). Ownership never moves by itself: an Owner makes another member an Owner, then steps
   down, or deletes the project.
+- **Bug report assignments** follow the role: dropping to Viewer, being removed and leaving
+  unassign the member from the project's bug reports in the same transaction
+  (`reports.bugs.release_assignments`).
 - **Transactions and locks.** Every change runs in one transaction that locks the project row
   (`SELECT … FOR UPDATE`; SQLite's IMMEDIATE transactions serialize instead), then re-reads
   the actor's role and the membership or invitation it changes. Locks go in one order, the

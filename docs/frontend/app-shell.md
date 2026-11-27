@@ -16,10 +16,11 @@ loads htmx 2 (`{% htmx_script %}`); its pages add scripts in the `app_head` bloc
 
 - **Rail** (`.app-rail`): a `<details>` that's open without JavaScript; an inline script
   folds it below 1024 px, where its summary ("Menu") is the toggle. Sections come from
-  `{% app_rail %}` (`accounts/templatetags/app_shell.py`): **Workspace** (Projects, Forums, Showcases), then
+  `{% app_rail %}` (`accounts/templatetags/app_shell.py`): **Workspace** (Projects, Forums, Showcases, Reports), then
   **Account** (one item, Account settings) for a signed-in member only. `page_key` names a
   view's page from its name (`strings.PAGES`; every `mfa_*` page is two_factor; every page of
-  a namespace in `strings.RAIL_NAMESPACES`, such as `projects:*`, `forums:*` or `showcases:*`, is its item); `rail_key`
+  a namespace in `strings.RAIL_NAMESPACES`, such as `projects:*`, `forums:*`, `showcases:*` or `reports:*`, is its item; `reports:create`,
+  reporting content, belongs to none); `rail_key`
   makes every account tab the Account settings item. Later phases add items to `strings.RAIL_HUB`.
 - **Column** (`.app-column`): every page, the messages included, sits in one column centred
   in the space beside the rail. allauth's pages put their parts straight in it; their forms,

@@ -30,6 +30,7 @@ from django.views.generic import (
 
 from accounts.access import EmailNotVerified, VerifiedEmailRequiredMixin, has_verified_email
 from accounts.limits import LimitReached
+from reports.models import OPEN_STATUSES
 
 from . import github, services, strings, teams, webhooks
 from .forms import DescriptionForm, InviteForm, LinkRepositoryForm, ProjectForm, RoleForm
@@ -310,6 +311,11 @@ class ProjectDetailView(ProjectAccessMixin, DetailView):
             role_label=strings.ROLES[role],
             can=can,
             team_count=project.memberships.count(),
+            open_reports=(
+                project.bug_reports.filter(status__in=OPEN_STATUSES).count()
+                if can[Action.MANAGE_REPORTS]
+                else 0
+            ),
             link=link,
             notice=notice,
             setup=setup,

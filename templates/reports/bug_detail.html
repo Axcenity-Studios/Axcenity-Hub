@@ -1,0 +1,92 @@
+{% extends "app/shell.html" %}
+{% block head_title %}{{ report.title }}{% endblock %}
+{% block content %}
+{# A report: what it's about, its details, its status and assignee, and its timeline. Those #}
+{# who handle it change its status and assign it; anyone who can see it comments. Plain    #}
+{# forms that come back here (docs/frontend/reports.md).                                   #}
+<div class="app-page" data-bug="{{ report.pk }}" data-status="{{ report.status }}">
+  <a class="app-link fm-back" href="{% url 'reports:bug_list' %}">{{ text.BUG_BACK }}</a>
+  <article class="panel pj-panel fm-post" aria-labelledby="bug-title">
+    <div class="pj-bar">
+      <span class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="flag" size=14 %}{{ report.get_kind_display }} #{{ report.pk }}</span>
+      <span class="pj-tag micro rp-status" data-status="{{ report.status }}">{{ report.get_status_display }}</span>
+      {% if is_submitter %}<span class="pj-tag micro" data-yours>{{ text.YOURS }}</span>{% endif %}
+    </div>
+    <div class="fm-post-body">
+      <header class="fm-post-head">
+        <h1 id="bug-title" class="headline app-title fm-title">{{ report.title }}</h1>
+        <p class="fm-meta">
+          {% if submitter %}{% include "partials/avatar.html" with person=submitter size=24 %}<span class="fm-author">{{ submitter.name }}</span>{% else %}<span>{{ text.BUG_DELETED_MEMBER }}</span>{% endif %}
+          <span aria-hidden="true">·</span>
+          <time datetime="{{ report.created|date:'c' }}">{{ report.created|date:"j M Y, H:i" }}</time>
+        </p>
+      </header>
+      <dl class="pj-fields" data-bug-fields>
+        <div><dt>{{ text.BUG_ABOUT }}</dt><dd data-about>{% if report.project %}<a class="app-link" href="{{ report.project.get_absolute_url }}">{{ report.project.name }}</a>{% else %}{{ text.ENGINE }}{% endif %}</dd></div>
+        <div><dt>{{ text.BUG_STATUS }}</dt><dd data-status-label>{{ report.get_status_display }}</dd></div>
+        <div><dt>{{ text.BUG_ASSIGNEE }}</dt><dd data-assignee>{% if assignee %}{% include "partials/avatar.html" with person=assignee size=20 %}{{ assignee.name }}{% else %}{{ text.UNASSIGNED }}{% endif %}</dd></div>
+        {% if report.engine_version %}<div><dt>{{ text.BUG_FORM_VERSION }}</dt><dd><code>{{ report.engine_version }}</code></dd></div>{% endif %}
+        {% if report.platform %}<div><dt>{{ text.BUG_FORM_PLATFORM }}</dt><dd>{{ report.get_platform_display }}</dd></div>{% endif %}
+      </dl>
+      <section class="rp-text" aria-labelledby="bug-description"><h2 id="bug-description" class="app-heading">{{ text.BUG_FORM_DESCRIPTION }}</h2><div class="fm-text">{{ report.description|linebreaks }}</div></section>
+      {% if report.steps %}<section class="rp-text" aria-labelledby="bug-steps"><h2 id="bug-steps" class="app-heading">{{ text.BUG_FORM_STEPS }}</h2><div class="fm-text">{{ report.steps|linebreaks }}</div></section>{% endif %}
+      {% if report.expected %}<section class="rp-text" aria-labelledby="bug-expected"><h2 id="bug-expected" class="app-heading">{{ text.BUG_FORM_EXPECTED }}</h2><div class="fm-text">{{ report.expected|linebreaks }}</div></section>{% endif %}
+    </div>
+  </article>
+
+  {% if can_manage %}
+  <section class="app-panel panel rp-manage" aria-labelledby="bug-manage" data-manage>
+    <h2 id="bug-manage" class="app-heading">{{ text.BUG_MANAGE }}</h2>
+    {% if next_statuses %}
+    <form method="post" action="{% url 'reports:bug_status' report.pk %}" class="rp-inline" data-status-form>
+      {% csrf_token %}
+      <div class="ls-field"><label for="bug-status">{{ text.BUG_NEW_STATUS }}</label>
+        <select id="bug-status" name="status">{% for status in next_statuses %}<option value="{{ status.value }}">{{ status.label }}</option>{% endfor %}</select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">{{ text.BUG_CHANGE_STATUS }}</button>
+    </form>
+    {% else %}
+    <p class="app-help" data-final>{{ text.BUG_STATUS_FINAL }}</p>
+    {% endif %}
+    <form method="post" action="{% url 'reports:bug_assign' report.pk %}" class="rp-inline" data-assign-form>
+      {% csrf_token %}
+      <div class="ls-field"><label for="bug-assignee">{{ text.BUG_ASSIGN_TO }}</label>
+        <select id="bug-assignee" name="assignee">
+          <option value=""{% if not report.assignee_id %} selected{% endif %}>{{ text.BUG_ASSIGN_NOBODY }}</option>
+          {% for member in assignable %}<option value="{{ member.pk }}"{% if member.current %} selected{% endif %}>{{ member.name }} ({{ member.username }})</option>{% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-quiet btn-sm">{{ text.BUG_ASSIGN }}</button>
+    </form>
+  </section>
+  {% endif %}
+
+  <section id="activity" class="panel pj-panel fm-comments" aria-labelledby="activity-title" data-activity>
+    <div class="pj-bar"><h2 id="activity-title" class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="history" size=14 %}{{ text.BUG_ACTIVITY }}</h2><span class="pj-tag micro">{{ activity|length }}</span></div>
+    {% if activity %}
+    <ol class="app-list fm-comment-list">
+      {% for row in activity %}
+      <li><article id="activity-{{ row.entry.pk }}" class="fm-comment" data-entry="{{ row.entry.kind }}">
+        <p class="fm-meta">
+          {% if row.actor %}{% include "partials/avatar.html" with person=row.actor size=20 %}<span class="fm-author">{{ row.actor.name }}</span>{% else %}<span>{{ text.BUG_DELETED_MEMBER }}</span>{% endif %}
+          {% if row.what %}<span>{{ row.what }}</span>{% endif %}
+          <span aria-hidden="true">·</span>
+          <time datetime="{{ row.entry.created|date:'c' }}">{{ row.entry.created|date:"j M Y, H:i" }}</time>
+        </p>
+        {% if row.entry.body %}<div class="fm-comment-text">{{ row.entry.body|linebreaks }}</div>{% endif %}
+      </article></li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <p class="fm-comments-empty" data-no-activity>{{ text.BUG_NO_ACTIVITY }}</p>
+    {% endif %}
+    <div class="fm-comment-form">
+      <form method="post" action="{% url 'reports:bug_comment' report.pk %}#activity" class="app-form" novalidate data-comment-form>
+        {% csrf_token %}
+        {% include "partials/form_fields.html" with form=comment_form %}
+        <div class="app-actions"><button type="submit" class="btn btn-primary btn-sm">{{ text.BUG_COMMENT_SUBMIT }}</button></div>
+      </form>
+    </div>
+  </section>
+</div>
+{% endblock %}

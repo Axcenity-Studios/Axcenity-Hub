@@ -2,7 +2,8 @@
 
 Read this before adding search, a filter, a sort or pages to any list, or touching
 `config/listing.py`. The forum's list is the first to use it (`forums/listing.py`), the
-showcases' the second (`showcases/listing.py`); projects and reports reuse it. The templates and HTMX: [../frontend/lists.md](../frontend/lists.md).
+showcases' the second (`showcases/listing.py`), the bug reports' the third
+(`reports/listing.py`); projects will reuse it. The templates and HTMX: [../frontend/lists.md](../frontend/lists.md).
 
 A list's state lives in its query string, so every state has a URL to share or reload:
 
@@ -107,9 +108,25 @@ A visitor's page is four queries however many showcases: the tags offered, the c
 page's rows, and their tags (`prefetch_related`). `manage.py seed_showcase_demo` adds 30 demo
 showcases (two pages) by the team demo's members; only alice's newest is within a day.
 
+## The reports list (`reports/listing.py`)
+
+It depends on who's looking, so `for_member(user, visible)` builds its `Listing` per request.
+
+| | Values |
+|---|---|
+| Search | `title`, `description` |
+| `sort` | `newest` (default), `oldest`, `updated` (recently updated: a status change, assignment or comment) |
+| `status` | `open` (new, confirmed or in progress), or one status |
+| `kind` | `bug`, `feedback` |
+| `about` | `engine`, or a project's slug: an `OpenFilter` offering only the engine and projects of reports the member may see |
+| `assigned` | `me`, `nobody` |
+
+A page is a fixed number of queries however many reports (`select_related` for the project,
+sender and assignee).
+
 ## Tests
 
 `tests/test_forums_list.py` (the fallbacks, test-first; search, each filter and sort, ties,
 page boundaries, hidden content, query counts, the HTMX answers, the seed) and
 `tests/test_forums_list_browser.py` (`browser`); `tests/test_showcases_list.py` (the tag
-filter, `OpenFilter`, the showcase list). See [../TESTING.md](../TESTING.md).
+filter, `OpenFilter`, the showcase list). See [../TESTING.md](../TESTING.md). `tests/test_reports_bugs_list.py` (the reports list).

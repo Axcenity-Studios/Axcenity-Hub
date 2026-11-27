@@ -20,6 +20,7 @@ its code).
 | [frontend/projects.md](frontend/projects.md) | the project pages: the setup checklist and its states, showing the webhook's values, copy buttons (`projects.js`), the cards, each step's help, the `.pj-*` classes |
 | [frontend/forums.md](frontend/forums.md) | the forum pages (posts, ratings, comments) and the report page, **HTMX** (loading, partials, targets, fallbacks, CSRF, errors), focus after a swap and the live region, `forums.js`, the `.fm-*` classes |
 | [frontend/showcases.md](frontend/showcases.md) | the showcase pages (the card grid, a showcase, likes, publishing with an image), the `.sc-*` classes |
+| [frontend/reports.md](frontend/reports.md) | the bug report pages (the list, sending one, a report's page, handling it, the timeline), the project page's report links, the `.rp-*` classes |
 | [frontend/lists.md](frontend/lists.md) | a list's controls (search, filters, sort) and pager, shared by every list: the two partials, the swapped part, the address bar and Back, focus and the live region, the `.ls-*` classes |
 | [frontend/app-shell.md](frontend/app-shell.md) | the app shell for signed-in pages, Account settings and its tabs, profile photos, the sign-in entrance, allauth's layouts and elements, `form_fields.html`, the honeypot and Turnstile markup, the `.app-*` classes |
 | [frontend/canvas.md](frontend/canvas.md) | the loops' canvas kit (`static/reel/`): the loop contract, its context, the determinism and seamless-wrap rules, the drawing modules, fidelity to the editor |

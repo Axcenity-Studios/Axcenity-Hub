@@ -45,6 +45,7 @@ class Action(StrEnum):
     REFRESH = "refresh"  # fetch the repository's details from GitHub
     MANAGE_REPOSITORY = "manage_repository"  # link, unlink, the setup and the webhook's secret
     MANAGE_MEMBERS = "manage_members"  # invite, cancel invitations, change roles, remove
+    MANAGE_REPORTS = "manage_reports"  # see every bug report, change its status, assign it
     DELETE = "delete"
 
 
@@ -56,6 +57,7 @@ PERMISSIONS: dict[Action, frozenset[Role]] = {
     Action.RENAME: frozenset({Role.OWNER}),
     Action.MANAGE_REPOSITORY: frozenset({Role.OWNER}),
     Action.MANAGE_MEMBERS: frozenset({Role.OWNER}),
+    Action.MANAGE_REPORTS: frozenset({Role.OWNER, Role.MAINTAINER}),
     Action.DELETE: frozenset({Role.OWNER}),
 }
 

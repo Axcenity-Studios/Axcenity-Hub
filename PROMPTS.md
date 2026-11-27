@@ -28,6 +28,90 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-27 — Axcenity Hub: Phase 14/17, Bug reports and report management
+
+### Prompts
+
+1. The `/implement` skill, given `axcenity-hub phase 14`.
+2. Answers to the brief's three questions: feedback as a kind on BugReport
+   (recommended), reports about the engine or a project (recommended), Owners and
+   Maintainers handle a project's reports (recommended).
+3. "approved, make it pass only stopping at red tests" (after the transition test's RED).
+4. "approved, make it pass and finish the phase" (after the access test's RED).
+
+### Summary
+
+- **Outcome:** Bug reports and feedback about the Axcenity Engine or a member's project,
+  with supporting details, 5 a day, behind the verification gate. A status follows a
+  permitted-transition table; reports are assigned to someone who handles them and keep a
+  timeline of comments, status changes and assignments. The submitter, the project's
+  Owners and Maintainers, and admins (staff) see a report; everyone else gets a 404.
+  The list uses the shared list pattern. 1791 tests pass (1660 fast, 131 browser); Ruff
+  is clean.
+- **Changes:**
+  - `reports/models.py`: `BugStatus`, `TRANSITIONS`, `allows_transition`, `OPEN_STATUSES`,
+    the engine version validator, `BugReport` (per-kind required fields in `clean`, check
+    constraints) with `BugReportQuerySet.visible_to`/`managed_by`, and `BugActivity`.
+    Migration `0002_bug_reports`.
+  - `reports/bugs.py` (new): `submit` (gate, membership, validation, daily limit under
+    `lock_member`), `change_status`, `assign`/`assignable`, `comment`, `can_manage`,
+    `limit_message`, `reportable_projects`, `release_assignments`.
+  - `reports/listing.py` (new): the reports list per member (search, status, kind, about,
+    assigned; newest, oldest, recently updated).
+  - `reports/forms.py`, `views.py`, `urls.py`, `strings.py`, `admin.py`: the four forms,
+    six views (a report found through `visible_to`/`managed_by` before anything else
+    runs), the `bugs/` URLs ahead of `<kind>/<pk>/`, the copy, and read-only admins with
+    the timeline inline.
+  - `reports/management/commands/seed_report_demo.py` (new): 24 demo reports in every
+    status, each reached along the real transition table.
+  - `templates/reports/bug_list.html`, `partials/bug_list.html`, `bug_form.html`,
+    `bug_detail.html` (new); `styles/source.css`: the `.rp-*` classes.
+  - `projects/models.py`: `Action.MANAGE_REPORTS` (Owner, Maintainer).
+    `projects/teams.py`: dropping to Viewer, removal and leaving unassign the member from
+    the project's reports. `projects/views.py`, `strings.py`,
+    `templates/projects/detail.html`: "Report a bug" for every member, "Bug reports · N
+    open" for those who handle them.
+  - `accounts/strings.py`: the rail's Reports item; the content report page belongs to no
+    item.
+  - Tests: `tests/test_reports_bugs.py`, `tests/test_reports_bugs_list.py`,
+    `tests/test_reports_browser.py` (new). Updated the members-only walk's names, the rail
+    and report-link expectations in `test_accounts.py` and `test_reports.py`, and
+    `test_projects_teams.py`'s migration test (see Sideways).
+  - Docs: `docs/architecture/reports.md` (Bug reports), `docs/frontend/reports.md` (new),
+    the ARCHITECTURE, FRONTEND and TESTING indexes, `architecture/projects.md`,
+    `architecture/lists.md`, `frontend/app-shell.md`; the plan's Phase 14 criteria ticked.
+- **TDD:** (1) the permitted-transition table: every pair of the six statuses plus
+  invalid values, with the table written out in the test (54 cases); (2) the access matrix
+  through every page and action for the submitter, Owner, Maintainer, admin, another
+  Viewer, an outsider and a visitor, for project and engine reports (13 cases). Both
+  went RED on assertions against stubs, then GREEN.
+- **Decisions:** Feedback is a `kind` on BugReport (Report stays abuse-only for Phase
+  15). An empty project means the engine, handled by admins; "admins" means `is_staff`,
+  as moderation already does. A bug needs steps, the engine version and the platform;
+  feedback needs only a title and a description. Statuses: New, Confirmed, In progress,
+  Resolved, Won't fix, Closed (final). The submitter keeps access after leaving the
+  project and can comment but not handle. Changing status or assignee needs no verified
+  email; sending and commenting do. The limit counts both kinds over a rolling 24 hours.
+  The detail page's actions are plain forms that come back to the page (the list swaps in
+  place through HTMX). Editing or deleting a sent report, attachments and notifications
+  are left out.
+- **Deviations:** None: the user took the three recommended answers. The plan's
+  "feedback (12B's Report)" was changed on the user's answer.
+- **Sideways:** The transition test's RED had 18 invalid-value cases failing on the
+  database's check constraint rather than an assertion; this was flagged when the test
+  was shown. An empty `Q()` ORed with the submitter condition is dropped by Django, so
+  admins matched only their own reports; the access test caught it, and staff now get
+  `all()` explicitly. Django's ModelForm replaced the model's "required"-coded messages
+  with "This field is required.", so those errors use the code `missing`. The status
+  filter's select had the same id as the live region (`bug-list-status`); the live region
+  became `#bug-list-live`, with a unique-id test. The first full run had 16 browser
+  failures ("no such table: reports_bugreport"): `test_projects_teams.py`'s migration test
+  rolled `projects` back (which unapplies `reports.0002`) and migrated forward to the
+  `projects` leaf only; it now restores every app's leaf. A `git stash` round trip while
+  investigating left `styles/source.css` newer than the built stylesheet; it was touched
+  after rebuilding. A first look at the screenshots showed two filter labels cut off at
+  360 px; they were shortened.
+
 ## 2026-11-27 — Clickable verification links in the console; credits refreshed by the test run
 
 ### Prompts

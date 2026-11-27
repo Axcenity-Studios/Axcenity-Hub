@@ -773,9 +773,11 @@ def test_the_teams_migration_makes_each_owner_an_owner_member_and_rolls_back():
         rows = back.get_model("projects", "Project").objects.values_list("name", "owner__username")
         assert sorted(rows) == [("Moon Base", "grace"), ("Space Game", "ada")]
     finally:
+        # Back to every app's latest: going back unapplied what depends on projects too
+        # (reports' bug reports), which the projects leaf alone wouldn't bring back.
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()
-        executor.migrate(executor.loader.graph.leaf_nodes("projects"))
+        executor.migrate(executor.loader.graph.leaf_nodes())
 
 
 # ---------- Finding someone to invite ----------

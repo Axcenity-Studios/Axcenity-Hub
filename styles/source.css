@@ -1288,6 +1288,17 @@ html[data-pointer] .sc-tag:hover, .sc-tag:focus-visible { color: var(--color-on-
 .sc-liked svg { fill: currentColor; }
 .sc-form-image { display: block; width: min(100%, 20rem); height: auto; border-radius: 0.375rem; box-shadow: inset 0 0 0 1px var(--color-line); }
 
+/* ---------- Bug reports (/reports/bugs/, docs/frontend/reports.md) ----------
+   The forum's rows and panels, a status tag that reads by weight (new in ink, finished ones
+   faint), the handling forms laid out in a row, and the report's text sections. Monochrome
+   tokens only; the accent is never used. */
+.rp-status[data-status="new"] { color: var(--color-on-ink); background: var(--color-ink); box-shadow: none; }
+.rp-status[data-status="closed"], .rp-status[data-status="wont_fix"] { color: var(--color-fg-weak); box-shadow: inset 0 0 0 1px var(--color-line); }
+.rp-text { display: grid; gap: 0.5rem; }
+.rp-manage { display: grid; gap: 1rem; }
+.rp-inline { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem; }
+.rp-inline > .ls-field { flex: 1 1 14rem; max-width: 24rem; }
+
 /* ---------- Lists (config/listing.py, docs/frontend/lists.md) ----------
    What every searchable list shares: its controls (a search field, a select per filter, the
    sort) and its pager. The list's part swaps in place through HTMX; after the pager its

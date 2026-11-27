@@ -1,0 +1,50 @@
+{# The list's part of /reports/bugs/ (#bug-list): the reports on this page and the pager. An  #}
+{# HTMX answer swaps it whole; `swapped` fills the live region with the count out of band.   #}
+{% if swapped %}<div hx-swap-oob="innerHTML:#bug-list-live"><p>{% if count %}{{ count_words }}{% else %}{{ text.BUGS_NO_MATCH_TITLE }}{% endif %}</p></div>{% endif %}
+<div id="bug-list" class="ls-list">
+  {% if rows %}
+  <section class="panel pj-panel" aria-labelledby="bugs-title">
+    <div class="pj-bar"><h2 id="bugs-title" class="tb-chip tb-chip-current" tabindex="-1"{% if focus_list %} autofocus{% endif %}>{% include "partials/icon.html" with name="flag" size=14 %}{{ text.BUGS_LABEL }}</h2><span class="pj-tag micro" data-bug-count>{{ count }}</span></div>
+    <ul class="app-list fm-rows" data-bugs>
+      {% for row in rows %}
+      <li class="fm-row" data-bug="{{ row.report.pk }}" data-status="{{ row.report.status }}">
+        <h3 class="fm-row-title"><a href="{{ row.report.get_absolute_url }}">{{ row.report.title }}</a></h3>
+        <p class="fm-meta">
+          <span class="pj-tag micro rp-status" data-status="{{ row.report.status }}">{{ row.report.get_status_display }}</span>
+          <span class="pj-tag micro" data-kind="{{ row.report.kind }}">{{ row.report.get_kind_display }}</span>
+          <span data-about>{{ row.report.about_label }}</span>
+          <span aria-hidden="true">·</span>
+          <span>#{{ row.report.pk }}</span>
+          <span aria-hidden="true">·</span>
+          <time datetime="{{ row.report.created|date:'c' }}">{{ row.report.created|date:"j M Y" }}</time>
+          {% if row.yours %}<span class="pj-tag micro" data-yours>{{ text.YOURS }}</span>{% endif %}
+        </p>
+        <p class="fm-meta" data-assignee>
+          {% if row.assignee %}{% include "partials/avatar.html" with person=row.assignee size=20 %}<span>{{ text.BUG_ASSIGNEE }} {{ row.assignee.name }}</span>{% else %}<span>{{ text.UNASSIGNED }}</span>{% endif %}
+        </p>
+        <p class="fm-row-text">{{ row.report.description|truncatechars:180 }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% include "partials/list_pager.html" %}
+  {% elif empty %}
+  <section class="panel pj-panel" aria-labelledby="bugs-empty-title" data-empty>
+    <div class="pj-bar"><span class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="flag" size=14 %}{{ text.BUGS_LABEL }}</span></div>
+    <div class="pj-empty">
+      <h2 id="bugs-empty-title" class="app-heading">{{ text.BUGS_EMPTY_TITLE }}</h2>
+      <p class="app-lede">{{ text.BUGS_EMPTY_TEXT }}</p>
+      <div class="app-actions"><a class="btn btn-primary btn-sm" href="{% url 'reports:bug_create' %}">{{ text.NEW_BUG }}</a></div>
+    </div>
+  </section>
+  {% else %}
+  <section class="panel pj-panel" aria-labelledby="bugs-no-match-title" data-no-match>
+    <div class="pj-bar"><span class="tb-chip tb-chip-current">{% include "partials/icon.html" with name="flag" size=14 %}{{ text.BUGS_LABEL }}</span><span class="pj-tag micro" data-bug-count>0</span></div>
+    <div class="pj-empty">
+      <h2 id="bugs-no-match-title" class="app-heading">{{ text.BUGS_NO_MATCH_TITLE }}</h2>
+      <p class="app-lede">{{ text.BUGS_NO_MATCH_TEXT }}</p>
+      <div class="app-actions"><a class="btn btn-quiet btn-sm" href="{{ list_url }}" data-clear>{{ controls.words.clear }}</a></div>
+    </div>
+  </section>
+  {% endif %}
+</div>

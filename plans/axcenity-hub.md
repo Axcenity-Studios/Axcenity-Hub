@@ -601,9 +601,9 @@ Built test-first with the `tdd` skill; the rest of the phase is built and tested
 
 ### Acceptance criteria
 
-- [ ] Tests: every allowed and forbidden status transition; the access matrix (outsiders get 404); required-field validation
-- [ ] The 6th bug report a user submits in a day is rejected with a clear message (a database count check)
-- [ ] Unverified accounts can't submit reports (the Phase 8 email-verification gate)
+- [x] Tests: every allowed and forbidden status transition; the access matrix (outsiders get 404); required-field validation
+- [x] The 6th bug report a user submits in a day is rejected with a clear message (a database count check)
+- [x] Unverified accounts can't submit reports (the Phase 8 email-verification gate)
 
 ---
 

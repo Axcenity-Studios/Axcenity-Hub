@@ -209,7 +209,8 @@ def test_report_links_show_for_other_members_only(client, content):
     assert f'href="{report_url("comment", comment.pk)}"' in other
     for viewer in [client, signed_in(content["grace"])]:
         html = viewer.get(post.get_absolute_url()).content.decode()
-        assert "/reports/" not in html
+        # The rail's Reports item (/reports/bugs/) is there for everyone; no Report link is.
+        assert "/reports/post/" not in html and "/reports/comment/" not in html
 
 
 @pytest.mark.django_db

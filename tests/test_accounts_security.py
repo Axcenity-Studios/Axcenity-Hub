@@ -555,6 +555,12 @@ def test_every_members_only_url_sends_an_anonymous_visitor_to_sign_in(client):
         "forums:comment_delete",
         "forums:rate",
         "reports:create",
+        "reports:bug_list",
+        "reports:bug_create",
+        "reports:bug_detail",
+        "reports:bug_status",
+        "reports:bug_assign",
+        "reports:bug_comment",
     } <= set(members_only)
 
 

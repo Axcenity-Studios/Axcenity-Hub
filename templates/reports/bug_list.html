@@ -1,0 +1,22 @@
+{% extends "app/shell.html" %}
+{% load static shell_tags %}
+{% block head_title %}{{ text.BUGS_TITLE }}{% endblock %}
+{% block app_head %}<script src="{% versioned_static 'js/forums.js' %}" defer></script>{% endblock %}
+{% block content %}
+{# The reports the member may see, 20 a page: the controls (search, filters, sort) and the   #}
+{# list's part, which htmx swaps in place (docs/frontend/lists.md). Members only.            #}
+<div class="app-page">
+  <div class="pj-head">
+    <header class="app-page-head">
+      <h1 class="headline app-title">{{ text.BUGS_TITLE }}</h1>
+      <p class="app-lede">{{ text.BUGS_LEDE }}</p>
+    </header>
+    <div class="app-actions">
+      <a class="btn btn-primary btn-sm" href="{% url 'reports:bug_create' %}" data-new-report>{% include "partials/icon.html" with name="plus" size=14 %}{{ text.NEW_BUG }}</a>
+    </div>
+  </div>
+  {% if not empty %}{% include "partials/list_controls.html" %}{% endif %}
+  <div id="bug-list-live" class="sr-only" role="status" aria-live="polite"></div>
+  {% include "reports/partials/bug_list.html" %}
+</div>
+{% endblock %}
